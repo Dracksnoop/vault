@@ -21,20 +21,16 @@ import {
   LogOut,
   QrCode
 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import type { Unit, Item } from "@shared/schema";
 
 interface UnitDetails {
   serialNumber: string;
   model: string;
   name: string;
-  configuration: {
-    processor: string;
-    ram: string;
-    storage: string;
-    graphics?: string;
-  };
   location: string;
   warranty: string;
-  status: "In Stock" | "Rented" | "Maintenance" | "Retired";
+  status: "In Stock" | "rented" | "Maintenance" | "Retired";
   notes: string;
   barcode: string;
 }
@@ -52,48 +48,7 @@ export default function QRScanDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [unitDetails, setUnitDetails] = useState<UnitDetails | null>(null);
   const [serialNumber, setSerialNumber] = useState("");
-
-  // Mock authentication - replace with real authentication later
-  const mockCredentials = {
-    userId: "krish",
-    password: "admin123"
-  };
-
-  // Mock unit data - replace with real API calls later
-  const mockUnitData: Record<string, UnitDetails> = {
-    "INT7634001": {
-      serialNumber: "INT7634001",
-      model: "Dell OptiPlex 7090",
-      name: "Intel Core i7 Desktop",
-      configuration: {
-        processor: "Intel Core i7-11700 @ 2.5GHz",
-        ram: "16GB DDR4",
-        storage: "512GB NVMe SSD",
-        graphics: "Intel UHD Graphics 750"
-      },
-      location: "Warehouse A - Shelf 3",
-      warranty: "2026-12-31",
-      status: "In Stock",
-      notes: "Recently serviced, ready for deployment",
-      barcode: "123456789012"
-    },
-    "INT7634002": {
-      serialNumber: "INT7634002",
-      model: "Dell OptiPlex 7090",
-      name: "Intel Core i7 Desktop",
-      configuration: {
-        processor: "Intel Core i7-11700 @ 2.5GHz",
-        ram: "16GB DDR4",
-        storage: "512GB NVMe SSD",
-        graphics: "Intel UHD Graphics 750"
-      },
-      location: "Client Site - Building B",
-      warranty: "2026-12-31",
-      status: "Rented",
-      notes: "Deployed to ABC Corp, rental period until March 2025",
-      barcode: "123456789013"
-    }
-  };
+  const [authenticatedUser, setAuthenticatedUser] = useState<any>(null);
 
   useEffect(() => {
     // Extract serial number from URL path
@@ -109,24 +64,48 @@ export default function QRScanDashboard() {
     setIsLoading(true);
     setLoginError("");
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Authenticate user with real API
+      const response = await apiRequest('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: loginForm.userId,
+          password: loginForm.password
+        })
+      });
 
-    if (loginForm.userId === mockCredentials.userId && loginForm.password === mockCredentials.password) {
-      setIsAuthenticated(true);
-      
-      // Fetch unit details after successful login
-      const unit = mockUnitData[serialNumber];
-      if (unit) {
-        setUnitDetails(unit);
+      if (response.user) {
+        setIsAuthenticated(true);
+        setAuthenticatedUser(response.user);
+        
+        // Fetch unit details after successful login
+        await fetchUnitDetails(serialNumber);
       } else {
-        setLoginError("Unit not found in system");
+        setLoginError("Invalid credentials. Please try again.");
       }
-    } else {
+    } catch (error) {
+      console.error('Login error:', error);
       setLoginError("Invalid credentials. Please try again.");
     }
 
     setIsLoading(false);
+  };
+
+  const fetchUnitDetails = async (serialNum: string) => {
+    try {
+      // Fetch unit details by serial number using the new API endpoint
+      const response = await apiRequest(`/api/units/serial/${serialNum}`);
+      
+      if (response.unitDetails) {
+        setUnitDetails(response.unitDetails);
+      } else {
+        setLoginError("Unit details not found");
+      }
+    } catch (error) {
+      console.error('Error fetching unit details:', error);
+      setLoginError("Unit not found in system");
+    }
   };
 
   const handleLogout = () => {
@@ -134,12 +113,13 @@ export default function QRScanDashboard() {
     setUnitDetails(null);
     setLoginForm({ userId: "", password: "" });
     setLoginError("");
+    setAuthenticatedUser(null);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "In Stock": return "bg-green-100 text-green-800";
-      case "Rented": return "bg-blue-100 text-blue-800";
+      case "rented": return "bg-blue-100 text-blue-800";
       case "Maintenance": return "bg-yellow-100 text-yellow-800";
       case "Retired": return "bg-red-100 text-red-800";
       default: return "bg-gray-100 text-gray-800";
@@ -149,7 +129,7 @@ export default function QRScanDashboard() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "In Stock": return <CheckCircle className="w-4 h-4" />;
-      case "Rented": return <Package className="w-4 h-4" />;
+      case "rented": return <Package className="w-4 h-4" />;
       case "Maintenance": return <AlertTriangle className="w-4 h-4" />;
       case "Retired": return <Lock className="w-4 h-4" />;
       default: return <Package className="w-4 h-4" />;
@@ -320,6 +300,13 @@ export default function QRScanDashboard() {
                 </div>
 
                 <div className="space-y-2">
+                  <Label className="text-black font-medium">Barcode</Label>
+                  <div className="p-2 bg-gray-50 rounded border font-mono text-sm">
+                    {unitDetails.barcode}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <Label className="text-black font-medium">Location</Label>
                   <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border">
                     <MapPin className="w-4 h-4 text-gray-500" />
@@ -331,11 +318,13 @@ export default function QRScanDashboard() {
                   <Label className="text-black font-medium">Warranty</Label>
                   <div className="flex items-center gap-2 p-2 bg-gray-50 rounded border">
                     <Calendar className="w-4 h-4 text-gray-500" />
-                    <span className="text-black">Valid until {unitDetails.warranty}</span>
+                    <span className="text-black">
+                      {unitDetails.warranty !== 'N/A' ? `Valid until ${unitDetails.warranty}` : 'No warranty information'}
+                    </span>
                   </div>
                 </div>
 
-                {unitDetails.notes && (
+                {unitDetails.notes && unitDetails.notes !== 'No notes available' && (
                   <div className="space-y-2">
                     <Label className="text-black font-medium">Notes</Label>
                     <div className="p-3 bg-yellow-50 rounded border border-yellow-200">
@@ -347,50 +336,32 @@ export default function QRScanDashboard() {
             </Card>
           </div>
 
-          {/* Configuration Details */}
+          {/* User Info & Actions */}
           <div className="space-y-6">
             <Card className="border-black">
               <CardHeader>
                 <CardTitle className="text-black flex items-center gap-2">
-                  <Cpu className="w-5 h-5" />
-                  Configuration
+                  <User className="w-5 h-5" />
+                  User Information
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Cpu className="w-4 h-4 text-gray-500" />
+                    <User className="w-4 h-4 text-gray-500" />
                     <div>
-                      <p className="text-sm font-medium text-black">Processor</p>
-                      <p className="text-xs text-gray-600">{unitDetails.configuration.processor}</p>
+                      <p className="text-sm font-medium text-black">Logged in as</p>
+                      <p className="text-xs text-gray-600">{authenticatedUser?.username}</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <HardDrive className="w-4 h-4 text-gray-500" />
+                    <Shield className="w-4 h-4 text-gray-500" />
                     <div>
-                      <p className="text-sm font-medium text-black">Memory</p>
-                      <p className="text-xs text-gray-600">{unitDetails.configuration.ram}</p>
+                      <p className="text-sm font-medium text-black">Access Level</p>
+                      <p className="text-xs text-gray-600">Unit Details View</p>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <HardDrive className="w-4 h-4 text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium text-black">Storage</p>
-                      <p className="text-xs text-gray-600">{unitDetails.configuration.storage}</p>
-                    </div>
-                  </div>
-                  
-                  {unitDetails.configuration.graphics && (
-                    <div className="flex items-center gap-2">
-                      <Monitor className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <p className="text-sm font-medium text-black">Graphics</p>
-                        <p className="text-xs text-gray-600">{unitDetails.configuration.graphics}</p>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -399,18 +370,15 @@ export default function QRScanDashboard() {
               <CardHeader>
                 <CardTitle className="text-black flex items-center gap-2">
                   <Package className="w-5 h-5" />
-                  Quick Actions
+                  Unit Actions
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full border-black">
-                  Update Status
+                <Button variant="outline" className="w-full border-black" disabled>
+                  View Only Mode
                 </Button>
-                <Button variant="outline" className="w-full border-black">
-                  Change Location
-                </Button>
-                <Button variant="outline" className="w-full border-black">
-                  Add Note
+                <Button variant="outline" className="w-full border-black" disabled>
+                  Contact Admin for Updates
                 </Button>
               </CardContent>
             </Card>

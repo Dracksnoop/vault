@@ -763,6 +763,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get unit details by serial number (for QR scanning)
+  app.get("/api/units/serial/:serialNumber", async (req, res) => {
+    try {
+      const { serialNumber } = req.params;
+      
+      // Find unit by serial number
+      const unit = await storage.getUnitBySerialNumber(serialNumber);
+      if (!unit) {
+        return res.status(404).json({ error: "Unit not found" });
+      }
+      
+      // Get associated item details
+      const item = await storage.getItem(unit.itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found for this unit" });
+      }
+      
+      // Return combined unit and item details
+      res.json({
+        unit,
+        item,
+        unitDetails: {
+          serialNumber: unit.serialNumber,
+          model: item.model || 'N/A',
+          name: item.name,
+          location: unit.location || 'N/A',
+          warranty: unit.warrantyExpiry || 'N/A',
+          status: unit.status,
+          notes: unit.notes || 'No notes available',
+          barcode: unit.barcode
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching unit by serial number:", error);
+      res.status(500).json({ error: "Failed to fetch unit details" });
+    }
+  });
+
   // Test endpoint to verify MongoDB connection
   app.get("/api/test/db", async (req, res) => {
     try {
