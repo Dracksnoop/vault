@@ -24,9 +24,11 @@ const navigationItems = [
   { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Customer", href: "/customer", icon: Users },
   { name: "Customer Management", href: "/customer-management", icon: UserCheck },
+  { type: "separator" },
   { name: "Demo", href: "/demo", icon: Play },
   { name: "Call/Service", href: "/callservice", icon: Phone },
   { name: "Trade", href: "/trade", icon: RefreshCw },
+  { type: "separator" },
   { name: "Users", href: "/users", icon: UserCheck },
   { name: "Profile", href: "/profile", icon: User },
   { name: "Support", href: "/support", icon: LifeBuoy },
@@ -50,8 +52,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
         
         {/* Navigation Menu */}
-        <nav className="flex-1 px-4 py-4 space-y-1">
-          {navigationItems.map((item) => {
+        <nav className="flex-1 px-4 py-4">
+          {navigationItems.map((item, index) => {
+            if (item.type === "separator") {
+              return (
+                <div key={`separator-${index}`} className="my-3">
+                  <div className="border-t border-black mx-0"></div>
+                </div>
+              );
+            }
+            
             const Icon = item.icon;
             const isActive = location === item.href;
             
@@ -60,7 +70,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors mb-1",
                   isActive
                     ? "nav-item-active"
                     : "text-black hover:bg-gray-50 hover:text-black"
