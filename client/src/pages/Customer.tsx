@@ -78,22 +78,23 @@ export default function Customer() {
             const customerRentals = rentals.filter((rental: any) => rental.customerId === customer.id);
 
             return (
-              <Card key={customer.id} className="border-black hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-black" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg text-black">{customer.name}</CardTitle>
-                        <Badge variant="outline" className="mt-1">
-                          {customer.customerType}
-                        </Badge>
+              <Link key={customer.id} href={`/customer/${customer.id}`}>
+                <Card className="border-black hover:shadow-lg transition-shadow cursor-pointer">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                          <User className="w-5 h-5 text-black" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg text-black">{customer.name}</CardTitle>
+                          <Badge variant="outline" className="mt-1">
+                            {customer.customerType}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 
                 <CardContent className="space-y-3">
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
@@ -160,6 +161,7 @@ export default function Customer() {
                   </div>
                 </CardContent>
               </Card>
+            </Link>
             );
           })}
         </div>
