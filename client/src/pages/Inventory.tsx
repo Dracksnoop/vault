@@ -586,7 +586,7 @@ export default function Inventory() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem-1.5rem)] bg-white overflow-hidden border-t border-black">
+    <div className="h-[calc(100vh-5rem-1.5rem)] bg-white overflow-hidden border-t border-black">
       <div className="flex h-full">
         {/* Left Panel - Categories */}
         <div className="w-80 border-r border-black bg-white flex flex-col h-full">
