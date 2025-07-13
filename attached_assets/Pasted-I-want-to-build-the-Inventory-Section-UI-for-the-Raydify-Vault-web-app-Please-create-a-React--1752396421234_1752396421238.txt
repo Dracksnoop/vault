@@ -1,0 +1,53 @@
+I want to build the **Inventory Section** UI for the Raydify Vault web app. Please create a React + Tailwind CSS interface that includes the following:
+
+1. **Layout & Navigation**  
+   - When the user clicks “Inventory” from the sidebar menu, load the Inventory Section in the main content area.  
+   - Use a two-panel layout:  
+     • Left panel: a vertical list of inventory categories (e.g., CPU, Monitor, Keyboard, Mouse, Cables, Networking Devices, Biometric Devices).  
+     • Bottom of the left panel: an “Add New Category” button to create new categories dynamically.  
+     • Right panel: shows details of the selected category.
+
+2. **Category View (Right Panel)**  
+   - Display a header with the category name and an “Add New Item” button.  
+   - Show a searchable table listing all items/products within the selected category. Columns should include:  
+     • Product Name  
+     • Model/Specification  
+     • Quantity In Stock  
+     • Quantity Rented Out  
+     • Quantity Available (calculated)  
+     • Location  
+     • Actions (Edit/Delete buttons)
+
+3. **Item Detail View**  
+   - When a product is clicked in the right panel’s list, open a detailed view showing individual units with:  
+     • Serial Number  
+     • Barcode (icon or image)  
+     • Status (In Stock, Rented, Maintenance, Retired)  
+     • Location  
+     • Warranty Expiry  
+     • Notes  
+   - Include a search bar to filter serial numbers and a button to “Add New Unit” (for adding serial numbers/barcodes).
+
+4. **Add / Edit Forms**  
+   - Create modal dialogs or slide-in side panels for adding and editing:  
+     • Categories  
+     • Items  
+     • Units  
+   - Forms should have appropriate input fields as per above details.
+
+5. **Styling & UX**  
+   - Use the brand colors (navy, purple, magenta) for highlights and buttons.  
+   - Keep backgrounds white and layout clean and minimalistic.  
+   - Use consistent spacing, fonts, and button styles throughout.  
+   - Add hover effects for interactive elements.  
+   - Ensure the UI is responsive and user-friendly.
+
+6. **Functionality**  
+   - No backend logic or API calls needed now—just build the static UI with placeholders for dynamic content and event handlers for navigation and modal toggling.  
+   - Implement basic state management to switch views within the Inventory Section.
+
+Deliver a complete, polished Inventory Section UI based on this prompt, matching the existing app’s look and feel.
+
+Use the uploaded design references as visual guidance for layout, colors, and spacing.
+
+Thank you!
