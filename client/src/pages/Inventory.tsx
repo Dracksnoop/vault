@@ -329,6 +329,7 @@ export default function Inventory() {
     const statusOrder = {
       "In Stock": 0,
       "Rented": 1,
+      "rented": 1, // Handle lowercase rented
       "Maintenance": 2,
       "Retired": 3
     };
@@ -347,7 +348,8 @@ export default function Inventory() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "In Stock": return "bg-green-100 text-green-800 border-green-300";
-      case "Rented": return "bg-blue-100 text-blue-800 border-blue-300";
+      case "Rented": 
+      case "rented": return "bg-blue-100 text-blue-800 border-blue-300";
       case "Maintenance": return "bg-yellow-100 text-yellow-800 border-yellow-300";
       case "Retired": return "bg-red-100 text-red-800 border-red-300";
       default: return "bg-gray-100 text-gray-800 border-gray-300";
@@ -357,7 +359,8 @@ export default function Inventory() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "In Stock": return <CheckCircle className="w-4 h-4" />;
-      case "Rented": return <Package className="w-4 h-4" />;
+      case "Rented": 
+      case "rented": return <Package className="w-4 h-4" />;
       case "Maintenance": return <Clock className="w-4 h-4" />;
       case "Retired": return <XCircle className="w-4 h-4" />;
       default: return <AlertCircle className="w-4 h-4" />;
@@ -816,7 +819,7 @@ export default function Inventory() {
                     // Calculate real-time stats based on unit statuses
                     const itemUnits = units.filter(unit => unit.itemId === item.id);
                     const inStockCount = itemUnits.filter(unit => unit.status === "In Stock").length;
-                    const rentedCount = itemUnits.filter(unit => unit.status === "Rented").length;
+                    const rentedCount = itemUnits.filter(unit => unit.status === "Rented" || unit.status === "rented").length;
                     const maintenanceCount = itemUnits.filter(unit => unit.status === "Maintenance").length;
                     const totalStockCount = inStockCount + rentedCount; // Total units (in stock + rented)
                     const availableCount = inStockCount; // Only available units

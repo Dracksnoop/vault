@@ -424,7 +424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate stats based on units
       const totalUnits = units.length;
       const inStockUnits = units.filter(unit => unit.status === "In Stock").length;
-      const rentedUnits = units.filter(unit => unit.status === "Rented").length;
+      const rentedUnits = units.filter(unit => unit.status === "Rented" || unit.status === "rented").length;
       const maintenanceUnits = units.filter(unit => unit.status === "Maintenance").length;
       const activeCustomers = customers.length;
       
