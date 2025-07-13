@@ -21,9 +21,9 @@ UI Design: Minimal white theme with slim black borders throughout the applicatio
 
 ### Backend Architecture
 - **Framework**: Express.js with TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
-- **Database Provider**: Neon Database (@neondatabase/serverless)
-- **Session Management**: Connect-pg-simple for PostgreSQL session storage
+- **Database**: MongoDB with native MongoDB driver
+- **Database Provider**: MongoDB Atlas (cloud-hosted)
+- **Session Management**: Connect-pg-simple for PostgreSQL session storage (legacy)
 - **API Structure**: RESTful API with `/api` prefix
 - **Development**: Hot module replacement via Vite integration
 
@@ -52,9 +52,11 @@ UI Design: Minimal white theme with slim black borders throughout the applicatio
 ## Data Flow
 
 ### Database Schema
-- **Users Table**: Basic user management with username/password authentication
+- **Users Collection**: Basic user management with username/password authentication
+- **Inventory Collection**: Product inventory with SKU, quantity, price, category
+- **Customers Collection**: Customer management with contact information
 - **Schema Validation**: Zod schemas for type-safe data validation
-- **Migration System**: Drizzle migrations for database schema changes
+- **Storage Interface**: Abstracted storage layer supporting both MongoDB and in-memory fallback
 
 ### API Communication
 - **HTTP Client**: Custom fetch wrapper with error handling
@@ -112,3 +114,11 @@ The application follows a clean architecture pattern with clear separation betwe
   - Changed all page components to use white backgrounds with black borders
   - Updated navigation active states to use light gray with black left border
   - Maintained clean, minimal aesthetic throughout the application
+
+- **July 13, 2025**: Integrated MongoDB database support
+  - Added MongoDB connection using native MongoDB driver
+  - Created comprehensive storage interface supporting both MongoDB and in-memory fallback
+  - Extended data schema to include Inventory and Customer collections
+  - Implemented full CRUD API endpoints for inventory and customer management
+  - Added dashboard statistics endpoint for real-time metrics
+  - Connected to MongoDB Atlas cloud database with proper error handling
