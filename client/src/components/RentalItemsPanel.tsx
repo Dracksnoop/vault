@@ -104,9 +104,22 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     setShowModifyDialog(true);
   };
 
-  // Get units for the selected item
-  const getItemUnits = (itemId: string) => {
-    return units.filter((unit: any) => unit.itemId === itemId);
+  // Get units for the selected item that are actually rented by this customer
+  const getItemUnits = (itemId: string, serviceItem: any) => {
+    // Get units for this item that are currently rented
+    const allItemUnits = units.filter((unit: any) => unit.itemId === itemId);
+    const rentedUnits = allItemUnits.filter((unit: any) => unit.status === 'rented');
+    
+    // If we have the exact quantity rented, show only that many units
+    // This assumes the first N rented units are the ones for this customer
+    const quantityRented = serviceItem.quantity || 0;
+    
+    // Sort by creation date and take the first N units that are rented
+    const sortedRentedUnits = rentedUnits.sort((a, b) => 
+      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+    );
+    
+    return sortedRentedUnits.slice(0, quantityRented);
   };
 
   return (
@@ -355,38 +368,46 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
               </div>
               
               <div className="border-t pt-4">
-                <h3 className="font-semibold text-black mb-4">Individual Units</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {getItemUnits(selectedItem.itemId).map((unit: any) => (
-                    <div key={unit.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <Package className="w-4 h-4 text-gray-600" />
-                          <span className="font-medium">Unit #{unit.serialNumber}</span>
-                        </div>
-                        <Badge variant={unit.status === 'rented' ? 'default' : 'secondary'}>
-                          {unit.status}
-                        </Badge>
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <QrCode className="w-4 h-4 text-gray-500" />
-                          <span>Serial: {unit.serialNumber}</span>
-                        </div>
-                        {unit.barcode && (
+                <h3 className="font-semibold text-black mb-4">Individual Units (Rented by this Customer)</h3>
+                {getItemUnits(selectedItem.itemId, selectedItem).length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No units currently rented by this customer</p>
+                    <p className="text-sm text-gray-500 mt-1">Units will appear here when rented</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {getItemUnits(selectedItem.itemId, selectedItem).map((unit: any) => (
+                      <div key={unit.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
-                            <Barcode className="w-4 h-4 text-gray-500" />
-                            <span>Barcode: {unit.barcode}</span>
+                            <Package className="w-4 h-4 text-gray-600" />
+                            <span className="font-medium">Unit #{unit.serialNumber}</span>
                           </div>
-                        )}
-                        <div className="flex items-center space-x-2">
-                          <Clock className="w-4 h-4 text-gray-500" />
-                          <span>Added: {new Date(unit.createdAt || Date.now()).toLocaleDateString()}</span>
+                          <Badge variant={unit.status === 'rented' ? 'default' : 'secondary'}>
+                            {unit.status}
+                          </Badge>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center space-x-2">
+                            <QrCode className="w-4 h-4 text-gray-500" />
+                            <span>Serial: {unit.serialNumber}</span>
+                          </div>
+                          {unit.barcode && (
+                            <div className="flex items-center space-x-2">
+                              <Barcode className="w-4 h-4 text-gray-500" />
+                              <span>Barcode: {unit.barcode}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center space-x-2">
+                            <Clock className="w-4 h-4 text-gray-500" />
+                            <span>Added: {new Date(unit.createdAt || Date.now()).toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
