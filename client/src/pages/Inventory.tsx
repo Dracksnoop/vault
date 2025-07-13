@@ -451,17 +451,35 @@ export default function Inventory() {
         notes: newUnit.notes.trim()
       };
       
-      createUnitMutation.mutate(unit);
+      // Check if this is a CPU or Monitor item
+      const selectedCategory = categories.find(cat => cat.id === selectedItemData?.categoryId);
+      const isCPU = selectedCategory?.name.toLowerCase().includes('cpu');
+      const isMonitor = selectedCategory?.name.toLowerCase().includes('monitor');
       
-      setNewUnit({
-        serialNumber: "",
-        barcode: "",
-        status: "In Stock",
-        location: "",
-        warrantyExpiry: "",
-        notes: ""
+      createUnitMutation.mutate(unit, {
+        onSuccess: (createdUnit) => {
+          // If it's a CPU, show CPU specs editor after creation
+          if (isCPU) {
+            setSelectedUnitForCPU(createdUnit);
+            setShowCPUSpecs(true);
+          }
+          // If it's a Monitor, show Monitor specs editor after creation
+          else if (isMonitor) {
+            setSelectedUnitForMonitor(createdUnit);
+            setShowMonitorSpecs(true);
+          }
+          
+          setNewUnit({
+            serialNumber: "",
+            barcode: "",
+            status: "In Stock",
+            location: "",
+            warrantyExpiry: "",
+            notes: ""
+          });
+          setShowAddUnit(false);
+        }
       });
-      setShowAddUnit(false);
     }
   };
 
