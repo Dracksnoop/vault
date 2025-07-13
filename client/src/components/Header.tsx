@@ -7,7 +7,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   return (
-    <header className="bg-white shadow-sm border-b border-black fixed top-0 right-0 left-0 lg:left-60 z-40 h-16">
+    <header className="bg-white fixed top-0 right-0 left-0 lg:left-60 z-40 h-16">
       <div className="flex items-center justify-between h-full px-4">
         {/* Mobile menu button */}
         <button
@@ -19,7 +19,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         
         {/* Logo for mobile */}
         <div className="flex items-center lg:hidden">
-          <div className="w-8 h-8 bg-white border border-black rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
             <img src={logoPath} alt="Vault Logo" className="w-5 h-5" />
           </div>
           <span className="ml-3 text-lg font-semibold text-black">VAULT</span>
@@ -30,7 +30,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         
         {/* User avatar */}
         <div className="flex items-center">
-          <div className="w-8 h-8 bg-white border border-black rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
             <User className="w-4 h-4 text-black" />
           </div>
         </div>
