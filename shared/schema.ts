@@ -33,6 +33,46 @@ export const units = pgTable("units", {
   location: text("location"),
   warrantyExpiry: text("warranty_expiry"),
   notes: text("notes"),
+  
+  // CPU Specifications
+  cpuBrand: text("cpu_brand"),
+  cpuModel: text("cpu_model"),
+  cpuCores: integer("cpu_cores"),
+  cpuClockSpeed: text("cpu_clock_speed"),
+  cpuArchitecture: text("cpu_architecture"),
+  cpuCacheSize: text("cpu_cache_size"),
+  
+  // Memory specifications
+  ramSize: integer("ram_size"),
+  ramType: text("ram_type"),
+  ramSpeed: integer("ram_speed"),
+  ramSlotsUsed: integer("ram_slots_used"),
+  
+  // Storage specifications  
+  storageType: text("storage_type"),
+  storageCapacity: text("storage_capacity"),
+  storageNumDrives: integer("storage_num_drives"),
+  
+  // Graphics specifications
+  gpuType: text("gpu_type"),
+  gpuModel: text("gpu_model"),
+  gpuVram: integer("gpu_vram"),
+  
+  // Motherboard specifications
+  motherboardModel: text("motherboard_model"),
+  
+  // Power Supply specifications
+  psuWattage: integer("psu_wattage"),
+  psuEfficiency: text("psu_efficiency"),
+  
+  // Operating System
+  osName: text("os_name"),
+  
+  // Additional specifications
+  networkAdapter: text("network_adapter"),
+  opticalDrive: text("optical_drive"),
+  ports: text("ports"),
+  coolingSystem: text("cooling_system"),
 });
 
 export const inventory = pgTable("inventory", {
@@ -128,6 +168,30 @@ export const insertUnitSchema = createInsertSchema(units).pick({
   location: true,
   warrantyExpiry: true,
   notes: true,
+  cpuBrand: true,
+  cpuModel: true,
+  cpuCores: true,
+  cpuClockSpeed: true,
+  cpuArchitecture: true,
+  cpuCacheSize: true,
+  ramSize: true,
+  ramType: true,
+  ramSpeed: true,
+  ramSlotsUsed: true,
+  storageType: true,
+  storageCapacity: true,
+  storageNumDrives: true,
+  gpuType: true,
+  gpuModel: true,
+  gpuVram: true,
+  motherboardModel: true,
+  psuWattage: true,
+  psuEfficiency: true,
+  osName: true,
+  networkAdapter: true,
+  opticalDrive: true,
+  ports: true,
+  coolingSystem: true,
 });
 
 export const insertInventorySchema = createInsertSchema(inventory).pick({

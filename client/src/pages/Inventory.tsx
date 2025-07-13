@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { QRCodeSVG } from "qrcode.react";
+import CPUSpecsEditor from '@/components/CPUSpecsEditor';
 import { 
   Plus, 
   Search, 
@@ -128,6 +129,8 @@ export default function Inventory() {
   const [showAddUnit, setShowAddUnit] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
   const [selectedUnitForQR, setSelectedUnitForQR] = useState<Unit | null>(null);
+  const [showCPUSpecs, setShowCPUSpecs] = useState(false);
+  const [selectedUnitForCPU, setSelectedUnitForCPU] = useState<Unit | null>(null);
   const [newCategory, setNewCategory] = useState("");
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editingUnit, setEditingUnit] = useState<string | null>(null);
@@ -546,15 +549,26 @@ export default function Inventory() {
   };
 
   const handleEditUnit = (unit: Unit) => {
-    setEditingUnit(unit.id);
-    setEditUnitData({
-      serialNumber: unit.serialNumber,
-      barcode: unit.barcode,
-      status: unit.status,
-      location: unit.location,
-      warrantyExpiry: unit.warrantyExpiry,
-      notes: unit.notes
-    });
+    // Check if this is a CPU category item
+    const itemForUnit = items.find(item => item.id === unit.itemId);
+    const categoryForItem = categories.find(cat => cat.id === itemForUnit?.categoryId);
+    
+    if (categoryForItem?.name?.toLowerCase() === 'cpu') {
+      // Open CPU specifications editor
+      setSelectedUnitForCPU(unit);
+      setShowCPUSpecs(true);
+    } else {
+      // Open regular unit editor
+      setEditingUnit(unit.id);
+      setEditUnitData({
+        serialNumber: unit.serialNumber,
+        barcode: unit.barcode,
+        status: unit.status,
+        location: unit.location,
+        warrantyExpiry: unit.warrantyExpiry,
+        notes: unit.notes
+      });
+    }
   };
 
   const handleSaveUnit = () => {
@@ -1287,6 +1301,18 @@ export default function Inventory() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* CPU Specifications Editor */}
+      {selectedUnitForCPU && (
+        <CPUSpecsEditor
+          unit={selectedUnitForCPU}
+          isOpen={showCPUSpecs}
+          onClose={() => {
+            setShowCPUSpecs(false);
+            setSelectedUnitForCPU(null);
+          }}
+        />
+      )}
     </div>
   );
 }
