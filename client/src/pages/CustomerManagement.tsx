@@ -1002,11 +1002,11 @@ export default function CustomerManagement() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-2 sm:p-4 lg:p-6">
         {/* Progress Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-black">Customer Management</h1>
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-black">Customer Management</h1>
             <div className="text-sm text-gray-600">
               Step {currentStep} of {steps.length}
             </div>
@@ -1018,14 +1018,14 @@ export default function CustomerManagement() {
             {steps.map((step, index) => (
               <div key={index} className="flex flex-col items-center">
                 <div className={`
-                  w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                  w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium
                   ${index + 1 <= currentStep ? 'bg-black text-white' : 'bg-gray-200 text-gray-600'}
                 `}>
                   {index + 1}
                 </div>
-                <div className="text-center mt-2">
-                  <p className="text-sm font-medium text-black">{step.title}</p>
-                  <p className="text-xs text-gray-600">{step.description}</p>
+                <div className="text-center mt-2 max-w-20 sm:max-w-none">
+                  <p className="text-xs sm:text-sm font-medium text-black">{step.title}</p>
+                  <p className="text-xs text-gray-600 hidden sm:block">{step.description}</p>
                 </div>
               </div>
             ))}
@@ -1034,7 +1034,7 @@ export default function CustomerManagement() {
 
         {/* Step Content */}
         <Card className="border-black">
-          <CardContent className="p-8">
+          <CardContent className="p-4 sm:p-6 lg:p-8">
             {renderStep()}
           </CardContent>
         </Card>

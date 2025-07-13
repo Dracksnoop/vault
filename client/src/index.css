@@ -72,4 +72,23 @@
   .nav-item:hover {
     @apply text-black bg-gray-50;
   }
+  
+  /* Mobile-specific utilities */
+  @media (max-width: 768px) {
+    .mobile-hide {
+      display: none;
+    }
+    
+    .mobile-text-sm {
+      font-size: 0.875rem;
+    }
+    
+    .mobile-p-2 {
+      padding: 0.5rem;
+    }
+    
+    .mobile-gap-2 {
+      gap: 0.5rem;
+    }
+  }
 }

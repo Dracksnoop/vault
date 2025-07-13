@@ -661,9 +661,9 @@ export default function Inventory() {
 
   return (
     <div className="h-[calc(100vh-5rem-1.5rem)] bg-white overflow-hidden border-t border-black">
-      <div className="flex h-full">
+      <div className="flex flex-col md:flex-row h-full">
         {/* Left Panel - Categories */}
-        <div className="w-80 border-r border-black bg-white flex flex-col h-full">
+        <div className="w-full md:w-80 border-r-0 md:border-r border-b md:border-b-0 border-black bg-white flex flex-col h-48 md:h-full">
           <div className="p-4 border-b border-black flex-shrink-0">
             <h2 className="text-lg font-semibold text-black">Categories</h2>
           </div>
@@ -754,7 +754,7 @@ export default function Inventory() {
                         Add New Item
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="border-black max-w-md">
+                    <DialogContent className="border-black max-w-md w-[90vw] sm:w-full">
                       <DialogHeader>
                         <DialogTitle className="text-black">Add New Item</DialogTitle>
                         <DialogDescription className="text-black">
@@ -848,11 +848,11 @@ export default function Inventory() {
                     return (
                       <Card key={item.id} className="border-black hover:bg-gray-50 cursor-pointer transition-colors">
                         <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1" onClick={() => setSelectedItem(item.id)}>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div className="flex-1 cursor-pointer" onClick={() => setSelectedItem(item.id)}>
                               <div className="font-medium text-black">{item.name}</div>
                               <div className="text-sm text-gray-600 mb-2">{item.model}</div>
-                              <div className="flex items-center gap-4 text-sm">
+                              <div className="grid grid-cols-2 sm:flex sm:items-center sm:gap-4 text-sm gap-2">
                                 <div className="flex items-center gap-1">
                                   <Package className="w-4 h-4 text-gray-500" />
                                   <span className="text-black">Stock: {totalStockCount}</span>
@@ -871,7 +871,7 @@ export default function Inventory() {
                                 </div>
                               </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 self-end sm:self-center">
                               <Button 
                                 variant="outline" 
                                 size="sm" 
@@ -907,7 +907,7 @@ export default function Inventory() {
             // Unit Details View
             <div className="h-full flex flex-col max-h-full">
               <div className="p-4 border-b border-black flex-shrink-0">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
                   <div className="flex items-center gap-4">
                     <Button 
                       variant="outline" 
@@ -917,7 +917,7 @@ export default function Inventory() {
                       ← Back
                     </Button>
                     <div>
-                      <h2 className="text-xl font-semibold text-black">
+                      <h2 className="text-lg sm:text-xl font-semibold text-black">
                         {selectedItemData?.name}
                       </h2>
                       <p className="text-sm text-gray-600">{selectedItemData?.model}</p>
@@ -945,7 +945,7 @@ export default function Inventory() {
                         Add New Unit
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="border-black max-w-md">
+                    <DialogContent className="border-black max-w-md w-[90vw] sm:w-full">
                       <DialogHeader>
                         <DialogTitle className="text-black">Add New Unit</DialogTitle>
                         <DialogDescription className="text-black">
@@ -1069,7 +1069,7 @@ export default function Inventory() {
                     filteredUnits.map((unit) => (
                       <Card key={unit.id} className="border-black hover:shadow-md transition-shadow cursor-pointer">
                         <CardContent className="p-4" onClick={() => handleViewUnitDetails(unit)}>
-                          <div className="flex items-start justify-between">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                             <div className="flex-1">
                               <div className="flex items-center gap-4 mb-3">
                                 <div className="font-medium text-black">{unit.serialNumber}</div>
@@ -1078,7 +1078,7 @@ export default function Inventory() {
                                   <span className="ml-1">{unit.status}</span>
                                 </Badge>
                               </div>
-                              <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                                 <div className="flex items-center gap-2">
                                   <Barcode className="w-4 h-4 text-gray-500" />
                                   <span className="text-black">{unit.barcode}</span>
@@ -1100,7 +1100,7 @@ export default function Inventory() {
                                 </div>
                               )}
                             </div>
-                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-row sm:flex-col gap-2 self-end sm:self-start" onClick={(e) => e.stopPropagation()}>
                               <Button 
                                 variant="outline" 
                                 size="sm" 
@@ -1152,7 +1152,7 @@ export default function Inventory() {
 
       {/* QR Code Modal */}
       <Dialog open={showQRCode} onOpenChange={setShowQRCode}>
-        <DialogContent className="border-black max-w-md">
+        <DialogContent className="border-black max-w-md w-[90vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="text-black flex items-center gap-2">
               <QrCode className="w-5 h-5" />
@@ -1170,7 +1170,7 @@ export default function Inventory() {
                   <QRCodeSVG
                     id="qr-code-svg"
                     value={generateQRUrl(selectedUnitForQR.serialNumber)}
-                    size={200}
+                    size={window.innerWidth < 768 ? 160 : 200}
                     level="H"
                     includeMargin={true}
                     bgColor="#ffffff"
@@ -1218,7 +1218,7 @@ export default function Inventory() {
 
       {/* Edit Item Modal */}
       <Dialog open={editingItem !== null} onOpenChange={() => setEditingItem(null)}>
-        <DialogContent className="border-black max-w-md">
+        <DialogContent className="border-black max-w-md w-[90vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="text-black">Edit Item</DialogTitle>
             <DialogDescription className="text-black">
@@ -1284,7 +1284,7 @@ export default function Inventory() {
 
       {/* Edit Unit Modal */}
       <Dialog open={editingUnit !== null} onOpenChange={() => setEditingUnit(null)}>
-        <DialogContent className="border-black max-w-md">
+        <DialogContent className="border-black max-w-md w-[90vw] sm:w-full">
           <DialogHeader>
             <DialogTitle className="text-black">Edit Unit</DialogTitle>
             <DialogDescription className="text-black">
