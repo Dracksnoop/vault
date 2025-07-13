@@ -148,16 +148,22 @@ export default function Inventory() {
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: () => apiRequest("/api/categories"),
+    staleTime: 0, // Always refetch
+    cacheTime: 0, // Don't cache
   });
 
   const { data: items = [], isLoading: itemsLoading } = useQuery({
     queryKey: ["/api/items"],
     queryFn: () => apiRequest("/api/items"),
+    staleTime: 0, // Always refetch
+    cacheTime: 0, // Don't cache
   });
 
   const { data: units = [], isLoading: unitsLoading } = useQuery({
     queryKey: ["/api/units"],
     queryFn: () => apiRequest("/api/units"),
+    staleTime: 0, // Always refetch
+    cacheTime: 0, // Don't cache
   });
 
   // Mutations
@@ -182,6 +188,7 @@ export default function Inventory() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       setShowAddItem(false);
       setNewItem({
         name: "",
@@ -200,6 +207,8 @@ export default function Inventory() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       setShowAddUnit(false);
       setNewUnit({
         serialNumber: "",
@@ -270,7 +279,7 @@ export default function Inventory() {
     return Math.floor(Math.random() * 900000000000) + 100000000000;
   };
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (newItem.name.trim() && newItem.model.trim() && newItem.quantityInStock > 0) {
       const itemId = Date.now().toString();
       
@@ -284,21 +293,35 @@ export default function Inventory() {
         location: newItem.location.trim(),
       };
       
-      createItemMutation.mutate(item);
-      
-      // Generate units with unique serial numbers
-      for (let i = 0; i < newItem.quantityInStock; i++) {
-        const unit = {
-          id: `${itemId}_unit_${i}`,
-          itemId: itemId,
-          serialNumber: generateSerialNumber(newItem.name, i),
-          barcode: generateBarcode().toString(),
-          status: "In Stock",
-          location: newItem.location.trim() || "Warehouse",
-          warrantyExpiry: "",
-          notes: "Auto-generated unit"
-        };
-        createUnitMutation.mutate(unit);
+      try {
+        // First create the item
+        await createItemMutation.mutateAsync(item);
+        
+        // Then create all units
+        const unitPromises = [];
+        for (let i = 0; i < newItem.quantityInStock; i++) {
+          const unit = {
+            id: `${itemId}_unit_${i}`,
+            itemId: itemId,
+            serialNumber: generateSerialNumber(newItem.name, i),
+            barcode: generateBarcode().toString(),
+            status: "In Stock",
+            location: newItem.location.trim() || "Warehouse",
+            warrantyExpiry: "",
+            notes: "Auto-generated unit"
+          };
+          unitPromises.push(createUnitMutation.mutateAsync(unit));
+        }
+        
+        await Promise.all(unitPromises);
+        
+        // Invalidate all queries to ensure UI updates
+        queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+        
+      } catch (error) {
+        console.error("Error creating item and units:", error);
       }
     }
   };
