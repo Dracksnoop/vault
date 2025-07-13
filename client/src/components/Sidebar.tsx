@@ -39,12 +39,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <div className={cn(
-      "fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-black transform transition-transform duration-200 ease-in-out",
+      "fixed inset-y-0 left-0 z-50 w-60 bg-white transform transition-transform duration-200 ease-in-out",
       isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
     )}>
       <div className="flex flex-col h-full">
         {/* Sidebar Header */}
-        <div className="flex items-center justify-center h-16 px-4 border-b border-black">
+        <div className="flex items-center justify-center h-16 px-4 border-b border-black flex-shrink-0">
           <div className="w-8 h-8 bg-white border border-black rounded-lg flex items-center justify-center">
             <img src={logoPath} alt="Vault Logo" className="w-5 h-5" />
           </div>
@@ -52,7 +52,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
         
         {/* Navigation Menu */}
-        <nav className="flex-1 px-4 py-4">
+        <nav className="flex-1 px-4 py-4 overflow-y-auto">
           {navigationItems.map((item, index) => {
             if (item.type === "separator") {
               return (
