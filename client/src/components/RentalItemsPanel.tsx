@@ -1,7 +1,13 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Package, 
   Calendar, 
@@ -11,7 +17,14 @@ import {
   MapPin, 
   Edit,
   Eye,
-  BarChart3
+  BarChart3,
+  QrCode,
+  Barcode,
+  User,
+  Phone,
+  Mail,
+  Building,
+  X
 } from 'lucide-react';
 
 interface RentalItemsPanelProps {
@@ -21,6 +34,10 @@ interface RentalItemsPanelProps {
 }
 
 export default function RentalItemsPanel({ customerId, customerName, onBack }: RentalItemsPanelProps) {
+  const [showViewUnitsDialog, setShowViewUnitsDialog] = useState(false);
+  const [showModifyDialog, setShowModifyDialog] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+
   const { data: services = [] } = useQuery({
     queryKey: ['/api/services'],
   });
@@ -74,6 +91,23 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   const totalItemsRented = enrichedServiceItems.reduce((sum, item) => 
     sum + item.quantity, 0
   );
+
+  // Handle View Units button click
+  const handleViewUnits = (serviceItem: any) => {
+    setSelectedItem(serviceItem);
+    setShowViewUnitsDialog(true);
+  };
+
+  // Handle Modify button click
+  const handleModify = (serviceItem: any) => {
+    setSelectedItem(serviceItem);
+    setShowModifyDialog(true);
+  };
+
+  // Get units for the selected item
+  const getItemUnits = (itemId: string) => {
+    return units.filter((unit: any) => unit.itemId === itemId);
+  };
 
   return (
     <div className="space-y-6">
@@ -226,11 +260,21 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                       </span>
                     </div>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" className="border-black">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-black"
+                        onClick={() => handleViewUnits(serviceItem)}
+                      >
                         <Eye className="w-4 h-4 mr-2" />
                         View Units
                       </Button>
-                      <Button variant="outline" size="sm" className="border-blue-500 text-blue-500">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-blue-500 text-blue-500"
+                        onClick={() => handleModify(serviceItem)}
+                      >
                         <Edit className="w-4 h-4 mr-2" />
                         Modify
                       </Button>
@@ -277,6 +321,172 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           </div>
         </CardContent>
       </Card>
+
+      {/* View Units Dialog */}
+      <Dialog open={showViewUnitsDialog} onOpenChange={setShowViewUnitsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Eye className="w-5 h-5" />
+              <span>View Units - {selectedItem?.itemDetails?.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {selectedItem && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold text-black mb-2">Item Details</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>SKU:</strong> {selectedItem.itemDetails?.sku || 'N/A'}</p>
+                    <p><strong>Category:</strong> {selectedItem.itemDetails?.categoryId || 'N/A'}</p>
+                    <p><strong>Description:</strong> {selectedItem.itemDetails?.description || 'No description'}</p>
+                    <p><strong>Quantity Rented:</strong> {selectedItem.quantity}</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-black mb-2">Rental Details</h3>
+                  <div className="space-y-2 text-sm">
+                    <p><strong>Unit Price:</strong> ₹{selectedItem.unitPrice}</p>
+                    <p><strong>Total Value:</strong> ₹{selectedItem.totalValue}</p>
+                    <p><strong>Available Units:</strong> {selectedItem.availableUnits}</p>
+                    <p><strong>Rented Units:</strong> {selectedItem.rentedUnits}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-black mb-4">Individual Units</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {getItemUnits(selectedItem.itemId).map((unit: any) => (
+                    <div key={unit.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Package className="w-4 h-4 text-gray-600" />
+                          <span className="font-medium">Unit #{unit.serialNumber}</span>
+                        </div>
+                        <Badge variant={unit.status === 'rented' ? 'default' : 'secondary'}>
+                          {unit.status}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <QrCode className="w-4 h-4 text-gray-500" />
+                          <span>Serial: {unit.serialNumber}</span>
+                        </div>
+                        {unit.barcode && (
+                          <div className="flex items-center space-x-2">
+                            <Barcode className="w-4 h-4 text-gray-500" />
+                            <span>Barcode: {unit.barcode}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-gray-500" />
+                          <span>Added: {new Date(unit.createdAt || Date.now()).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modify Dialog */}
+      <Dialog open={showModifyDialog} onOpenChange={setShowModifyDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Edit className="w-5 h-5" />
+              <span>Modify Rental - {selectedItem?.itemDetails?.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {selectedItem && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="quantity">Quantity</Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    defaultValue={selectedItem.quantity}
+                    className="border-black"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="unitPrice">Unit Price (₹)</Label>
+                  <Input
+                    id="unitPrice"
+                    type="number"
+                    defaultValue={selectedItem.unitPrice}
+                    className="border-black"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  defaultValue={selectedItem.itemDetails?.description || ''}
+                  className="border-black"
+                  rows={3}
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select defaultValue="active">
+                    <SelectTrigger className="border-black">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="paused">Paused</SelectItem>
+                      <SelectItem value="terminated">Terminated</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="priority">Priority</Label>
+                  <Select defaultValue="normal">
+                    <SelectTrigger className="border-black">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Add any additional notes..."
+                  className="border-black"
+                  rows={2}
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setShowModifyDialog(false)}>
+                  Cancel
+                </Button>
+                <Button className="bg-blue-600 text-white hover:bg-blue-700">
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
