@@ -657,6 +657,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const service = await storage.createService(validatedService);
 
+      // Validate stock availability before creating service items
+      for (const item of selectedItems) {
+        const currentItem = await storage.getItem(item.itemId);
+        if (!currentItem) {
+          return res.status(400).json({ error: `Item ${item.itemId} not found` });
+        }
+        
+        // Check if requested quantity exceeds available stock
+        if (item.quantity > currentItem.quantityInStock) {
+          return res.status(400).json({ 
+            error: `Insufficient stock for item "${currentItem.name}". Requested: ${item.quantity}, Available: ${currentItem.quantityInStock}` 
+          });
+        }
+      }
+
       // Create service items and update unit statuses
       const serviceItems = [];
       for (const item of selectedItems) {

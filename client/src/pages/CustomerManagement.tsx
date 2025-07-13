@@ -336,11 +336,18 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
   };
 
   const handleQuantityChange = (itemId: string, quantity: number) => {
-    setSelectedItems(selectedItems.map(item => 
-      item.itemId === itemId 
-        ? { ...item, quantity, totalPrice: (parseFloat(item.unitPrice) * quantity).toString() }
-        : item
-    ));
+    setSelectedItems(selectedItems.map(item => {
+      if (item.itemId === itemId) {
+        // Enforce stock limit - never allow more than available quantity
+        const validQuantity = Math.min(Math.max(1, quantity), item.availableQuantity);
+        return { 
+          ...item, 
+          quantity: validQuantity, 
+          totalPrice: (parseFloat(item.unitPrice) * validQuantity).toString() 
+        };
+      }
+      return item;
+    }));
   };
 
   const handlePriceChange = (itemId: string, unitPrice: string) => {
@@ -372,18 +379,37 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
                 <h4 className="font-medium text-black mb-2">{categoryName}</h4>
                 <div className="space-y-2">
                   {categoryItems.map((item: any) => (
-                    <Card key={item.id} className="border-gray-200">
+                    <Card key={item.id} className={`border-gray-200 ${item.quantityInStock === 0 ? 'opacity-50' : ''}`}>
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <Checkbox
                               checked={selectedItems.some(selected => selected.itemId === item.id)}
                               onCheckedChange={(checked) => handleItemSelect(item, checked as boolean)}
+                              disabled={item.quantityInStock === 0}
                             />
                             <div>
                               <p className="font-medium text-black">{item.name}</p>
                               <p className="text-sm text-gray-600">{item.model}</p>
-                              <p className="text-sm text-gray-500">Available: {item.quantityInStock}</p>
+                              <div className="flex items-center space-x-2">
+                                <p className={`text-sm ${
+                                  item.quantityInStock === 0 ? 'text-red-500' : 
+                                  item.quantityInStock <= 5 ? 'text-orange-500' : 
+                                  'text-gray-500'
+                                }`}>
+                                  Available: {item.quantityInStock}
+                                </p>
+                                {item.quantityInStock === 0 && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Out of Stock
+                                  </Badge>
+                                )}
+                                {item.quantityInStock > 0 && item.quantityInStock <= 5 && (
+                                  <Badge variant="outline" className="text-xs border-orange-500 text-orange-500">
+                                    Low Stock
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -427,15 +453,26 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
                       
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <Label className="text-xs text-gray-600">Quantity</Label>
+                          <Label className="text-xs text-gray-600">
+                            Quantity (Max: {item.availableQuantity})
+                          </Label>
                           <Input
                             type="number"
                             min="1"
                             max={item.availableQuantity}
                             value={item.quantity}
                             onChange={(e) => handleQuantityChange(item.itemId, parseInt(e.target.value) || 1)}
-                            className="border-gray-300 text-sm"
+                            className={`text-sm ${
+                              item.quantity === item.availableQuantity 
+                                ? 'border-orange-500 bg-orange-50' 
+                                : 'border-gray-300'
+                            }`}
                           />
+                          {item.quantity === item.availableQuantity && (
+                            <p className="text-xs text-orange-600 mt-1">
+                              Maximum stock reached
+                            </p>
+                          )}
                         </div>
                         <div>
                           <Label className="text-xs text-gray-600">Unit Price</Label>
