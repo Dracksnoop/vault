@@ -317,6 +317,11 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
     return acc;
   }, {});
 
+  // Sort items within each category by stock quantity (highest first)
+  Object.keys(groupedItems).forEach(categoryName => {
+    groupedItems[categoryName].sort((a: any, b: any) => b.quantityInStock - a.quantityInStock);
+  });
+
   const handleItemSelect = (item: any, isSelected: boolean) => {
     if (isSelected) {
       const newItem: SelectedItem = {
