@@ -304,22 +304,33 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
     queryKey: ['/api/items'],
   });
 
+  const { data: units = [] } = useQuery({
+    queryKey: ['/api/units'],
+  });
+
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>(formData.selectedItems || []);
 
   const groupedItems = items.reduce((acc: any, item: any) => {
     const category = categories.find((cat: any) => cat.id === item.categoryId);
     const categoryName = category?.name || 'Uncategorized';
     
+    // Calculate real-time available quantity based on units
+    const itemUnits = units.filter((unit: any) => unit.itemId === item.id);
+    const availableQuantity = itemUnits.filter((unit: any) => unit.status === "In Stock").length;
+    
     if (!acc[categoryName]) {
       acc[categoryName] = [];
     }
-    acc[categoryName].push(item);
+    acc[categoryName].push({
+      ...item,
+      realTimeAvailableQuantity: availableQuantity
+    });
     return acc;
   }, {});
 
-  // Sort items within each category by stock quantity (highest first)
+  // Sort items within each category by available quantity (highest first)
   Object.keys(groupedItems).forEach(categoryName => {
-    groupedItems[categoryName].sort((a: any, b: any) => b.quantityInStock - a.quantityInStock);
+    groupedItems[categoryName].sort((a: any, b: any) => b.realTimeAvailableQuantity - a.realTimeAvailableQuantity);
   });
 
   const handleItemSelect = (item: any, isSelected: boolean) => {
@@ -330,7 +341,7 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
         model: item.model,
         categoryName: categories.find((cat: any) => cat.id === item.categoryId)?.name || 'Uncategorized',
         quantity: 1,
-        availableQuantity: item.quantityInStock,
+        availableQuantity: item.realTimeAvailableQuantity,
         unitPrice: '0',
         totalPrice: '0'
       };
@@ -363,6 +374,27 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
     ));
   };
 
+  // Update selected items when units change to reflect real-time availability
+  useEffect(() => {
+    const updatedSelectedItems = selectedItems.map(selectedItem => {
+      const currentItem = items.find(item => item.id === selectedItem.itemId);
+      if (currentItem) {
+        const itemUnits = units.filter((unit: any) => unit.itemId === currentItem.id);
+        const realTimeAvailable = itemUnits.filter((unit: any) => unit.status === "In Stock").length;
+        return {
+          ...selectedItem,
+          availableQuantity: realTimeAvailable,
+          quantity: Math.min(selectedItem.quantity, realTimeAvailable) // Adjust quantity if it exceeds available
+        };
+      }
+      return selectedItem;
+    });
+    
+    if (JSON.stringify(updatedSelectedItems) !== JSON.stringify(selectedItems)) {
+      setSelectedItems(updatedSelectedItems);
+    }
+  }, [units, items]);
+
   useEffect(() => {
     updateFormData({ ...formData, selectedItems });
   }, [selectedItems]);
@@ -384,32 +416,32 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
                 <h4 className="font-medium text-black mb-2">{categoryName}</h4>
                 <div className="space-y-2">
                   {categoryItems.map((item: any) => (
-                    <Card key={item.id} className={`border-gray-200 ${item.quantityInStock === 0 ? 'opacity-50' : ''}`}>
+                    <Card key={item.id} className={`border-gray-200 ${item.realTimeAvailableQuantity === 0 ? 'opacity-50' : ''}`}>
                       <CardContent className="p-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <Checkbox
                               checked={selectedItems.some(selected => selected.itemId === item.id)}
                               onCheckedChange={(checked) => handleItemSelect(item, checked as boolean)}
-                              disabled={item.quantityInStock === 0}
+                              disabled={item.realTimeAvailableQuantity === 0}
                             />
                             <div>
                               <p className="font-medium text-black">{item.name}</p>
                               <p className="text-sm text-gray-600">{item.model}</p>
                               <div className="flex items-center space-x-2">
                                 <p className={`text-sm ${
-                                  item.quantityInStock === 0 ? 'text-red-500' : 
-                                  item.quantityInStock <= 5 ? 'text-orange-500' : 
+                                  item.realTimeAvailableQuantity === 0 ? 'text-red-500' : 
+                                  item.realTimeAvailableQuantity <= 5 ? 'text-orange-500' : 
                                   'text-gray-500'
                                 }`}>
-                                  Available: {item.quantityInStock}
+                                  Available: {item.realTimeAvailableQuantity}
                                 </p>
-                                {item.quantityInStock === 0 && (
+                                {item.realTimeAvailableQuantity === 0 && (
                                   <Badge variant="destructive" className="text-xs">
                                     Out of Stock
                                   </Badge>
                                 )}
-                                {item.quantityInStock > 0 && item.quantityInStock <= 5 && (
+                                {item.realTimeAvailableQuantity > 0 && item.realTimeAvailableQuantity <= 5 && (
                                   <Badge variant="outline" className="text-xs border-orange-500 text-orange-500">
                                     Low Stock
                                   </Badge>
