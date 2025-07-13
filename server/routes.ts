@@ -169,7 +169,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/categories", async (req, res) => {
     try {
       const categories = await storage.getCategories();
-      res.json(categories);
+      // Calculate actual item counts for each category
+      const categoriesWithCounts = await Promise.all(
+        categories.map(async (category) => {
+          const items = await storage.getItemsByCategory(category.id);
+          return {
+            ...category,
+            itemCount: items.length
+          };
+        })
+      );
+      res.json(categoriesWithCounts);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch categories" });
     }
@@ -229,6 +239,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertItemSchema.parse(req.body);
       const item = await storage.createItem(validatedData);
+      
+      // Update category item count
+      const categoryItems = await storage.getItemsByCategory(item.categoryId);
+      await storage.updateCategory(item.categoryId, { itemCount: categoryItems.length });
+      
       res.json(item);
     } catch (error) {
       res.status(500).json({ error: "Failed to create item" });
@@ -252,10 +267,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/items/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      const item = await storage.getItem(id);
       const success = await storage.deleteItem(id);
       if (!success) {
         return res.status(404).json({ error: "Item not found" });
       }
+      
+      // Update category item count if item was found
+      if (item) {
+        const categoryItems = await storage.getItemsByCategory(item.categoryId);
+        await storage.updateCategory(item.categoryId, { itemCount: categoryItems.length });
+      }
+      
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete item" });
