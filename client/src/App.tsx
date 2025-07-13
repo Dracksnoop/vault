@@ -8,6 +8,7 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Inventory from "./pages/Inventory";
 import Customer from "./pages/Customer";
+import CustomerManagement from "./pages/CustomerManagement";
 import Demo from "./pages/Demo";
 import CallService from "./pages/CallService";
 import Trade from "./pages/Trade";
@@ -89,6 +90,7 @@ function Router() {
               <Route path="/" component={Home} />
               <Route path="/inventory" component={Inventory} />
               <Route path="/customer" component={Customer} />
+              <Route path="/customer-management" component={CustomerManagement} />
               <Route path="/demo" component={Demo} />
               <Route path="/callservice" component={CallService} />
               <Route path="/trade" component={Trade} />

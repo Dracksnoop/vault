@@ -7,7 +7,10 @@ import {
   insertUserSchema, 
   insertCategorySchema, 
   insertItemSchema, 
-  insertUnitSchema 
+  insertUnitSchema,
+  insertServiceSchema,
+  insertServiceItemSchema,
+  insertRentalSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -431,6 +434,266 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Service management routes
+  app.get("/api/services", async (req, res) => {
+    try {
+      const services = await storage.getServices();
+      res.json(services);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch services" });
+    }
+  });
+
+  app.post("/api/services", async (req, res) => {
+    try {
+      const validatedData = insertServiceSchema.parse(req.body);
+      const service = await storage.createService(validatedData);
+      res.json(service);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid service data" });
+    }
+  });
+
+  app.get("/api/services/:id", async (req, res) => {
+    try {
+      const service = await storage.getService(req.params.id);
+      if (!service) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      res.json(service);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch service" });
+    }
+  });
+
+  app.put("/api/services/:id", async (req, res) => {
+    try {
+      const validatedData = insertServiceSchema.partial().parse(req.body);
+      const service = await storage.updateService(req.params.id, validatedData);
+      if (!service) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      res.json(service);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid service data" });
+    }
+  });
+
+  app.delete("/api/services/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteService(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete service" });
+    }
+  });
+
+  app.get("/api/customers/:customerId/services", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      const services = await storage.getServicesByCustomer(customerId);
+      res.json(services);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer services" });
+    }
+  });
+
+  // Service Items management routes
+  app.get("/api/service-items", async (req, res) => {
+    try {
+      const serviceItems = await storage.getServiceItems();
+      res.json(serviceItems);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch service items" });
+    }
+  });
+
+  app.post("/api/service-items", async (req, res) => {
+    try {
+      const validatedData = insertServiceItemSchema.parse(req.body);
+      const serviceItem = await storage.createServiceItem(validatedData);
+      res.json(serviceItem);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid service item data" });
+    }
+  });
+
+  app.get("/api/services/:serviceId/items", async (req, res) => {
+    try {
+      const serviceItems = await storage.getServiceItemsByService(req.params.serviceId);
+      res.json(serviceItems);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch service items" });
+    }
+  });
+
+  app.put("/api/service-items/:id", async (req, res) => {
+    try {
+      const validatedData = insertServiceItemSchema.partial().parse(req.body);
+      const serviceItem = await storage.updateServiceItem(req.params.id, validatedData);
+      if (!serviceItem) {
+        return res.status(404).json({ error: "Service item not found" });
+      }
+      res.json(serviceItem);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid service item data" });
+    }
+  });
+
+  app.delete("/api/service-items/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteServiceItem(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Service item not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete service item" });
+    }
+  });
+
+  // Rental management routes
+  app.get("/api/rentals", async (req, res) => {
+    try {
+      const rentals = await storage.getRentals();
+      res.json(rentals);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rentals" });
+    }
+  });
+
+  app.post("/api/rentals", async (req, res) => {
+    try {
+      const validatedData = insertRentalSchema.parse(req.body);
+      const rental = await storage.createRental(validatedData);
+      res.json(rental);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid rental data" });
+    }
+  });
+
+  app.get("/api/rentals/:id", async (req, res) => {
+    try {
+      const rental = await storage.getRental(req.params.id);
+      if (!rental) {
+        return res.status(404).json({ error: "Rental not found" });
+      }
+      res.json(rental);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch rental" });
+    }
+  });
+
+  app.put("/api/rentals/:id", async (req, res) => {
+    try {
+      const validatedData = insertRentalSchema.partial().parse(req.body);
+      const rental = await storage.updateRental(req.params.id, validatedData);
+      if (!rental) {
+        return res.status(404).json({ error: "Rental not found" });
+      }
+      res.json(rental);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid rental data" });
+    }
+  });
+
+  app.delete("/api/rentals/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteRental(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Rental not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete rental" });
+    }
+  });
+
+  app.get("/api/customers/:customerId/rentals", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      const rentals = await storage.getRentalsByCustomer(customerId);
+      res.json(rentals);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer rentals" });
+    }
+  });
+
+  app.get("/api/services/:serviceId/rentals", async (req, res) => {
+    try {
+      const rentals = await storage.getRentalsByService(req.params.serviceId);
+      res.json(rentals);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch service rentals" });
+    }
+  });
+
+  // Complete customer management endpoint (multi-step submission)
+  app.post("/api/customers/complete", async (req, res) => {
+    try {
+      const { 
+        customerData, 
+        serviceData, 
+        selectedItems, 
+        rentalData 
+      } = req.body;
+
+      // Validate and create customer
+      const validatedCustomer = insertCustomerSchema.parse(customerData);
+      const customer = await storage.createCustomer(validatedCustomer);
+
+      // Create service
+      const serviceId = Date.now().toString();
+      const validatedService = insertServiceSchema.parse({
+        ...serviceData,
+        id: serviceId,
+        customerId: customer.id
+      });
+      const service = await storage.createService(validatedService);
+
+      // Create service items
+      const serviceItems = [];
+      for (const item of selectedItems) {
+        const serviceItemId = `${serviceId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const serviceItem = await storage.createServiceItem({
+          id: serviceItemId,
+          serviceId: service.id,
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice || "0",
+          totalPrice: item.totalPrice || "0"
+        });
+        serviceItems.push(serviceItem);
+      }
+
+      // Create rental if service type is rental
+      let rental = null;
+      if (serviceData.serviceType === 'rent' && rentalData) {
+        const rentalId = `rental-${Date.now()}`;
+        rental = await storage.createRental({
+          ...rentalData,
+          id: rentalId,
+          serviceId: service.id,
+          customerId: customer.id
+        });
+      }
+
+      res.json({
+        customer,
+        service,
+        serviceItems,
+        rental,
+        success: true
+      });
+    } catch (error) {
+      console.error("Complete customer creation error:", error);
+      res.status(400).json({ error: "Failed to create complete customer record" });
     }
   });
 

@@ -1,0 +1,80 @@
+I want you to build a **full-stack multi-step Customer Management system** for my Raydify Vault React+Tailwind web app, integrated with MongoDB Atlas as the database. Please use your expertise to design the best architecture, code quality, and user experience while following these detailed requirements:
+
+---
+
+### Frontend Requirements (React + Tailwind CSS):
+
+1. **Multi-Step Wizard UI** for creating and managing customers with these steps:
+
+   - **Step 1: Customer Details**  
+     - Customer Type: One-Time or Rental  
+     - Fields: Name, Company Name (optional), Phone, Email, Billing & Shipping Address, GST/VAT Number (optional), Payment Terms (optional)  
+     - Validation for required fields  
+
+   - **Step 2: Service Selection**  
+     - Service Types: Rent, Sell, Maintenance/Support, Others  
+     - Show/hide next steps dynamically based on selection  
+
+   - **Step 3: Item Selection & Quantity**  
+     - Show real-time inventory items grouped by category (CPU, Monitor, Keyboard, etc.) fetched from the database  
+     - Display available quantities per item  
+     - Allow multiple selections with quantity inputs  
+
+   - **Step 4: Rental Period & Terms** (only if Rental selected)  
+     - Rental Start Date, End Date, or ongoing toggle  
+     - Payment frequency options: Monthly, Quarterly, Yearly  
+     - Custom notes field  
+
+   - **Step 5: Review & Confirm**  
+     - Summary of all data entered  
+     - Editable links/buttons to go back to any step  
+     - Confirm button to submit  
+
+2. **General UI/UX**  
+   - Use Raydify Vault’s brand colors: navy (#0e243f), purple (#912fd3), magenta (#ae2d91), and white background  
+   - Responsive design for desktop and tablet  
+   - Progress indicators or stepper navigation  
+   - Modal dialogs or slide-in panels for adding/editing entities where appropriate  
+   - Input validation with user-friendly error messages  
+
+---
+
+### Backend Requirements (Node.js, Express, MongoDB Atlas):
+
+1. **Database Schema Design** (using Mongoose)  
+   - **Customer Schema:** customer type, personal/company info, contact details, payment terms  
+   - **Service Schema:** type (rent, sell, etc.), linked inventory items, rental terms  
+   - **Inventory Item Schema:** category, product details, quantities, serial numbers, status  
+   - **Rental Schema:** rental periods, payment frequency, linked customer and items  
+   - Define appropriate relations (refs) between schemas for querying  
+
+2. **API Endpoints**  
+   - Create RESTful endpoints for CRUD operations on Customers, Services, Inventory Items, and Rentals  
+   - Include validation and error handling  
+   - Connect these APIs with frontend form submissions for live data persistence  
+
+3. **Security & Best Practices**  
+   - Implement input sanitization and validation  
+   - Use environment variables for sensitive config like DB connection strings  
+   - Apply modular, scalable folder structure  
+
+---
+
+### Additional Expectations:
+
+- Use your expertise to structure the codebase for maintainability and scalability  
+- Comment critical parts of the code for clarity  
+- Optimize for performance and user experience  
+- Deliver a working prototype with static sample data if live DB connectivity isn’t available, but include all schema and API code ready for deployment  
+- Ensure all UI components match the existing Raydify Vault style and theme precisely  
+
+---
+
+Please build the complete solution end-to-end including:
+
+- Frontend multi-step customer form UI with dynamic inventory integration  
+- Backend Mongoose schemas aligned to requirements  
+- Express API routes with CRUD functionality  
+- Connection and data sync with the connected MongoDB Atlas cluster  
+
+Thank you!

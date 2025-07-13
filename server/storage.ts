@@ -11,7 +11,13 @@ import {
   type Item,
   type InsertItem,
   type Unit,
-  type InsertUnit
+  type InsertUnit,
+  type Service,
+  type InsertService,
+  type ServiceItem,
+  type InsertServiceItem,
+  type Rental,
+  type InsertRental
 } from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -63,6 +69,31 @@ export interface IStorage {
   updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
   deleteCustomer(id: number): Promise<boolean>;
   
+  // Service methods
+  getServices(): Promise<Service[]>;
+  getService(id: string): Promise<Service | undefined>;
+  getServicesByCustomer(customerId: number): Promise<Service[]>;
+  createService(service: InsertService): Promise<Service>;
+  updateService(id: string, service: Partial<InsertService>): Promise<Service | undefined>;
+  deleteService(id: string): Promise<boolean>;
+  
+  // Service Item methods
+  getServiceItems(): Promise<ServiceItem[]>;
+  getServiceItem(id: string): Promise<ServiceItem | undefined>;
+  getServiceItemsByService(serviceId: string): Promise<ServiceItem[]>;
+  createServiceItem(serviceItem: InsertServiceItem): Promise<ServiceItem>;
+  updateServiceItem(id: string, serviceItem: Partial<InsertServiceItem>): Promise<ServiceItem | undefined>;
+  deleteServiceItem(id: string): Promise<boolean>;
+  
+  // Rental methods
+  getRentals(): Promise<Rental[]>;
+  getRental(id: string): Promise<Rental | undefined>;
+  getRentalsByCustomer(customerId: number): Promise<Rental[]>;
+  getRentalsByService(serviceId: string): Promise<Rental[]>;
+  createRental(rental: InsertRental): Promise<Rental>;
+  updateRental(id: string, rental: Partial<InsertRental>): Promise<Rental | undefined>;
+  deleteRental(id: string): Promise<boolean>;
+  
   initialize(): Promise<void>;
 }
 
@@ -75,6 +106,9 @@ export class MongoStorage implements IStorage {
   private units: Collection<Unit>;
   private inventory: Collection<Inventory>;
   private customers: Collection<Customer>;
+  private services: Collection<Service>;
+  private serviceItems: Collection<ServiceItem>;
+  private rentals: Collection<Rental>;
   private isInitialized = false;
 
   constructor() {
@@ -97,6 +131,9 @@ export class MongoStorage implements IStorage {
       this.units = this.db.collection<Unit>('units');
       this.inventory = this.db.collection<Inventory>('inventory');
       this.customers = this.db.collection<Customer>('customers');
+      this.services = this.db.collection<Service>('services');
+      this.serviceItems = this.db.collection<ServiceItem>('serviceItems');
+      this.rentals = this.db.collection<Rental>('rentals');
       
       // Initialize default categories if they don't exist
       const categoryCount = await this.categories.countDocuments();
@@ -358,6 +395,131 @@ export class MongoStorage implements IStorage {
     const result = await this.customers.deleteOne({ id });
     return result.deletedCount === 1;
   }
+
+  // Service methods
+  async getServices(): Promise<Service[]> {
+    await this.initialize();
+    return await this.services.find().toArray();
+  }
+
+  async getService(id: string): Promise<Service | undefined> {
+    await this.initialize();
+    const service = await this.services.findOne({ id });
+    return service || undefined;
+  }
+
+  async getServicesByCustomer(customerId: number): Promise<Service[]> {
+    await this.initialize();
+    return await this.services.find({ customerId }).toArray();
+  }
+
+  async createService(insertService: InsertService): Promise<Service> {
+    await this.initialize();
+    const service: Service = { ...insertService };
+    await this.services.insertOne(service);
+    return service;
+  }
+
+  async updateService(id: string, updateData: Partial<InsertService>): Promise<Service | undefined> {
+    await this.initialize();
+    const result = await this.services.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteService(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.services.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Service Item methods
+  async getServiceItems(): Promise<ServiceItem[]> {
+    await this.initialize();
+    return await this.serviceItems.find().toArray();
+  }
+
+  async getServiceItem(id: string): Promise<ServiceItem | undefined> {
+    await this.initialize();
+    const serviceItem = await this.serviceItems.findOne({ id });
+    return serviceItem || undefined;
+  }
+
+  async getServiceItemsByService(serviceId: string): Promise<ServiceItem[]> {
+    await this.initialize();
+    return await this.serviceItems.find({ serviceId }).toArray();
+  }
+
+  async createServiceItem(insertServiceItem: InsertServiceItem): Promise<ServiceItem> {
+    await this.initialize();
+    const serviceItem: ServiceItem = { ...insertServiceItem };
+    await this.serviceItems.insertOne(serviceItem);
+    return serviceItem;
+  }
+
+  async updateServiceItem(id: string, updateData: Partial<InsertServiceItem>): Promise<ServiceItem | undefined> {
+    await this.initialize();
+    const result = await this.serviceItems.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteServiceItem(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.serviceItems.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Rental methods
+  async getRentals(): Promise<Rental[]> {
+    await this.initialize();
+    return await this.rentals.find().toArray();
+  }
+
+  async getRental(id: string): Promise<Rental | undefined> {
+    await this.initialize();
+    const rental = await this.rentals.findOne({ id });
+    return rental || undefined;
+  }
+
+  async getRentalsByCustomer(customerId: number): Promise<Rental[]> {
+    await this.initialize();
+    return await this.rentals.find({ customerId }).toArray();
+  }
+
+  async getRentalsByService(serviceId: string): Promise<Rental[]> {
+    await this.initialize();
+    return await this.rentals.find({ serviceId }).toArray();
+  }
+
+  async createRental(insertRental: InsertRental): Promise<Rental> {
+    await this.initialize();
+    const rental: Rental = { ...insertRental };
+    await this.rentals.insertOne(rental);
+    return rental;
+  }
+
+  async updateRental(id: string, updateData: Partial<InsertRental>): Promise<Rental | undefined> {
+    await this.initialize();
+    const result = await this.rentals.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteRental(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.rentals.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -367,6 +529,9 @@ export class MemStorage implements IStorage {
   private units: Map<string, Unit>;
   private inventory: Map<number, Inventory>;
   private customers: Map<number, Customer>;
+  private services: Map<string, Service>;
+  private serviceItems: Map<string, ServiceItem>;
+  private rentals: Map<string, Rental>;
   private currentUserId: number;
   private currentInventoryId: number;
   private currentCustomerId: number;
@@ -378,6 +543,9 @@ export class MemStorage implements IStorage {
     this.units = new Map();
     this.inventory = new Map();
     this.customers = new Map();
+    this.services = new Map();
+    this.serviceItems = new Map();
+    this.rentals = new Map();
     this.currentUserId = 1;
     this.currentInventoryId = 1;
     this.currentCustomerId = 1;
@@ -565,6 +733,106 @@ export class MemStorage implements IStorage {
 
   async deleteCustomer(id: number): Promise<boolean> {
     return this.customers.delete(id);
+  }
+
+  // Service methods
+  async getServices(): Promise<Service[]> {
+    return Array.from(this.services.values());
+  }
+
+  async getService(id: string): Promise<Service | undefined> {
+    return this.services.get(id);
+  }
+
+  async getServicesByCustomer(customerId: number): Promise<Service[]> {
+    return Array.from(this.services.values()).filter(service => service.customerId === customerId);
+  }
+
+  async createService(insertService: InsertService): Promise<Service> {
+    const service: Service = { ...insertService };
+    this.services.set(service.id, service);
+    return service;
+  }
+
+  async updateService(id: string, updateData: Partial<InsertService>): Promise<Service | undefined> {
+    const existing = this.services.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Service = { ...existing, ...updateData };
+    this.services.set(id, updated);
+    return updated;
+  }
+
+  async deleteService(id: string): Promise<boolean> {
+    return this.services.delete(id);
+  }
+
+  // Service Item methods
+  async getServiceItems(): Promise<ServiceItem[]> {
+    return Array.from(this.serviceItems.values());
+  }
+
+  async getServiceItem(id: string): Promise<ServiceItem | undefined> {
+    return this.serviceItems.get(id);
+  }
+
+  async getServiceItemsByService(serviceId: string): Promise<ServiceItem[]> {
+    return Array.from(this.serviceItems.values()).filter(item => item.serviceId === serviceId);
+  }
+
+  async createServiceItem(insertServiceItem: InsertServiceItem): Promise<ServiceItem> {
+    const serviceItem: ServiceItem = { ...insertServiceItem };
+    this.serviceItems.set(serviceItem.id, serviceItem);
+    return serviceItem;
+  }
+
+  async updateServiceItem(id: string, updateData: Partial<InsertServiceItem>): Promise<ServiceItem | undefined> {
+    const existing = this.serviceItems.get(id);
+    if (!existing) return undefined;
+    
+    const updated: ServiceItem = { ...existing, ...updateData };
+    this.serviceItems.set(id, updated);
+    return updated;
+  }
+
+  async deleteServiceItem(id: string): Promise<boolean> {
+    return this.serviceItems.delete(id);
+  }
+
+  // Rental methods
+  async getRentals(): Promise<Rental[]> {
+    return Array.from(this.rentals.values());
+  }
+
+  async getRental(id: string): Promise<Rental | undefined> {
+    return this.rentals.get(id);
+  }
+
+  async getRentalsByCustomer(customerId: number): Promise<Rental[]> {
+    return Array.from(this.rentals.values()).filter(rental => rental.customerId === customerId);
+  }
+
+  async getRentalsByService(serviceId: string): Promise<Rental[]> {
+    return Array.from(this.rentals.values()).filter(rental => rental.serviceId === serviceId);
+  }
+
+  async createRental(insertRental: InsertRental): Promise<Rental> {
+    const rental: Rental = { ...insertRental };
+    this.rentals.set(rental.id, rental);
+    return rental;
+  }
+
+  async updateRental(id: string, updateData: Partial<InsertRental>): Promise<Rental | undefined> {
+    const existing = this.rentals.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Rental = { ...existing, ...updateData };
+    this.rentals.set(id, updated);
+    return updated;
+  }
+
+  async deleteRental(id: string): Promise<boolean> {
+    return this.rentals.delete(id);
   }
 }
 

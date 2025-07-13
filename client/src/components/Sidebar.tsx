@@ -23,6 +23,7 @@ const navigationItems = [
   { name: "Home", href: "/", icon: Home },
   { name: "Inventory", href: "/inventory", icon: Package },
   { name: "Customer", href: "/customer", icon: Users },
+  { name: "Customer Management", href: "/customer-management", icon: UserCheck },
   { name: "Demo", href: "/demo", icon: Play },
   { name: "Call/Service", href: "/callservice", icon: Phone },
   { name: "Trade", href: "/trade", icon: RefreshCw },
