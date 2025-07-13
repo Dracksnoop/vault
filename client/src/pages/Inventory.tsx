@@ -589,7 +589,7 @@ export default function Inventory() {
     <div className="h-screen bg-white overflow-hidden">
       <div className="flex h-full">
         {/* Left Panel - Categories */}
-        <div className="w-80 border-r border-black bg-white flex flex-col h-full max-h-full">
+        <div className="w-80 border-r border-black bg-white flex flex-col h-full">
           <div className="p-4 border-b border-black flex-shrink-0">
             <h2 className="text-lg font-semibold text-black">Categories</h2>
           </div>
@@ -616,7 +616,7 @@ export default function Inventory() {
             </div>
           </div>
           
-          <div className="p-4 border-t border-black flex-shrink-0">
+          <div className="p-4 border-t border-black flex-shrink-0 bg-white">
             <Dialog open={showAddCategory} onOpenChange={setShowAddCategory}>
               <DialogTrigger asChild>
                 <Button className="w-full bg-black text-white hover:bg-gray-800">
