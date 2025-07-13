@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { QRCodeSVG } from "qrcode.react";
 import { 
   Plus, 
   Search, 
@@ -19,7 +20,10 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  QrCode,
+  Download,
+  X
 } from "lucide-react";
 
 interface Category {
@@ -121,6 +125,8 @@ export default function Inventory() {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [showAddUnit, setShowAddUnit] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [selectedUnitForQR, setSelectedUnitForQR] = useState<Unit | null>(null);
   const [newCategory, setNewCategory] = useState("");
   const [newItem, setNewItem] = useState({
     name: "",
@@ -270,6 +276,40 @@ export default function Inventory() {
         notes: ""
       });
       setShowAddUnit(false);
+    }
+  };
+
+  const generateQRUrl = (serialNumber: string) => {
+    return `https://raydifyvault.com/unit/${serialNumber}`;
+  };
+
+  const handleGenerateQR = (unit: Unit) => {
+    setSelectedUnitForQR(unit);
+    setShowQRCode(true);
+  };
+
+  const downloadQRCode = () => {
+    if (!selectedUnitForQR) return;
+    
+    const svg = document.querySelector('#qr-code-svg') as SVGElement;
+    if (svg) {
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      canvas.width = 200;
+      canvas.height = 200;
+      
+      img.onload = () => {
+        ctx?.drawImage(img, 0, 0);
+        const link = document.createElement('a');
+        link.download = `QR_${selectedUnitForQR.serialNumber}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      };
+      
+      img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
     }
   };
 
@@ -686,6 +726,15 @@ export default function Inventory() {
                               )}
                             </div>
                             <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-black"
+                                onClick={() => handleGenerateQR(unit)}
+                                title="Generate QR Code"
+                              >
+                                <QrCode className="w-4 h-4" />
+                              </Button>
                               <Button variant="outline" size="sm" className="border-black">
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -704,6 +753,72 @@ export default function Inventory() {
           )}
         </div>
       </div>
+
+      {/* QR Code Modal */}
+      <Dialog open={showQRCode} onOpenChange={setShowQRCode}>
+        <DialogContent className="border-black max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-black flex items-center gap-2">
+              <QrCode className="w-5 h-5" />
+              QR Code for Unit {selectedUnitForQR?.serialNumber}
+            </DialogTitle>
+            <DialogDescription className="text-black">
+              Scan this QR code to view live unit details
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedUnitForQR && (
+            <div className="space-y-4">
+              <div className="flex flex-col items-center space-y-4">
+                <div className="bg-white p-4 rounded-lg border border-black">
+                  <QRCodeSVG
+                    id="qr-code-svg"
+                    value={generateQRUrl(selectedUnitForQR.serialNumber)}
+                    size={200}
+                    level="H"
+                    includeMargin={true}
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                  />
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-sm text-black font-medium mb-2">Encoded URL:</p>
+                  <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                    <code className="text-xs text-black break-all">
+                      {generateQRUrl(selectedUnitForQR.serialNumber)}
+                    </code>
+                  </div>
+                </div>
+                
+                <div className="text-center text-sm text-gray-600">
+                  <p><strong>Item:</strong> {selectedItemData?.name}</p>
+                  <p><strong>Model:</strong> {selectedItemData?.model}</p>
+                  <p><strong>Status:</strong> {selectedUnitForQR.status}</p>
+                  <p><strong>Location:</strong> {selectedUnitForQR.location}</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={downloadQRCode}
+                  className="flex-1 bg-black text-white hover:bg-gray-800"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download PNG
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowQRCode(false)}
+                  className="border-black"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -148,4 +148,7 @@ The application follows a clean architecture pattern with clear separation betwe
   - Created modal dialogs for adding categories, items, and individual units
   - Implemented status badges with color coding and icons (In Stock, Rented, Maintenance, Retired)
   - Added search functionality for both items and units
+  - Implemented automatic serial number generation when creating items with quantities
+  - Added dynamic QR code generation for each unit with download functionality
+  - QR codes encode unique URLs (https://raydifyvault.com/unit/{serialNumber}) for live unit tracking
   - Maintained minimal white theme with slim black borders throughout

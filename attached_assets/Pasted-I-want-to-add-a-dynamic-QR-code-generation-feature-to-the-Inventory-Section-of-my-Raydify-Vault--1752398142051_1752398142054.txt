@@ -1,0 +1,29 @@
+I want to add a **dynamic QR code generation feature** to the Inventory Section of my Raydify Vault React+Tailwind web app. Please build the UI and basic frontend logic for this feature with the following requirements:
+
+1. **Scope & Placement**  
+   - For every individual inventory unit (serial-numbered item) within any product, generate a unique QR code dynamically.  
+   - The QR code should encode a **URL** that uniquely identifies the unit, e.g., `https://raydifyvault.com/unit/{serialNumber}`.  
+   - This URL will later be used to fetch live, up-to-date unit details from the backend (backend integration is not required now).  
+
+2. **UI Elements**  
+   - On the unit detail page or list view, add a **“Generate QR Code”** button or icon next to each unit.  
+   - Clicking this opens a modal or popup displaying the dynamically generated QR code.  
+   - Include options to **download** the QR code image (PNG or SVG) for printing and labeling physical units.
+
+3. **Technical Details**  
+   - Use a popular React QR code library such as `qrcode.react` or `react-qr-code` for generating QR codes on the frontend.  
+   - Encode only the unique URL string, not the entire product data, to ensure QR codes are dynamic and always show updated info.  
+   - The QR code generation should be performant and work for lists with many units.
+
+4. **Design & UX**  
+   - The QR code popup should be clean and centered with a clear close button.  
+   - Show the encoded URL below or beside the QR code for reference.  
+   - Use existing Raydify Vault brand colors for consistency.
+
+5. **No Backend Integration Required Yet**  
+   - Focus only on frontend UI and QR code generation logic.  
+   - Assume URLs are constructed correctly from unit serial numbers passed as props or state.
+
+Deliver a fully functional React component or set of components implementing this dynamic QR code generation feature with good UX and responsive design.
+
+Use the existing Inventory UI style as a guide for colors, fonts, and layout.
