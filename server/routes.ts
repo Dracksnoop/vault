@@ -268,6 +268,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const item = await storage.getItem(id);
+      
+      // Delete all units associated with this item first
+      const units = await storage.getUnitsByItem(id);
+      for (const unit of units) {
+        await storage.deleteUnit(unit.id);
+      }
+      
       const success = await storage.deleteItem(id);
       if (!success) {
         return res.status(404).json({ error: "Item not found" });

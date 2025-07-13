@@ -480,12 +480,68 @@ export default function Inventory() {
     });
   };
 
-  const handleSaveItem = () => {
+  const handleSaveItem = async () => {
     if (editingItem) {
-      editItemMutation.mutate({
-        id: editingItem,
-        data: editItemData
-      });
+      const originalItem = items.find(item => item.id === editingItem);
+      const originalQuantity = originalItem?.quantityInStock || 0;
+      const newQuantity = editItemData.quantityInStock;
+      
+      try {
+        // First update the item
+        await editItemMutation.mutateAsync({
+          id: editingItem,
+          data: editItemData
+        });
+        
+        // Handle quantity changes
+        const existingUnits = units.filter(unit => unit.itemId === editingItem);
+        
+        if (newQuantity > originalQuantity) {
+          // Quantity increased - generate additional units
+          const unitsToCreate = newQuantity - originalQuantity;
+          
+          const unitPromises = [];
+          for (let i = 0; i < unitsToCreate; i++) {
+            const unit = {
+              id: `${editingItem}_unit_${Date.now()}_${i}`,
+              itemId: editingItem,
+              serialNumber: generateSerialNumber(editItemData.name, existingUnits.length + i),
+              barcode: generateBarcode().toString(),
+              status: "In Stock",
+              location: editItemData.location || "Warehouse",
+              warrantyExpiry: "",
+              notes: "Auto-generated unit from quantity update"
+            };
+            unitPromises.push(createUnitMutation.mutateAsync(unit));
+          }
+          
+          await Promise.all(unitPromises);
+        } else if (newQuantity < originalQuantity) {
+          // Quantity decreased - remove excess units (prioritize "In Stock" units)
+          const unitsToRemove = originalQuantity - newQuantity;
+          const sortedUnits = [...existingUnits].sort((a, b) => {
+            // Prioritize removing "In Stock" units first
+            if (a.status === "In Stock" && b.status !== "In Stock") return -1;
+            if (a.status !== "In Stock" && b.status === "In Stock") return 1;
+            return 0;
+          });
+          
+          const deletePromises = [];
+          for (let i = 0; i < unitsToRemove && i < sortedUnits.length; i++) {
+            deletePromises.push(deleteUnitMutation.mutateAsync(sortedUnits[i].id));
+          }
+          
+          await Promise.all(deletePromises);
+        }
+        
+        // Invalidate all queries to ensure UI updates
+        queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+        
+      } catch (error) {
+        console.error("Error updating item and generating units:", error);
+      }
     }
   };
 
