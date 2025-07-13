@@ -15,9 +15,6 @@ export default function Layout({ children, user, onLogout }: LayoutProps) {
     <div className="min-h-screen flex bg-white">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      {/* Continuous vertical divider line */}
-      <div className="fixed left-60 top-0 bottom-0 w-px bg-black z-30 hidden lg:block"></div>
-      
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -28,7 +25,7 @@ export default function Layout({ children, user, onLogout }: LayoutProps) {
       
       <div className="flex-1 lg:ml-60">
         <Header onMenuClick={() => setSidebarOpen(true)} user={user} onLogout={onLogout} />
-        <main className="pt-20 p-6 min-h-screen bg-white lg:pl-7">
+        <main className="pt-20 p-6 min-h-screen bg-white">
           {children}
         </main>
       </div>
