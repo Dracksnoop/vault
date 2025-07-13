@@ -657,7 +657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const service = await storage.createService(validatedService);
 
-      // Create service items
+      // Create service items and update unit statuses
       const serviceItems = [];
       for (const item of selectedItems) {
         const serviceItemId = `${serviceId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -670,6 +670,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalPrice: item.totalPrice || "0"
         });
         serviceItems.push(serviceItem);
+
+        // If service type is rental, mark units as rented
+        if (serviceData.serviceType === 'rent') {
+          // Get available units for this item
+          const availableUnits = await storage.getUnitsByItem(item.itemId);
+          const inStockUnits = availableUnits.filter(unit => unit.status === 'In Stock');
+          
+          // Mark the required quantity of units as rented
+          const unitsToRent = inStockUnits.slice(0, item.quantity);
+          for (const unit of unitsToRent) {
+            await storage.updateUnit(unit.id, { status: 'rented' });
+          }
+
+          // Update item's quantityRentedOut
+          const currentItem = await storage.getItem(item.itemId);
+          if (currentItem) {
+            const newQuantityRentedOut = (currentItem.quantityRentedOut || 0) + item.quantity;
+            const newQuantityInStock = (currentItem.quantityInStock || 0) - item.quantity;
+            await storage.updateItem(item.itemId, {
+              quantityRentedOut: newQuantityRentedOut,
+              quantityInStock: Math.max(0, newQuantityInStock)
+            });
+          }
+        }
       }
 
       // Create rental if service type is rental
@@ -694,6 +718,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Complete customer creation error:", error);
       res.status(400).json({ error: "Failed to create complete customer record" });
+    }
+  });
+
+  // Fix existing rental statuses (utility endpoint)
+  app.post("/api/rentals/fix-statuses", async (req, res) => {
+    try {
+      const services = await storage.getServices();
+      const serviceItems = await storage.getServiceItems();
+      
+      for (const service of services) {
+        if (service.serviceType === 'rent') {
+          const items = serviceItems.filter(item => item.serviceId === service.id);
+          
+          for (const serviceItem of items) {
+            // Get available units for this item
+            const availableUnits = await storage.getUnitsByItem(serviceItem.itemId);
+            const inStockUnits = availableUnits.filter(unit => unit.status === 'In Stock');
+            
+            // Mark the required quantity of units as rented
+            const unitsToRent = inStockUnits.slice(0, serviceItem.quantity);
+            for (const unit of unitsToRent) {
+              await storage.updateUnit(unit.id, { status: 'rented' });
+            }
+
+            // Update item's quantityRentedOut
+            const currentItem = await storage.getItem(serviceItem.itemId);
+            if (currentItem) {
+              const newQuantityRentedOut = (currentItem.quantityRentedOut || 0) + serviceItem.quantity;
+              const newQuantityInStock = (currentItem.quantityInStock || 0) - serviceItem.quantity;
+              await storage.updateItem(serviceItem.itemId, {
+                quantityRentedOut: newQuantityRentedOut,
+                quantityInStock: Math.max(0, newQuantityInStock)
+              });
+            }
+          }
+        }
+      }
+      
+      res.json({ success: true, message: "Rental statuses fixed successfully" });
+    } catch (error) {
+      console.error("Error fixing rental statuses:", error);
+      res.status(500).json({ error: "Failed to fix rental statuses" });
     }
   });
 
