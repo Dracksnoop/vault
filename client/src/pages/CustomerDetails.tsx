@@ -27,11 +27,13 @@ import {
   Plus
 } from 'lucide-react';
 import { Link } from 'wouter';
+import RentalItemsPanel from '@/components/RentalItemsPanel';
 
 export default function CustomerDetails() {
   const [match, params] = useRoute('/customer/:id');
   const customerId = params?.id ? parseInt(params.id) : null;
   const [selectedTab, setSelectedTab] = useState('overview');
+  const [showRentalItems, setShowRentalItems] = useState(false);
 
   const { data: customer, isLoading: customerLoading } = useQuery({
     queryKey: ['/api/customers', customerId],
@@ -69,6 +71,17 @@ export default function CustomerDetails() {
   const totalRentPaid = 15000;
   const totalDue = 5000;
   const nextRentDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+  // If showing rental items panel, render it instead
+  if (showRentalItems) {
+    return (
+      <RentalItemsPanel
+        customerId={customerId}
+        customerName={customer.name}
+        onBack={() => setShowRentalItems(false)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -217,7 +230,10 @@ export default function CustomerDetails() {
         <TabsContent value="overview" className="space-y-6">
           {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="border-black">
+            <Card 
+              className="border-black cursor-pointer hover:shadow-lg transition-shadow" 
+              onClick={() => setShowRentalItems(true)}
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
