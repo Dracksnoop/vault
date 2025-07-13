@@ -677,10 +677,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: `Item ${item.itemId} not found` });
         }
         
-        // Check if requested quantity exceeds available stock
-        if (item.quantity > currentItem.quantityInStock) {
+        // Check actual available units (units with status 'In Stock')
+        const availableUnits = await storage.getUnitsByItem(item.itemId);
+        const inStockUnits = availableUnits.filter(unit => unit.status === 'In Stock');
+        
+        // Check if requested quantity exceeds available units
+        if (item.quantity > inStockUnits.length) {
           return res.status(400).json({ 
-            error: `Insufficient stock for item "${currentItem.name}". Requested: ${item.quantity}, Available: ${currentItem.quantityInStock}` 
+            error: `Insufficient stock for item "${currentItem.name}". Requested: ${item.quantity}, Available: ${inStockUnits.length}` 
           });
         }
       }
