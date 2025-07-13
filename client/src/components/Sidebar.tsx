@@ -29,7 +29,6 @@ const navigationItems = [
   { name: "Users", href: "/users", icon: UserCheck },
   { name: "Profile", href: "/profile", icon: User },
   { name: "Support", href: "/support", icon: LifeBuoy },
-  { name: "Admin", href: "/admin", icon: UserCheck },
 ];
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {

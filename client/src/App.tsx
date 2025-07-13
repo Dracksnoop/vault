@@ -15,6 +15,7 @@ import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import Support from "./pages/Support";
 import Admin from "./pages/Admin";
+import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
 import NotFound from "@/pages/not-found";
 
@@ -79,6 +80,11 @@ function Router() {
     return <Login onLogin={handleLogin} />;
   }
 
+  // Check if user is admin and redirect to admin dashboard
+  if (user.username === 'admin') {
+    return <AdminDashboard user={user} onLogout={handleLogout} />;
+  }
+
   return (
     <Layout user={user} onLogout={handleLogout}>
       <Switch>
@@ -91,7 +97,6 @@ function Router() {
         <Route path="/users" component={Users} />
         <Route path="/profile" component={Profile} />
         <Route path="/support" component={Support} />
-        <Route path="/admin" component={Admin} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
