@@ -586,15 +586,15 @@ export default function Inventory() {
   };
 
   return (
-    <div className="h-full bg-white">
+    <div className="h-screen bg-white overflow-hidden">
       <div className="flex h-full">
         {/* Left Panel - Categories */}
-        <div className="w-80 border-r border-black bg-white flex flex-col h-full">
+        <div className="w-80 border-r border-black bg-white flex flex-col h-full max-h-full">
           <div className="p-4 border-b border-black flex-shrink-0">
             <h2 className="text-lg font-semibold text-black">Categories</h2>
           </div>
           
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <div className="p-2">
               {categories.map((category) => (
                 <button
@@ -664,10 +664,10 @@ export default function Inventory() {
         </div>
 
         {/* Right Panel - Items or Unit Details */}
-        <div className="flex-1 bg-white">
+        <div className="flex-1 bg-white flex flex-col max-h-full">
           {!selectedItem ? (
             // Items View
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col max-h-full">
               <div className="p-4 border-b border-black flex-shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-black">
@@ -760,7 +760,7 @@ export default function Inventory() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-4 min-h-0">
                 <div className="space-y-4">
                   {filteredItems.map((item) => (
                     <Card key={item.id} className="border-black hover:bg-gray-50 cursor-pointer transition-colors">
@@ -821,7 +821,7 @@ export default function Inventory() {
             </div>
           ) : (
             // Unit Details View
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col max-h-full">
               <div className="p-4 border-b border-black flex-shrink-0">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
@@ -970,7 +970,7 @@ export default function Inventory() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex-1 overflow-y-auto p-4 min-h-0">
                 <div className="space-y-4">
                   {filteredUnits.length === 0 ? (
                     <div className="text-center py-8">
