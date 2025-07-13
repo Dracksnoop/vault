@@ -780,10 +780,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found for this unit" });
       }
       
-      // Return combined unit and item details
+      let rentalInfo = null;
+      
+      // If unit is rented, get rental and customer information
+      if (unit.status === 'rented') {
+        try {
+          // Find the service item that includes this unit
+          const serviceItems = await storage.getServiceItems();
+          const serviceItem = serviceItems.find(si => si.itemId === unit.itemId);
+          
+          if (serviceItem) {
+            // Get the service details
+            const service = await storage.getService(serviceItem.serviceId);
+            
+            if (service && service.serviceType === 'rent') {
+              // Get the customer details
+              const customer = await storage.getCustomer(service.customerId);
+              
+              // Get rental details - rentals are linked to services, not individual items
+              const rentals = await storage.getRentalsByService(service.id);
+              const rental = rentals.length > 0 ? rentals[0] : null;
+              
+              if (customer && rental) {
+                rentalInfo = {
+                  customer: {
+                    name: customer.name,
+                    email: customer.email,
+                    phone: customer.phone,
+                    address: customer.address,
+                    company: customer.company,
+                    type: customer.type
+                  },
+                  rental: {
+                    startDate: rental.startDate,
+                    endDate: rental.endDate || 'Ongoing',
+                    paymentFrequency: rental.paymentFrequency,
+                    rate: rental.monthlyRate || 'N/A',
+                    totalAmount: rental.totalValue || 'N/A',
+                    securityDeposit: rental.securityDeposit || 'N/A',
+                    terms: rental.notes || 'No additional terms',
+                    isOngoing: rental.isOngoing
+                  },
+                  service: {
+                    serviceType: service.serviceType,
+                    priority: service.priority,
+                    description: service.description,
+                    createdAt: service.createdAt
+                  }
+                };
+              }
+            }
+          }
+        } catch (rentalError) {
+          console.error("Error fetching rental information:", rentalError);
+          // Continue without rental info rather than failing completely
+        }
+      }
+      
+      // Return combined unit, item, and rental details
       res.json({
         unit,
         item,
+        rentalInfo,
         unitDetails: {
           serialNumber: unit.serialNumber,
           model: item.model || 'N/A',

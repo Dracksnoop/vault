@@ -49,6 +49,7 @@ export default function QRScanDashboard() {
   const [unitDetails, setUnitDetails] = useState<UnitDetails | null>(null);
   const [serialNumber, setSerialNumber] = useState("");
   const [authenticatedUser, setAuthenticatedUser] = useState<any>(null);
+  const [rentalInfo, setRentalInfo] = useState<any>(null);
 
   useEffect(() => {
     // Extract serial number from URL path
@@ -99,6 +100,7 @@ export default function QRScanDashboard() {
       
       if (response.unitDetails) {
         setUnitDetails(response.unitDetails);
+        setRentalInfo(response.rentalInfo);
       } else {
         setLoginError("Unit details not found");
       }
@@ -114,6 +116,7 @@ export default function QRScanDashboard() {
     setLoginForm({ userId: "", password: "" });
     setLoginError("");
     setAuthenticatedUser(null);
+    setRentalInfo(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -334,6 +337,100 @@ export default function QRScanDashboard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Rental Information - Show only if unit is rented */}
+            {rentalInfo && unitDetails.status === 'rented' && (
+              <Card className="border-black">
+                <CardHeader>
+                  <CardTitle className="text-black flex items-center gap-2">
+                    <Package className="w-5 h-5" />
+                    Rental Information
+                  </CardTitle>
+                  <CardDescription className="text-black">
+                    Currently rented to customer
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Customer Information */}
+                  <div className="space-y-2">
+                    <Label className="text-black font-medium">Customer Details</Label>
+                    <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-black">Name:</span>
+                          <span className="text-sm text-gray-600">{rentalInfo.customer.name}</span>
+                        </div>
+                        {rentalInfo.customer.company && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-black">Company:</span>
+                            <span className="text-sm text-gray-600">{rentalInfo.customer.company}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-black">Phone:</span>
+                          <span className="text-sm text-gray-600">{rentalInfo.customer.phone}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-black">Email:</span>
+                          <span className="text-sm text-gray-600">{rentalInfo.customer.email}</span>
+                        </div>
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-medium text-black">Address:</span>
+                          <span className="text-sm text-gray-600 text-right">{rentalInfo.customer.address}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rental Terms */}
+                  <div className="space-y-2">
+                    <Label className="text-black font-medium">Rental Terms</Label>
+                    <div className="p-3 bg-green-50 rounded border border-green-200">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-black">Start Date:</span>
+                          <span className="text-sm text-gray-600">
+                            {new Date(rentalInfo.rental.startDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-black">End Date:</span>
+                          <span className="text-sm text-gray-600">
+                            {new Date(rentalInfo.rental.endDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-black">Payment:</span>
+                          <span className="text-sm text-gray-600">
+                            ${rentalInfo.rental.rate} ({rentalInfo.rental.paymentFrequency})
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-black">Total Amount:</span>
+                          <span className="text-sm text-gray-600">${rentalInfo.rental.totalAmount}</span>
+                        </div>
+                        {rentalInfo.rental.securityDeposit && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-black">Security Deposit:</span>
+                            <span className="text-sm text-gray-600">${rentalInfo.rental.securityDeposit}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Terms */}
+                  {rentalInfo.rental.terms && (
+                    <div className="space-y-2">
+                      <Label className="text-black font-medium">Additional Terms</Label>
+                      <div className="p-3 bg-gray-50 rounded border">
+                        <p className="text-black text-sm">{rentalInfo.rental.terms}</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* User Info & Actions */}
