@@ -25,7 +25,7 @@ export default function Layout({ children, user, onLogout }: LayoutProps) {
       
       <div className="flex-1 lg:ml-60">
         <Header onMenuClick={() => setSidebarOpen(true)} user={user} onLogout={onLogout} />
-        <main className="pt-32 p-2 sm:p-4 lg:p-6 min-h-screen bg-white">
+        <main className="mt-20 pt-4 p-2 sm:p-4 lg:p-6 min-h-screen bg-white">
           {children}
         </main>
       </div>
