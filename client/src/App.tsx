@@ -17,6 +17,7 @@ import Support from "./pages/Support";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
+import QRScanDashboard from "./pages/QRScanDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -67,39 +68,39 @@ function Router() {
     setUser(null);
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-black">Loading...</div>
-      </div>
-    );
-  }
-
-  // Show login page if user is not authenticated
-  if (!user) {
-    return <Login onLogin={handleLogin} />;
-  }
-
-  // Check if user is admin and redirect to admin dashboard
-  if (user.username === 'admin') {
-    return <AdminDashboard user={user} onLogout={handleLogout} />;
-  }
-
   return (
-    <Layout user={user} onLogout={handleLogout}>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/inventory" component={Inventory} />
-        <Route path="/customer" component={Customer} />
-        <Route path="/demo" component={Demo} />
-        <Route path="/callservice" component={CallService} />
-        <Route path="/trade" component={Trade} />
-        <Route path="/users" component={Users} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/support" component={Support} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <Switch>
+      {/* Public QR Scan Dashboard - accessible without main app authentication */}
+      <Route path="/unit/:serialNumber" component={QRScanDashboard} />
+      
+      {/* All other routes require authentication */}
+      <Route>
+        {isLoading ? (
+          <div className="min-h-screen bg-white flex items-center justify-center">
+            <div className="text-black">Loading...</div>
+          </div>
+        ) : !user ? (
+          <Login onLogin={handleLogin} />
+        ) : user.username === 'admin' ? (
+          <AdminDashboard user={user} onLogout={handleLogout} />
+        ) : (
+          <Layout user={user} onLogout={handleLogout}>
+            <Switch>
+              <Route path="/" component={Home} />
+              <Route path="/inventory" component={Inventory} />
+              <Route path="/customer" component={Customer} />
+              <Route path="/demo" component={Demo} />
+              <Route path="/callservice" component={CallService} />
+              <Route path="/trade" component={Trade} />
+              <Route path="/users" component={Users} />
+              <Route path="/profile" component={Profile} />
+              <Route path="/support" component={Support} />
+              <Route component={NotFound} />
+            </Switch>
+          </Layout>
+        )}
+      </Route>
+    </Switch>
   );
 }
 

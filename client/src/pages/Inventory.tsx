@@ -735,6 +735,15 @@ export default function Inventory() {
                               >
                                 <QrCode className="w-4 h-4" />
                               </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-black"
+                                onClick={() => window.open(`/unit/${unit.serialNumber}`, '_blank')}
+                                title="Test QR Dashboard"
+                              >
+                                <Search className="w-4 h-4" />
+                              </Button>
                               <Button variant="outline" size="sm" className="border-black">
                                 <Edit className="w-4 h-4" />
                               </Button>
