@@ -460,43 +460,38 @@ export default function CustomerDetails() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Mock payment history */}
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Payment #001</p>
-                      <p className="text-sm text-gray-600">July 2025 Rent</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-green-600">₹5,000</p>
-                      <p className="text-sm text-gray-600">Paid on July 5, 2025</p>
-                    </div>
+                {customerRentals.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No payment history available</p>
+                    <p className="text-sm text-gray-500 mt-1">Payments will appear here once rental agreements are active</p>
                   </div>
-                </div>
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Payment #002</p>
-                      <p className="text-sm text-gray-600">June 2025 Rent</p>
+                ) : (
+                  customerRentals.map((rental: any) => (
+                    <div key={rental.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">Rental #{rental.id}</p>
+                          <p className="text-sm text-gray-600">
+                            {rental.paymentFrequency} payments
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Duration: {rental.duration} {rental.paymentFrequency === 'monthly' ? 'months' : 'days'}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-green-600">₹{rental.totalAmount?.toLocaleString() || 'N/A'}</p>
+                          <p className="text-sm text-gray-600">
+                            Status: {rental.isOngoing ? 'Active' : 'Completed'}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Started: {new Date(rental.startDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium text-green-600">₹5,000</p>
-                      <p className="text-sm text-gray-600">Paid on June 5, 2025</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Payment #003</p>
-                      <p className="text-sm text-gray-600">May 2025 Rent</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-green-600">₹5,000</p>
-                      <p className="text-sm text-gray-600">Paid on May 5, 2025</p>
-                    </div>
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -515,37 +510,63 @@ export default function CustomerDetails() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {/* Mock documents */}
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="w-5 h-5 text-blue-500" />
-                      <div>
-                        <p className="font-medium">Rental Agreement</p>
-                        <p className="text-sm text-gray-600">Uploaded on July 10, 2025</p>
+                {customerRentals.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No documents available</p>
+                    <p className="text-sm text-gray-500 mt-1">Documents will appear here once rental agreements are created</p>
+                  </div>
+                ) : (
+                  customerRentals.map((rental: any) => (
+                    <div key={rental.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <FileText className="w-5 h-5 text-blue-500" />
+                          <div>
+                            <p className="font-medium">Rental Agreement #{rental.id}</p>
+                            <p className="text-sm text-gray-600">
+                              Created: {new Date(rental.startDate).toLocaleDateString()}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              Status: {rental.isOngoing ? 'Active' : 'Completed'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </Button>
-                  </div>
-                </div>
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Receipt className="w-5 h-5 text-green-500" />
-                      <div>
-                        <p className="font-medium">Invoice #INV-001</p>
-                        <p className="text-sm text-gray-600">Generated on July 8, 2025</p>
+                  ))
+                )}
+                {customerServices.length > 0 && (
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="font-medium mb-3">Service Documents</h4>
+                    {customerServices.map((service: any) => (
+                      <div key={service.id} className="border border-gray-200 rounded-lg p-4 mb-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <Receipt className="w-5 h-5 text-green-500" />
+                            <div>
+                              <p className="font-medium">Service Agreement #{service.id}</p>
+                              <p className="text-sm text-gray-600">Type: {service.serviceType}</p>
+                              <p className="text-sm text-gray-600">
+                                Created: {new Date(service.createdAt || Date.now()).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <Button variant="outline" size="sm">
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </Button>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -558,21 +579,60 @@ export default function CustomerDetails() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {/* Customer creation event */}
                 <div className="border-l-4 border-blue-500 pl-4">
-                  <p className="font-medium">Customer Created</p>
-                  <p className="text-sm text-gray-600">July 13, 2025 at 11:30 AM</p>
-                  <p className="text-sm text-gray-500">Customer account was created through Customer Management system</p>
+                  <p className="font-medium">Customer Account Created</p>
+                  <p className="text-sm text-gray-600">
+                    {new Date(customer.createdAt || Date.now()).toLocaleDateString()} at {new Date(customer.createdAt || Date.now()).toLocaleTimeString()}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Customer account was created with details: {customer.name}, {customer.email}, {customer.phone}
+                  </p>
                 </div>
-                <div className="border-l-4 border-green-500 pl-4">
-                  <p className="font-medium">Rental Service Started</p>
-                  <p className="text-sm text-gray-600">July 13, 2025 at 11:30 AM</p>
-                  <p className="text-sm text-gray-500">Monthly rental service initiated</p>
-                </div>
-                <div className="border-l-4 border-yellow-500 pl-4">
-                  <p className="font-medium">Rental Agreement Signed</p>
-                  <p className="text-sm text-gray-600">July 13, 2025 at 11:30 AM</p>
-                  <p className="text-sm text-gray-500">Customer signed rental agreement for ongoing service</p>
-                </div>
+
+                {/* Service events */}
+                {customerServices.map((service: any) => (
+                  <div key={service.id} className="border-l-4 border-green-500 pl-4">
+                    <p className="font-medium">
+                      {service.serviceType === 'rent' ? 'Rental Service Started' : 
+                       service.serviceType === 'sell' ? 'Sale Service Created' : 
+                       service.serviceType === 'maintenance' ? 'Maintenance Service Started' : 
+                       'Service Created'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(service.createdAt || Date.now()).toLocaleDateString()} at {new Date(service.createdAt || Date.now()).toLocaleTimeString()}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {service.serviceType === 'rent' ? `Monthly rental service initiated for ${service.duration || 'ongoing'} period` :
+                       service.serviceType === 'sell' ? 'Sale transaction created' :
+                       service.serviceType === 'maintenance' ? 'Maintenance service request created' :
+                       'Other service type created'}
+                    </p>
+                  </div>
+                ))}
+
+                {/* Rental events */}
+                {customerRentals.map((rental: any) => (
+                  <div key={rental.id} className="border-l-4 border-purple-500 pl-4">
+                    <p className="font-medium">Rental Agreement Activated</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(rental.startDate).toLocaleDateString()} at {new Date(rental.startDate).toLocaleTimeString()}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Rental agreement #{rental.id} activated with {rental.paymentFrequency} payments, 
+                      duration: {rental.duration}, total amount: ₹{rental.totalAmount?.toLocaleString() || 'N/A'}
+                    </p>
+                  </div>
+                ))}
+
+                {/* If no history available */}
+                {customerServices.length === 0 && customerRentals.length === 0 && (
+                  <div className="text-center py-8">
+                    <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No history available</p>
+                    <p className="text-sm text-gray-500 mt-1">Customer activity will appear here as they use services</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
