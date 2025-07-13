@@ -818,7 +818,8 @@ export default function Inventory() {
                     const inStockCount = itemUnits.filter(unit => unit.status === "In Stock").length;
                     const rentedCount = itemUnits.filter(unit => unit.status === "Rented").length;
                     const maintenanceCount = itemUnits.filter(unit => unit.status === "Maintenance").length;
-                    const totalUnits = itemUnits.length;
+                    const totalStockCount = inStockCount + rentedCount; // Total units (in stock + rented)
+                    const availableCount = inStockCount; // Only available units
                     
                     return (
                       <Card key={item.id} className="border-black hover:bg-gray-50 cursor-pointer transition-colors">
@@ -830,7 +831,7 @@ export default function Inventory() {
                               <div className="flex items-center gap-4 text-sm">
                                 <div className="flex items-center gap-1">
                                   <Package className="w-4 h-4 text-gray-500" />
-                                  <span className="text-black">Stock: {inStockCount}</span>
+                                  <span className="text-black">Stock: {totalStockCount}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <Clock className="w-4 h-4 text-gray-500" />
@@ -838,7 +839,7 @@ export default function Inventory() {
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <CheckCircle className="w-4 h-4 text-gray-500" />
-                                  <span className="text-black">Available: {inStockCount}</span>
+                                  <span className="text-black">Available: {availableCount}</span>
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <MapPin className="w-4 h-4 text-gray-500" />

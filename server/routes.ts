@@ -416,21 +416,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard stats route
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
-      const inventory = await storage.getInventory();
+      const items = await storage.getItems();
+      const units = await storage.getUnits();
       const customers = await storage.getCustomers();
+      const categories = await storage.getCategories();
       
-      const totalInventory = inventory.length;
-      const totalQuantity = inventory.reduce((sum, item) => sum + item.quantity, 0);
-      const totalValue = inventory.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
+      // Calculate stats based on units
+      const totalUnits = units.length;
+      const inStockUnits = units.filter(unit => unit.status === "In Stock").length;
+      const rentedUnits = units.filter(unit => unit.status === "Rented").length;
+      const maintenanceUnits = units.filter(unit => unit.status === "Maintenance").length;
       const activeCustomers = customers.length;
       
+      // Calculate low stock items (items with < 2 available units)
+      const lowStockItems = items.filter(item => {
+        const itemUnits = units.filter(unit => unit.itemId === item.id);
+        const availableUnits = itemUnits.filter(unit => unit.status === "In Stock").length;
+        return availableUnits < 2;
+      }).length;
+      
       res.json({
-        totalInventory,
-        totalQuantity,
-        totalValue,
+        totalInventory: items.length,
+        totalUnits,
+        inStockUnits,
+        rentedUnits,
+        maintenanceUnits,
         activeCustomers,
-        lowStockItems: inventory.filter(item => item.quantity < 10).length,
-        categories: [...new Set(inventory.map(item => item.category))].length
+        lowStockItems,
+        categories: categories.length
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch dashboard stats" });
