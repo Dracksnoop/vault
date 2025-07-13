@@ -7,6 +7,7 @@ This is a full-stack inventory management application called "Raydify Vault" bui
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+UI Design: Minimal white theme with slim black borders throughout the application.
 
 ## System Architecture
 
@@ -102,3 +103,12 @@ Preferred communication style: Simple, everyday language.
 6. **Development Experience**: Vite integration for fast development cycles
 
 The application follows a clean architecture pattern with clear separation between frontend, backend, and shared concerns, making it maintainable and scalable for inventory management needs.
+
+## Recent Changes
+
+- **July 13, 2025**: Updated entire UI to minimal white theme with slim black borders
+  - Removed navy blue header background, now uses white with black borders
+  - Updated sidebar to white background with black borders
+  - Changed all page components to use white backgrounds with black borders
+  - Updated navigation active states to use light gray with black left border
+  - Maintained clean, minimal aesthetic throughout the application

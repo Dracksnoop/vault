@@ -25,9 +25,9 @@
   --radius: 0.5rem;
   
   /* Custom Raydify Vault colors */
-  --navy: hsl(210, 71%, 16%);
-  --magenta: hsl(317, 63%, 43%);
-  --sidebar-bg: hsl(210, 20%, 98%);
+  --navy: hsl(0, 0%, 100%);
+  --magenta: hsl(0, 0%, 0%);
+  --sidebar-bg: hsl(0, 0%, 100%);
 }
 
 .dark {
@@ -65,11 +65,11 @@
 
 @layer utilities {
   .nav-item-active {
-    @apply bg-[var(--magenta)] text-white;
-    border-left: 3px solid var(--magenta);
+    @apply bg-gray-100 text-black;
+    border-left: 2px solid black;
   }
   
   .nav-item:hover {
-    @apply text-[var(--magenta)];
+    @apply text-black bg-gray-50;
   }
 }
