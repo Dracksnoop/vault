@@ -1,9 +1,103 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertInventorySchema, insertCustomerSchema } from "@shared/schema";
+import { insertInventorySchema, insertCustomerSchema, insertUserSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Simple session management
+  const sessions = new Map<string, any>();
+  
+  // Authentication middleware
+  const requireAuth = (req: any, res: any, next: any) => {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (!sessionId || !sessions.has(sessionId)) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    req.user = sessions.get(sessionId);
+    next();
+  };
+
+  // Authentication routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username and password required" });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user || user.password !== password) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const sessionId = Math.random().toString(36).substring(2, 15);
+      sessions.set(sessionId, { id: user.id, username: user.username });
+      
+      res.json({ 
+        user: { id: user.id, username: user.username }, 
+        token: sessionId 
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (sessionId) {
+      sessions.delete(sessionId);
+    }
+    res.json({ success: true });
+  });
+
+  app.get("/api/auth/me", (req, res) => {
+    const sessionId = req.headers.authorization?.replace('Bearer ', '');
+    if (!sessionId || !sessions.has(sessionId)) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    res.json(sessions.get(sessionId));
+  });
+
+  // User management routes
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/users", async (req, res) => {
+    try {
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(validatedData.username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already exists" });
+      }
+
+      const user = await storage.createUser(validatedData);
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid user data" });
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteUser(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   // Inventory routes
   app.get("/api/inventory", async (req, res) => {
     try {

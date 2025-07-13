@@ -4,9 +4,11 @@ import Sidebar from "./Sidebar";
 
 interface LayoutProps {
   children: React.ReactNode;
+  user: any;
+  onLogout: () => void;
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children, user, onLogout }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -22,7 +24,7 @@ export default function Layout({ children }: LayoutProps) {
       )}
       
       <div className="flex-1 lg:ml-60">
-        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Header onMenuClick={() => setSidebarOpen(true)} user={user} onLogout={onLogout} />
         <main className="pt-16 p-6 min-h-screen bg-white">
           {children}
         </main>

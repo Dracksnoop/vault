@@ -8,6 +8,8 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  deleteUser(id: number): Promise<boolean>;
   
   // Inventory methods
   getInventory(): Promise<Inventory[]>;
@@ -82,6 +84,17 @@ export class MongoStorage implements IStorage {
     const user: User = { ...insertUser, id };
     await this.users.insertOne(user);
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    await this.initialize();
+    return await this.users.find({}).toArray();
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    await this.initialize();
+    const result = await this.users.deleteOne({ id });
+    return result.deletedCount > 0;
   }
 
   // Inventory methods
@@ -202,6 +215,14 @@ export class MemStorage implements IStorage {
     const user: User = { ...insertUser, id };
     this.users.set(id, user);
     return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    return this.users.delete(id);
   }
 
   // Inventory methods
