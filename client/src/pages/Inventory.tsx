@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { QRCodeSVG } from "qrcode.react";
 import CPUSpecsEditor from '@/components/CPUSpecsEditor';
+import UnitDetailsPanel from '@/components/UnitDetailsPanel';
 import { 
   Plus, 
   Search, 
@@ -131,6 +132,8 @@ export default function Inventory() {
   const [selectedUnitForQR, setSelectedUnitForQR] = useState<Unit | null>(null);
   const [showCPUSpecs, setShowCPUSpecs] = useState(false);
   const [selectedUnitForCPU, setSelectedUnitForCPU] = useState<Unit | null>(null);
+  const [showUnitDetails, setShowUnitDetails] = useState(false);
+  const [selectedUnitForDetails, setSelectedUnitForDetails] = useState<Unit | null>(null);
   const [newCategory, setNewCategory] = useState("");
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editingUnit, setEditingUnit] = useState<string | null>(null);
@@ -445,6 +448,11 @@ export default function Inventory() {
   const handleGenerateQR = (unit: Unit) => {
     setSelectedUnitForQR(unit);
     setShowQRCode(true);
+  };
+
+  const handleViewUnitDetails = (unit: Unit) => {
+    setSelectedUnitForDetails(unit);
+    setShowUnitDetails(true);
   };
 
   const downloadQRCode = () => {
@@ -998,8 +1006,8 @@ export default function Inventory() {
                     </div>
                   ) : (
                     filteredUnits.map((unit) => (
-                      <Card key={unit.id} className="border-black">
-                        <CardContent className="p-4">
+                      <Card key={unit.id} className="border-black hover:shadow-md transition-shadow cursor-pointer">
+                        <CardContent className="p-4" onClick={() => handleViewUnitDetails(unit)}>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-4 mb-3">
@@ -1031,7 +1039,7 @@ export default function Inventory() {
                                 </div>
                               )}
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                               <Button 
                                 variant="outline" 
                                 size="sm" 
@@ -1310,6 +1318,20 @@ export default function Inventory() {
           onClose={() => {
             setShowCPUSpecs(false);
             setSelectedUnitForCPU(null);
+          }}
+        />
+      )}
+
+      {/* Unit Details Panel */}
+      {selectedUnitForDetails && (
+        <UnitDetailsPanel
+          unit={selectedUnitForDetails}
+          item={items.find(item => item.id === selectedUnitForDetails.itemId)!}
+          category={categories.find(cat => cat.id === items.find(item => item.id === selectedUnitForDetails.itemId)?.categoryId)!}
+          isOpen={showUnitDetails}
+          onClose={() => {
+            setShowUnitDetails(false);
+            setSelectedUnitForDetails(null);
           }}
         />
       )}
