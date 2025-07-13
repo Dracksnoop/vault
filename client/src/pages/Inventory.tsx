@@ -447,15 +447,27 @@ export default function Inventory() {
       const isCPU = selectedCategory?.name.toLowerCase().includes('cpu');
       const isMonitor = selectedCategory?.name.toLowerCase().includes('monitor');
       
+      console.log('Category detection:', {
+        selectedItemData,
+        selectedCategory,
+        isCPU,
+        isMonitor,
+        categories: categories.map(c => ({ id: c.id, name: c.name }))
+      });
+      
       createUnitMutation.mutate(unit, {
         onSuccess: (createdUnit) => {
+          console.log('Unit created successfully:', createdUnit);
+          
           // If it's a CPU, show CPU specs editor after creation
           if (isCPU) {
+            console.log('Opening CPU specs editor...');
             setSelectedUnitForCPU(createdUnit);
             setShowCPUSpecs(true);
           }
           // If it's a Monitor, show Monitor specs editor after creation
           else if (isMonitor) {
+            console.log('Opening Monitor specs editor...');
             setSelectedUnitForMonitor(createdUnit);
             setShowMonitorSpecs(true);
           }
