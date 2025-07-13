@@ -1,7 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertInventorySchema, insertCustomerSchema, insertUserSchema } from "@shared/schema";
+import { 
+  insertInventorySchema, 
+  insertCustomerSchema, 
+  insertUserSchema, 
+  insertCategorySchema, 
+  insertItemSchema, 
+  insertUnitSchema 
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Simple session management
@@ -155,6 +162,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete item" });
+    }
+  });
+
+  // Category routes
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = await storage.getCategories();
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  app.post("/api/categories", async (req, res) => {
+    try {
+      const validatedData = insertCategorySchema.parse(req.body);
+      const category = await storage.createCategory(validatedData);
+      res.json(category);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create category" });
+    }
+  });
+
+  app.put("/api/categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertCategorySchema.partial().parse(req.body);
+      const category = await storage.updateCategory(id, validatedData);
+      if (!category) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      res.json(category);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update category" });
+    }
+  });
+
+  app.delete("/api/categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteCategory(id);
+      if (!success) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete category" });
+    }
+  });
+
+  // Item routes
+  app.get("/api/items", async (req, res) => {
+    try {
+      const { categoryId } = req.query;
+      const items = categoryId 
+        ? await storage.getItemsByCategory(categoryId as string)
+        : await storage.getItems();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch items" });
+    }
+  });
+
+  app.post("/api/items", async (req, res) => {
+    try {
+      const validatedData = insertItemSchema.parse(req.body);
+      const item = await storage.createItem(validatedData);
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create item" });
+    }
+  });
+
+  app.put("/api/items/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertItemSchema.partial().parse(req.body);
+      const item = await storage.updateItem(id, validatedData);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update item" });
+    }
+  });
+
+  app.delete("/api/items/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteItem(id);
+      if (!success) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete item" });
+    }
+  });
+
+  // Unit routes
+  app.get("/api/units", async (req, res) => {
+    try {
+      const { itemId, serialNumber } = req.query;
+      let units;
+      
+      if (serialNumber) {
+        const unit = await storage.getUnitBySerialNumber(serialNumber as string);
+        units = unit ? [unit] : [];
+      } else if (itemId) {
+        units = await storage.getUnitsByItem(itemId as string);
+      } else {
+        units = await storage.getUnits();
+      }
+      
+      res.json(units);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch units" });
+    }
+  });
+
+  app.post("/api/units", async (req, res) => {
+    try {
+      const validatedData = insertUnitSchema.parse(req.body);
+      const unit = await storage.createUnit(validatedData);
+      res.json(unit);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create unit" });
+    }
+  });
+
+  app.put("/api/units/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = insertUnitSchema.partial().parse(req.body);
+      const unit = await storage.updateUnit(id, validatedData);
+      if (!unit) {
+        return res.status(404).json({ error: "Unit not found" });
+      }
+      res.json(unit);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update unit" });
+    }
+  });
+
+  app.delete("/api/units/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteUnit(id);
+      if (!success) {
+        return res.status(404).json({ error: "Unit not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete unit" });
     }
   });
 

@@ -1,4 +1,18 @@
-import { users, type User, type InsertUser, type Inventory, type InsertInventory, type Customer, type InsertCustomer } from "@shared/schema";
+import { 
+  users, 
+  type User, 
+  type InsertUser, 
+  type Inventory, 
+  type InsertInventory, 
+  type Customer, 
+  type InsertCustomer,
+  type Category,
+  type InsertCategory,
+  type Item,
+  type InsertItem,
+  type Unit,
+  type InsertUnit
+} from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
 // modify the interface with any CRUD methods
@@ -11,7 +25,31 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   deleteUser(id: number): Promise<boolean>;
   
-  // Inventory methods
+  // Category methods
+  getCategories(): Promise<Category[]>;
+  getCategory(id: string): Promise<Category | undefined>;
+  createCategory(category: InsertCategory): Promise<Category>;
+  updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
+  deleteCategory(id: string): Promise<boolean>;
+  
+  // Item methods
+  getItems(): Promise<Item[]>;
+  getItem(id: string): Promise<Item | undefined>;
+  getItemsByCategory(categoryId: string): Promise<Item[]>;
+  createItem(item: InsertItem): Promise<Item>;
+  updateItem(id: string, item: Partial<InsertItem>): Promise<Item | undefined>;
+  deleteItem(id: string): Promise<boolean>;
+  
+  // Unit methods
+  getUnits(): Promise<Unit[]>;
+  getUnit(id: string): Promise<Unit | undefined>;
+  getUnitsByItem(itemId: string): Promise<Unit[]>;
+  getUnitBySerialNumber(serialNumber: string): Promise<Unit | undefined>;
+  createUnit(unit: InsertUnit): Promise<Unit>;
+  updateUnit(id: string, unit: Partial<InsertUnit>): Promise<Unit | undefined>;
+  deleteUnit(id: string): Promise<boolean>;
+  
+  // Legacy inventory methods
   getInventory(): Promise<Inventory[]>;
   getInventoryItem(id: number): Promise<Inventory | undefined>;
   createInventoryItem(item: InsertInventory): Promise<Inventory>;
@@ -32,6 +70,9 @@ export class MongoStorage implements IStorage {
   private client: MongoClient;
   private db: Db;
   private users: Collection<User>;
+  private categories: Collection<Category>;
+  private items: Collection<Item>;
+  private units: Collection<Unit>;
   private inventory: Collection<Inventory>;
   private customers: Collection<Customer>;
   private isInitialized = false;
@@ -51,6 +92,9 @@ export class MongoStorage implements IStorage {
       await this.client.connect();
       this.db = this.client.db('raydify_vault');
       this.users = this.db.collection<User>('users');
+      this.categories = this.db.collection<Category>('categories');
+      this.items = this.db.collection<Item>('items');
+      this.units = this.db.collection<Unit>('units');
       this.inventory = this.db.collection<Inventory>('inventory');
       this.customers = this.db.collection<Customer>('customers');
       this.isInitialized = true;
@@ -97,7 +141,128 @@ export class MongoStorage implements IStorage {
     return result.deletedCount > 0;
   }
 
-  // Inventory methods
+  // Category methods
+  async getCategories(): Promise<Category[]> {
+    await this.initialize();
+    return await this.categories.find({}).toArray();
+  }
+
+  async getCategory(id: string): Promise<Category | undefined> {
+    await this.initialize();
+    const category = await this.categories.findOne({ id });
+    return category || undefined;
+  }
+
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    await this.initialize();
+    const category: Category = { ...insertCategory };
+    await this.categories.insertOne(category);
+    return category;
+  }
+
+  async updateCategory(id: string, updateData: Partial<InsertCategory>): Promise<Category | undefined> {
+    await this.initialize();
+    const result = await this.categories.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteCategory(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.categories.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Item methods
+  async getItems(): Promise<Item[]> {
+    await this.initialize();
+    return await this.items.find({}).toArray();
+  }
+
+  async getItem(id: string): Promise<Item | undefined> {
+    await this.initialize();
+    const item = await this.items.findOne({ id });
+    return item || undefined;
+  }
+
+  async getItemsByCategory(categoryId: string): Promise<Item[]> {
+    await this.initialize();
+    return await this.items.find({ categoryId }).toArray();
+  }
+
+  async createItem(insertItem: InsertItem): Promise<Item> {
+    await this.initialize();
+    const item: Item = { ...insertItem };
+    await this.items.insertOne(item);
+    return item;
+  }
+
+  async updateItem(id: string, updateData: Partial<InsertItem>): Promise<Item | undefined> {
+    await this.initialize();
+    const result = await this.items.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteItem(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.items.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Unit methods
+  async getUnits(): Promise<Unit[]> {
+    await this.initialize();
+    return await this.units.find({}).toArray();
+  }
+
+  async getUnit(id: string): Promise<Unit | undefined> {
+    await this.initialize();
+    const unit = await this.units.findOne({ id });
+    return unit || undefined;
+  }
+
+  async getUnitsByItem(itemId: string): Promise<Unit[]> {
+    await this.initialize();
+    return await this.units.find({ itemId }).toArray();
+  }
+
+  async getUnitBySerialNumber(serialNumber: string): Promise<Unit | undefined> {
+    await this.initialize();
+    const unit = await this.units.findOne({ serialNumber });
+    return unit || undefined;
+  }
+
+  async createUnit(insertUnit: InsertUnit): Promise<Unit> {
+    await this.initialize();
+    const unit: Unit = { ...insertUnit };
+    await this.units.insertOne(unit);
+    return unit;
+  }
+
+  async updateUnit(id: string, updateData: Partial<InsertUnit>): Promise<Unit | undefined> {
+    await this.initialize();
+    const result = await this.units.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteUnit(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.units.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Legacy inventory methods
   async getInventory(): Promise<Inventory[]> {
     await this.initialize();
     return await this.inventory.find({}).toArray();
@@ -180,6 +345,9 @@ export class MongoStorage implements IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
+  private categories: Map<string, Category>;
+  private items: Map<string, Item>;
+  private units: Map<string, Unit>;
   private inventory: Map<number, Inventory>;
   private customers: Map<number, Customer>;
   private currentUserId: number;
@@ -188,6 +356,9 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
+    this.categories = new Map();
+    this.items = new Map();
+    this.units = new Map();
     this.inventory = new Map();
     this.customers = new Map();
     this.currentUserId = 1;
@@ -225,7 +396,103 @@ export class MemStorage implements IStorage {
     return this.users.delete(id);
   }
 
-  // Inventory methods
+  // Category methods
+  async getCategories(): Promise<Category[]> {
+    return Array.from(this.categories.values());
+  }
+
+  async getCategory(id: string): Promise<Category | undefined> {
+    return this.categories.get(id);
+  }
+
+  async createCategory(insertCategory: InsertCategory): Promise<Category> {
+    const category: Category = { ...insertCategory };
+    this.categories.set(category.id, category);
+    return category;
+  }
+
+  async updateCategory(id: string, updateData: Partial<InsertCategory>): Promise<Category | undefined> {
+    const existing = this.categories.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Category = { ...existing, ...updateData };
+    this.categories.set(id, updated);
+    return updated;
+  }
+
+  async deleteCategory(id: string): Promise<boolean> {
+    return this.categories.delete(id);
+  }
+
+  // Item methods
+  async getItems(): Promise<Item[]> {
+    return Array.from(this.items.values());
+  }
+
+  async getItem(id: string): Promise<Item | undefined> {
+    return this.items.get(id);
+  }
+
+  async getItemsByCategory(categoryId: string): Promise<Item[]> {
+    return Array.from(this.items.values()).filter(item => item.categoryId === categoryId);
+  }
+
+  async createItem(insertItem: InsertItem): Promise<Item> {
+    const item: Item = { ...insertItem };
+    this.items.set(item.id, item);
+    return item;
+  }
+
+  async updateItem(id: string, updateData: Partial<InsertItem>): Promise<Item | undefined> {
+    const existing = this.items.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Item = { ...existing, ...updateData };
+    this.items.set(id, updated);
+    return updated;
+  }
+
+  async deleteItem(id: string): Promise<boolean> {
+    return this.items.delete(id);
+  }
+
+  // Unit methods
+  async getUnits(): Promise<Unit[]> {
+    return Array.from(this.units.values());
+  }
+
+  async getUnit(id: string): Promise<Unit | undefined> {
+    return this.units.get(id);
+  }
+
+  async getUnitsByItem(itemId: string): Promise<Unit[]> {
+    return Array.from(this.units.values()).filter(unit => unit.itemId === itemId);
+  }
+
+  async getUnitBySerialNumber(serialNumber: string): Promise<Unit | undefined> {
+    return Array.from(this.units.values()).find(unit => unit.serialNumber === serialNumber);
+  }
+
+  async createUnit(insertUnit: InsertUnit): Promise<Unit> {
+    const unit: Unit = { ...insertUnit };
+    this.units.set(unit.id, unit);
+    return unit;
+  }
+
+  async updateUnit(id: string, updateData: Partial<InsertUnit>): Promise<Unit | undefined> {
+    const existing = this.units.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Unit = { ...existing, ...updateData };
+    this.units.set(id, updated);
+    return updated;
+  }
+
+  async deleteUnit(id: string): Promise<boolean> {
+    return this.units.delete(id);
+  }
+
+  // Legacy inventory methods
   async getInventory(): Promise<Inventory[]> {
     return Array.from(this.inventory.values());
   }

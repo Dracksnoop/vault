@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,9 +118,8 @@ const initialItems: Item[] = [
 ];
 
 export default function Inventory() {
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
-  const [items, setItems] = useState<Item[]>(initialItems);
-  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategories[0].id);
+  const queryClient = useQueryClient();
+  const [selectedCategory, setSelectedCategory] = useState<string>("1");
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [unitSearchTerm, setUnitSearchTerm] = useState("");
@@ -143,6 +144,74 @@ export default function Inventory() {
     notes: ""
   });
 
+  // API queries
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ["/api/categories"],
+    queryFn: () => apiRequest("/api/categories"),
+  });
+
+  const { data: items = [], isLoading: itemsLoading } = useQuery({
+    queryKey: ["/api/items"],
+    queryFn: () => apiRequest("/api/items"),
+  });
+
+  const { data: units = [], isLoading: unitsLoading } = useQuery({
+    queryKey: ["/api/units"],
+    queryFn: () => apiRequest("/api/units"),
+  });
+
+  // Mutations
+  const createCategoryMutation = useMutation({
+    mutationFn: (category: { id: string; name: string; itemCount: number }) =>
+      apiRequest("/api/categories", {
+        method: "POST",
+        body: JSON.stringify(category),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setShowAddCategory(false);
+      setNewCategory("");
+    },
+  });
+
+  const createItemMutation = useMutation({
+    mutationFn: (item: any) =>
+      apiRequest("/api/items", {
+        method: "POST",
+        body: JSON.stringify(item),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      setShowAddItem(false);
+      setNewItem({
+        name: "",
+        model: "",
+        location: "",
+        quantityInStock: 0
+      });
+    },
+  });
+
+  const createUnitMutation = useMutation({
+    mutationFn: (unit: any) =>
+      apiRequest("/api/units", {
+        method: "POST",
+        body: JSON.stringify(unit),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      setShowAddUnit(false);
+      setNewUnit({
+        serialNumber: "",
+        barcode: "",
+        status: "In Stock" as const,
+        location: "",
+        warrantyExpiry: "",
+        notes: ""
+      });
+    },
+  });
+
   const selectedCategoryData = categories.find(c => c.id === selectedCategory);
   const categoryItems = items.filter(item => item.categoryId === selectedCategory);
   const filteredItems = categoryItems.filter(item => 
@@ -151,10 +220,11 @@ export default function Inventory() {
   );
 
   const selectedItemData = items.find(item => item.id === selectedItem);
-  const filteredUnits = selectedItemData?.units.filter(unit =>
+  const itemUnits = units.filter(unit => unit.itemId === selectedItem);
+  const filteredUnits = itemUnits.filter(unit =>
     unit.serialNumber.toLowerCase().includes(unitSearchTerm.toLowerCase()) ||
     unit.barcode.toLowerCase().includes(unitSearchTerm.toLowerCase())
-  ) || [];
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -183,9 +253,7 @@ export default function Inventory() {
         name: newCategory.trim(),
         itemCount: 0
       };
-      setCategories([...categories, newCat]);
-      setNewCategory("");
-      setShowAddCategory(false);
+      createCategoryMutation.mutate(newCat);
     }
   };
 
@@ -206,21 +274,7 @@ export default function Inventory() {
     if (newItem.name.trim() && newItem.model.trim() && newItem.quantityInStock > 0) {
       const itemId = Date.now().toString();
       
-      // Generate units with unique serial numbers
-      const units: Unit[] = [];
-      for (let i = 0; i < newItem.quantityInStock; i++) {
-        units.push({
-          id: `${itemId}_unit_${i}`,
-          serialNumber: generateSerialNumber(newItem.name, i),
-          barcode: generateBarcode().toString(),
-          status: "In Stock",
-          location: newItem.location.trim() || "Warehouse",
-          warrantyExpiry: "",
-          notes: "Auto-generated unit"
-        });
-      }
-
-      const item: Item = {
+      const item = {
         id: itemId,
         name: newItem.name.trim(),
         model: newItem.model.trim(),
@@ -228,27 +282,32 @@ export default function Inventory() {
         quantityInStock: newItem.quantityInStock,
         quantityRentedOut: 0,
         location: newItem.location.trim(),
-        units: units
       };
       
-      setItems([...items, item]);
+      createItemMutation.mutate(item);
       
-      // Update category item count
-      setCategories(categories.map(cat => 
-        cat.id === selectedCategory 
-          ? { ...cat, itemCount: cat.itemCount + 1 }
-          : cat
-      ));
-      
-      setNewItem({ name: "", model: "", location: "", quantityInStock: 0 });
-      setShowAddItem(false);
+      // Generate units with unique serial numbers
+      for (let i = 0; i < newItem.quantityInStock; i++) {
+        const unit = {
+          id: `${itemId}_unit_${i}`,
+          itemId: itemId,
+          serialNumber: generateSerialNumber(newItem.name, i),
+          barcode: generateBarcode().toString(),
+          status: "In Stock",
+          location: newItem.location.trim() || "Warehouse",
+          warrantyExpiry: "",
+          notes: "Auto-generated unit"
+        };
+        createUnitMutation.mutate(unit);
+      }
     }
   };
 
   const handleAddUnit = () => {
     if (selectedItem && newUnit.serialNumber.trim()) {
-      const unit: Unit = {
+      const unit = {
         id: Date.now().toString(),
+        itemId: selectedItem,
         serialNumber: newUnit.serialNumber.trim(),
         barcode: newUnit.barcode.trim() || generateBarcode().toString(),
         status: newUnit.status,
@@ -257,15 +316,7 @@ export default function Inventory() {
         notes: newUnit.notes.trim()
       };
       
-      setItems(items.map(item => 
-        item.id === selectedItem 
-          ? { 
-              ...item, 
-              units: [...item.units, unit],
-              quantityInStock: item.quantityInStock + 1
-            }
-          : item
-      ));
+      createUnitMutation.mutate(unit);
       
       setNewUnit({
         serialNumber: "",
