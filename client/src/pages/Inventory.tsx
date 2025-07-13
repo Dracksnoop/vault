@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { QRCodeSVG } from "qrcode.react";
 import CPUSpecsEditor from '@/components/CPUSpecsEditor';
+import MonitorSpecsEditor from '@/components/MonitorSpecsEditor';
 import UnitDetailsPanel from '@/components/UnitDetailsPanel';
 import { 
   Plus, 
@@ -132,6 +133,8 @@ export default function Inventory() {
   const [selectedUnitForQR, setSelectedUnitForQR] = useState<Unit | null>(null);
   const [showCPUSpecs, setShowCPUSpecs] = useState(false);
   const [selectedUnitForCPU, setSelectedUnitForCPU] = useState<Unit | null>(null);
+  const [showMonitorSpecs, setShowMonitorSpecs] = useState(false);
+  const [selectedUnitForMonitor, setSelectedUnitForMonitor] = useState<Unit | null>(null);
   const [showUnitDetails, setShowUnitDetails] = useState(false);
   const [selectedUnitForDetails, setSelectedUnitForDetails] = useState<Unit | null>(null);
   const [newCategory, setNewCategory] = useState("");
@@ -557,14 +560,19 @@ export default function Inventory() {
   };
 
   const handleEditUnit = (unit: Unit) => {
-    // Check if this is a CPU category item
+    // Check if this is a CPU or Monitor category item
     const itemForUnit = items.find(item => item.id === unit.itemId);
     const categoryForItem = categories.find(cat => cat.id === itemForUnit?.categoryId);
+    const categoryName = categoryForItem?.name?.toLowerCase();
     
-    if (categoryForItem?.name?.toLowerCase() === 'cpu') {
+    if (categoryName === 'cpu') {
       // Open CPU specifications editor
       setSelectedUnitForCPU(unit);
       setShowCPUSpecs(true);
+    } else if (categoryName === 'monitor') {
+      // Open Monitor specifications editor
+      setSelectedUnitForMonitor(unit);
+      setShowMonitorSpecs(true);
     } else {
       // Open regular unit editor
       setEditingUnit(unit.id);
@@ -1318,6 +1326,18 @@ export default function Inventory() {
           onClose={() => {
             setShowCPUSpecs(false);
             setSelectedUnitForCPU(null);
+          }}
+        />
+      )}
+
+      {/* Monitor Specifications Editor */}
+      {selectedUnitForMonitor && (
+        <MonitorSpecsEditor
+          unit={selectedUnitForMonitor}
+          isOpen={showMonitorSpecs}
+          onClose={() => {
+            setShowMonitorSpecs(false);
+            setSelectedUnitForMonitor(null);
           }}
         />
       )}

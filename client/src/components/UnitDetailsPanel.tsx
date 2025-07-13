@@ -78,6 +78,25 @@ interface Unit {
   opticalDrive?: string;
   ports?: string;
   coolingSystem?: string;
+  // Monitor specifications
+  monitorBrand?: string;
+  monitorModel?: string;
+  screenSize?: number;
+  resolution?: string;
+  panelType?: string;
+  refreshRate?: number;
+  responseTime?: number;
+  aspectRatio?: string;
+  brightness?: number;
+  contrastRatio?: string;
+  inputPorts?: string;
+  hasSpeakers?: string;
+  adjustableHeight?: boolean;
+  adjustableTilt?: boolean;
+  adjustableSwivel?: boolean;
+  adjustablePivot?: boolean;
+  mountCompatibility?: string;
+  colorGamut?: number;
 }
 
 interface Item {
@@ -475,6 +494,182 @@ export default function UnitDetailsPanel({ unit, item, category, isOpen, onClose
     </div>
   );
 
+  const renderMonitorSpecs = () => (
+    <div className="space-y-4">
+      {/* Basic Monitor Information */}
+      {(unit.monitorBrand || unit.monitorModel || unit.screenSize || unit.resolution) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Monitor className="w-4 h-4" />
+              Display Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              {unit.monitorBrand && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Brand</Label>
+                  <p className="text-sm">{unit.monitorBrand}</p>
+                </div>
+              )}
+              {unit.monitorModel && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Model</Label>
+                  <p className="text-sm">{unit.monitorModel}</p>
+                </div>
+              )}
+              {unit.screenSize && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Screen Size</Label>
+                  <p className="text-sm">{unit.screenSize}" inches</p>
+                </div>
+              )}
+              {unit.resolution && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Resolution</Label>
+                  <p className="text-sm">{unit.resolution}</p>
+                </div>
+              )}
+              {unit.panelType && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Panel Type</Label>
+                  <p className="text-sm">{unit.panelType}</p>
+                </div>
+              )}
+              {unit.aspectRatio && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Aspect Ratio</Label>
+                  <p className="text-sm">{unit.aspectRatio}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Performance Specifications */}
+      {(unit.refreshRate || unit.responseTime || unit.brightness || unit.contrastRatio || unit.colorGamut) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Settings className="w-4 h-4" />
+              Performance Specifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              {unit.refreshRate && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Refresh Rate</Label>
+                  <p className="text-sm">{unit.refreshRate} Hz</p>
+                </div>
+              )}
+              {unit.responseTime && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Response Time</Label>
+                  <p className="text-sm">{unit.responseTime} ms</p>
+                </div>
+              )}
+              {unit.brightness && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Brightness</Label>
+                  <p className="text-sm">{unit.brightness} nits</p>
+                </div>
+              )}
+              {unit.contrastRatio && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Contrast Ratio</Label>
+                  <p className="text-sm">{unit.contrastRatio}</p>
+                </div>
+              )}
+              {unit.colorGamut && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Color Gamut</Label>
+                  <p className="text-sm">{unit.colorGamut}%</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Connectivity & Features */}
+      {(unit.inputPorts || unit.hasSpeakers || unit.mountCompatibility) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Cable className="w-4 h-4" />
+              Connectivity & Features
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              {unit.inputPorts && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Input Ports</Label>
+                  <p className="text-sm">{unit.inputPorts}</p>
+                </div>
+              )}
+              {unit.hasSpeakers && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Built-in Speakers</Label>
+                  <p className="text-sm">{unit.hasSpeakers}</p>
+                </div>
+              )}
+              {unit.mountCompatibility && (
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Mount Compatibility</Label>
+                  <p className="text-sm">{unit.mountCompatibility}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Ergonomics */}
+      {(unit.adjustableHeight || unit.adjustableTilt || unit.adjustableSwivel || unit.adjustablePivot) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Settings className="w-4 h-4" />
+              Ergonomics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
+              {unit.adjustableHeight && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span className="text-sm">Adjustable Height</span>
+                </div>
+              )}
+              {unit.adjustableTilt && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span className="text-sm">Adjustable Tilt</span>
+                </div>
+              )}
+              {unit.adjustableSwivel && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span className="text-sm">Adjustable Swivel</span>
+                </div>
+              )}
+              {unit.adjustablePivot && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <span className="text-sm">Adjustable Pivot</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto border-black">
@@ -538,6 +733,17 @@ export default function UnitDetailsPanel({ unit, item, category, isOpen, onClose
                 Technical Specifications
               </h3>
               {renderCPUSpecs()}
+            </div>
+          )}
+
+          {/* Monitor Specifications */}
+          {category.name.toLowerCase() === 'monitor' && (
+            <div>
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <Monitor className="w-5 h-5" />
+                Technical Specifications
+              </h3>
+              {renderMonitorSpecs()}
             </div>
           )}
 
