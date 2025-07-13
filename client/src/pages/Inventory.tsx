@@ -812,60 +812,69 @@ export default function Inventory() {
 
               <div className="flex-1 overflow-y-auto p-4 min-h-0">
                 <div className="space-y-4">
-                  {filteredItems.map((item) => (
-                    <Card key={item.id} className="border-black hover:bg-gray-50 cursor-pointer transition-colors">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1" onClick={() => setSelectedItem(item.id)}>
-                            <div className="font-medium text-black">{item.name}</div>
-                            <div className="text-sm text-gray-600 mb-2">{item.model}</div>
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center gap-1">
-                                <Package className="w-4 h-4 text-gray-500" />
-                                <span className="text-black">Stock: {item.quantityInStock}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4 text-gray-500" />
-                                <span className="text-black">Rented: {item.quantityRentedOut}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <CheckCircle className="w-4 h-4 text-gray-500" />
-                                <span className="text-black">Available: {item.quantityInStock - item.quantityRentedOut}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="w-4 h-4 text-gray-500" />
-                                <span className="text-black">{item.location}</span>
+                  {filteredItems.map((item) => {
+                    // Calculate real-time stats based on unit statuses
+                    const itemUnits = units.filter(unit => unit.itemId === item.id);
+                    const inStockCount = itemUnits.filter(unit => unit.status === "In Stock").length;
+                    const rentedCount = itemUnits.filter(unit => unit.status === "Rented").length;
+                    const maintenanceCount = itemUnits.filter(unit => unit.status === "Maintenance").length;
+                    const totalUnits = itemUnits.length;
+                    
+                    return (
+                      <Card key={item.id} className="border-black hover:bg-gray-50 cursor-pointer transition-colors">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1" onClick={() => setSelectedItem(item.id)}>
+                              <div className="font-medium text-black">{item.name}</div>
+                              <div className="text-sm text-gray-600 mb-2">{item.model}</div>
+                              <div className="flex items-center gap-4 text-sm">
+                                <div className="flex items-center gap-1">
+                                  <Package className="w-4 h-4 text-gray-500" />
+                                  <span className="text-black">Stock: {inStockCount}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-4 h-4 text-gray-500" />
+                                  <span className="text-black">Rented: {rentedCount}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <CheckCircle className="w-4 h-4 text-gray-500" />
+                                  <span className="text-black">Available: {inStockCount}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="w-4 h-4 text-gray-500" />
+                                  <span className="text-black">{item.location}</span>
+                                </div>
                               </div>
                             </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-black"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditItem(item);
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-black text-red-600 hover:bg-red-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteItem(item.id);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="border-black"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditItem(item);
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="border-black text-red-600 hover:bg-red-50"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteItem(item.id);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             </div>
