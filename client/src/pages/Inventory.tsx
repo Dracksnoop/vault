@@ -234,15 +234,6 @@ export default function Inventory() {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      setShowAddUnit(false);
-      setNewUnit({
-        serialNumber: "",
-        barcode: "",
-        status: "In Stock" as const,
-        location: "",
-        warrantyExpiry: "",
-        notes: ""
-      });
     },
   });
 
