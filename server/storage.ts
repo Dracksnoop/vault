@@ -97,6 +97,23 @@ export class MongoStorage implements IStorage {
       this.units = this.db.collection<Unit>('units');
       this.inventory = this.db.collection<Inventory>('inventory');
       this.customers = this.db.collection<Customer>('customers');
+      
+      // Initialize default categories if they don't exist
+      const categoryCount = await this.categories.countDocuments();
+      if (categoryCount === 0) {
+        const defaultCategories = [
+          { id: "1", name: "CPU", itemCount: 0 },
+          { id: "2", name: "Monitor", itemCount: 0 },
+          { id: "3", name: "Keyboard", itemCount: 0 },
+          { id: "4", name: "Mouse", itemCount: 0 },
+          { id: "5", name: "Cables", itemCount: 0 },
+          { id: "6", name: "Networking Devices", itemCount: 0 },
+          { id: "7", name: "Biometric Devices", itemCount: 0 },
+        ];
+        await this.categories.insertMany(defaultCategories);
+        console.log('Initialized default categories');
+      }
+      
       this.isInitialized = true;
       console.log('Connected to MongoDB successfully');
     } catch (error) {
