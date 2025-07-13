@@ -129,6 +129,22 @@ export default function Inventory() {
   const [showQRCode, setShowQRCode] = useState(false);
   const [selectedUnitForQR, setSelectedUnitForQR] = useState<Unit | null>(null);
   const [newCategory, setNewCategory] = useState("");
+  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editingUnit, setEditingUnit] = useState<string | null>(null);
+  const [editItemData, setEditItemData] = useState({
+    name: "",
+    model: "",
+    location: "",
+    quantityInStock: 0
+  });
+  const [editUnitData, setEditUnitData] = useState({
+    serialNumber: "",
+    barcode: "",
+    status: "In Stock" as const,
+    location: "",
+    warrantyExpiry: "",
+    notes: ""
+  });
   const [newItem, setNewItem] = useState({
     name: "",
     model: "",
@@ -218,6 +234,72 @@ export default function Inventory() {
         warrantyExpiry: "",
         notes: ""
       });
+    },
+  });
+
+  // Delete mutations
+  const deleteItemMutation = useMutation({
+    mutationFn: (itemId: string) =>
+      apiRequest(`/api/items/${itemId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      setSelectedItem(null);
+    },
+  });
+
+  const deleteUnitMutation = useMutation({
+    mutationFn: (unitId: string) =>
+      apiRequest(`/api/units/${unitId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (categoryId: string) =>
+      apiRequest(`/api/categories/${categoryId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      setSelectedCategory("1"); // Reset to first category
+    },
+  });
+
+  // Edit mutations
+  const editItemMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      apiRequest(`/api/items/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setEditingItem(null);
+    },
+  });
+
+  const editUnitMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      apiRequest(`/api/units/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      setEditingUnit(null);
     },
   });
 
@@ -384,6 +466,66 @@ export default function Inventory() {
       };
       
       img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+    }
+  };
+
+  // Edit handlers
+  const handleEditItem = (item: Item) => {
+    setEditingItem(item.id);
+    setEditItemData({
+      name: item.name,
+      model: item.model,
+      location: item.location,
+      quantityInStock: item.quantityInStock
+    });
+  };
+
+  const handleSaveItem = () => {
+    if (editingItem) {
+      editItemMutation.mutate({
+        id: editingItem,
+        data: editItemData
+      });
+    }
+  };
+
+  const handleEditUnit = (unit: Unit) => {
+    setEditingUnit(unit.id);
+    setEditUnitData({
+      serialNumber: unit.serialNumber,
+      barcode: unit.barcode,
+      status: unit.status,
+      location: unit.location,
+      warrantyExpiry: unit.warrantyExpiry,
+      notes: unit.notes
+    });
+  };
+
+  const handleSaveUnit = () => {
+    if (editingUnit) {
+      editUnitMutation.mutate({
+        id: editingUnit,
+        data: editUnitData
+      });
+    }
+  };
+
+  // Delete handlers
+  const handleDeleteItem = (itemId: string) => {
+    if (confirm("Are you sure you want to delete this item and all its units?")) {
+      deleteItemMutation.mutate(itemId);
+    }
+  };
+
+  const handleDeleteUnit = (unitId: string) => {
+    if (confirm("Are you sure you want to delete this unit?")) {
+      deleteUnitMutation.mutate(unitId);
+    }
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    if (confirm("Are you sure you want to delete this category and all its items?")) {
+      deleteCategoryMutation.mutate(categoryId);
     }
   };
 
@@ -591,10 +733,26 @@ export default function Inventory() {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="border-black">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="border-black"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditItem(item);
+                              }}
+                            >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button variant="outline" size="sm" className="border-black">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="border-black text-red-600 hover:bg-red-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteItem(item.id);
+                              }}
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -818,10 +976,22 @@ export default function Inventory() {
                               >
                                 <Search className="w-4 h-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="border-black">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-black"
+                                onClick={() => handleEditUnit(unit)}
+                                title="Edit Unit"
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="border-black">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-black text-red-600 hover:bg-red-50"
+                                onClick={() => handleDeleteUnit(unit.id)}
+                                title="Delete Unit"
+                              >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
@@ -900,6 +1070,160 @@ export default function Inventory() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Item Modal */}
+      <Dialog open={editingItem !== null} onOpenChange={() => setEditingItem(null)}>
+        <DialogContent className="border-black max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-black">Edit Item</DialogTitle>
+            <DialogDescription className="text-black">
+              Update item information
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-black">Product Name</Label>
+              <Input
+                value={editItemData.name}
+                onChange={(e) => setEditItemData({...editItemData, name: e.target.value})}
+                placeholder="Enter product name"
+                className="border-black"
+              />
+            </div>
+            <div>
+              <Label className="text-black">Model/Specification</Label>
+              <Input
+                value={editItemData.model}
+                onChange={(e) => setEditItemData({...editItemData, model: e.target.value})}
+                placeholder="Enter model number"
+                className="border-black"
+              />
+            </div>
+            <div>
+              <Label className="text-black">Location</Label>
+              <Input
+                value={editItemData.location}
+                onChange={(e) => setEditItemData({...editItemData, location: e.target.value})}
+                placeholder="Enter storage location"
+                className="border-black"
+              />
+            </div>
+            <div>
+              <Label className="text-black">Quantity in Stock</Label>
+              <Input
+                type="number"
+                min="0"
+                value={editItemData.quantityInStock}
+                onChange={(e) => setEditItemData({...editItemData, quantityInStock: parseInt(e.target.value) || 0})}
+                className="border-black"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleSaveItem}
+                className="bg-black text-white hover:bg-gray-800"
+              >
+                Save Changes
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setEditingItem(null)}
+                className="border-black"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Unit Modal */}
+      <Dialog open={editingUnit !== null} onOpenChange={() => setEditingUnit(null)}>
+        <DialogContent className="border-black max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-black">Edit Unit</DialogTitle>
+            <DialogDescription className="text-black">
+              Update unit information
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-black">Serial Number</Label>
+              <Input
+                value={editUnitData.serialNumber}
+                onChange={(e) => setEditUnitData({...editUnitData, serialNumber: e.target.value})}
+                placeholder="Enter serial number"
+                className="border-black"
+              />
+            </div>
+            <div>
+              <Label className="text-black">Barcode</Label>
+              <Input
+                value={editUnitData.barcode}
+                onChange={(e) => setEditUnitData({...editUnitData, barcode: e.target.value})}
+                placeholder="Enter barcode"
+                className="border-black"
+              />
+            </div>
+            <div>
+              <Label className="text-black">Status</Label>
+              <Select value={editUnitData.status} onValueChange={(value: any) => setEditUnitData({...editUnitData, status: value})}>
+                <SelectTrigger className="border-black">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-black">
+                  <SelectItem value="In Stock">In Stock</SelectItem>
+                  <SelectItem value="Rented">Rented</SelectItem>
+                  <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  <SelectItem value="Retired">Retired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-black">Location</Label>
+              <Input
+                value={editUnitData.location}
+                onChange={(e) => setEditUnitData({...editUnitData, location: e.target.value})}
+                placeholder="Enter location"
+                className="border-black"
+              />
+            </div>
+            <div>
+              <Label className="text-black">Warranty Expiry</Label>
+              <Input
+                type="date"
+                value={editUnitData.warrantyExpiry}
+                onChange={(e) => setEditUnitData({...editUnitData, warrantyExpiry: e.target.value})}
+                className="border-black"
+              />
+            </div>
+            <div>
+              <Label className="text-black">Notes</Label>
+              <Textarea
+                value={editUnitData.notes}
+                onChange={(e) => setEditUnitData({...editUnitData, notes: e.target.value})}
+                placeholder="Enter notes"
+                className="border-black"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleSaveUnit}
+                className="bg-black text-white hover:bg-gray-800"
+              >
+                Save Changes
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setEditingUnit(null)}
+                className="border-black"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
