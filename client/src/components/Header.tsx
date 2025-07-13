@@ -18,7 +18,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick, user, onLogout }: HeaderProps) {
   return (
-    <header className="bg-white fixed top-0 right-0 left-0 lg:left-60 z-40 h-16 border-b border-black">
+    <header className="bg-white fixed top-0 right-0 left-0 lg:left-60 z-50 h-16 border-b border-black">
       <div className="flex items-center justify-between h-full px-4">
         {/* Mobile menu button */}
         <button
