@@ -892,7 +892,8 @@ export default function Inventory() {
                   <Dialog open={showAddUnit} onOpenChange={(open) => {
                     if (open) {
                       // Auto-generate serial number when dialog opens
-                      const autoSerialNumber = generateSerialNumber(selectedItemData?.name || "ITEM", selectedItemData?.units.length || 0);
+                      const itemUnits = units.filter(unit => unit.itemId === selectedItem);
+                      const autoSerialNumber = generateSerialNumber(selectedItemData?.name || "ITEM", itemUnits.length || 0);
                       setNewUnit({
                         serialNumber: autoSerialNumber,
                         barcode: "",
