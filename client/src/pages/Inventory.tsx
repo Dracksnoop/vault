@@ -559,9 +559,11 @@ export default function Inventory() {
 
   const handleSaveUnit = () => {
     if (editingUnit) {
+      // Exclude serialNumber from update data as it's permanent
+      const { serialNumber, ...updateData } = editUnitData;
       editUnitMutation.mutate({
         id: editingUnit,
-        data: editUnitData
+        data: updateData
       });
     }
   };
@@ -839,7 +841,21 @@ export default function Inventory() {
                       <p className="text-sm text-gray-600">{selectedItemData?.model}</p>
                     </div>
                   </div>
-                  <Dialog open={showAddUnit} onOpenChange={setShowAddUnit}>
+                  <Dialog open={showAddUnit} onOpenChange={(open) => {
+                    if (open) {
+                      // Auto-generate serial number when dialog opens
+                      const autoSerialNumber = generateSerialNumber(selectedItemData?.name || "ITEM", selectedItemData?.units.length || 0);
+                      setNewUnit({
+                        serialNumber: autoSerialNumber,
+                        barcode: "",
+                        status: "In Stock",
+                        location: "",
+                        warrantyExpiry: "",
+                        notes: ""
+                      });
+                    }
+                    setShowAddUnit(open);
+                  }}>
                     <DialogTrigger asChild>
                       <Button className="bg-black text-white hover:bg-gray-800">
                         <Plus className="w-4 h-4 mr-2" />
@@ -856,25 +872,13 @@ export default function Inventory() {
                       <div className="space-y-4">
                         <div>
                           <Label className="text-black">Serial Number</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              value={newUnit.serialNumber}
-                              onChange={(e) => setNewUnit({...newUnit, serialNumber: e.target.value})}
-                              placeholder="Enter serial number"
-                              className="border-black"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="border-black"
-                              onClick={() => {
-                                const autoSerial = generateSerialNumber(selectedItemData?.name || "ITEM", selectedItemData?.units.length || 0);
-                                setNewUnit({...newUnit, serialNumber: autoSerial});
-                              }}
-                            >
-                              Auto
-                            </Button>
-                          </div>
+                          <Input
+                            value={newUnit.serialNumber}
+                            readOnly
+                            placeholder="Auto-generated serial number"
+                            className="border-black bg-gray-50 cursor-not-allowed"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Serial numbers are automatically generated and permanent</p>
                         </div>
                         <div>
                           <Label className="text-black">Barcode</Label>
@@ -1209,10 +1213,11 @@ export default function Inventory() {
               <Label className="text-black">Serial Number</Label>
               <Input
                 value={editUnitData.serialNumber}
-                onChange={(e) => setEditUnitData({...editUnitData, serialNumber: e.target.value})}
-                placeholder="Enter serial number"
-                className="border-black"
+                readOnly
+                placeholder="Serial number (permanent)"
+                className="border-black bg-gray-50 cursor-not-allowed"
               />
+              <p className="text-xs text-gray-500 mt-1">Serial numbers are permanent and cannot be changed</p>
             </div>
             <div>
               <Label className="text-black">Barcode</Label>
