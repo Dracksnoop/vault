@@ -324,7 +324,25 @@ export default function Inventory() {
   const filteredUnits = itemUnits.filter(unit =>
     unit.serialNumber.toLowerCase().includes(unitSearchTerm.toLowerCase()) ||
     unit.barcode.toLowerCase().includes(unitSearchTerm.toLowerCase())
-  );
+  ).sort((a, b) => {
+    // Define status priority order: In Stock first, then Rented, then others
+    const statusOrder = {
+      "In Stock": 0,
+      "Rented": 1,
+      "Maintenance": 2,
+      "Retired": 3
+    };
+    
+    const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 4;
+    const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 4;
+    
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder;
+    }
+    
+    // If same status, sort by serial number
+    return a.serialNumber.localeCompare(b.serialNumber);
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
