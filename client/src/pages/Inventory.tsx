@@ -183,19 +183,57 @@ export default function Inventory() {
     }
   };
 
+  const generateSerialNumber = (itemName: string, index: number) => {
+    // Generate a unique serial number based on item name and index
+    const prefix = itemName.toUpperCase().replace(/\s+/g, '').substring(0, 3);
+    const timestamp = Date.now().toString().slice(-4);
+    const paddedIndex = (index + 1).toString().padStart(3, '0');
+    return `${prefix}${timestamp}${paddedIndex}`;
+  };
+
+  const generateBarcode = () => {
+    // Generate a 12-digit barcode
+    return Math.floor(Math.random() * 900000000000) + 100000000000;
+  };
+
   const handleAddItem = () => {
-    if (newItem.name.trim() && newItem.model.trim()) {
+    if (newItem.name.trim() && newItem.model.trim() && newItem.quantityInStock > 0) {
+      const itemId = Date.now().toString();
+      
+      // Generate units with unique serial numbers
+      const units: Unit[] = [];
+      for (let i = 0; i < newItem.quantityInStock; i++) {
+        units.push({
+          id: `${itemId}_unit_${i}`,
+          serialNumber: generateSerialNumber(newItem.name, i),
+          barcode: generateBarcode().toString(),
+          status: "In Stock",
+          location: newItem.location.trim() || "Warehouse",
+          warrantyExpiry: "",
+          notes: "Auto-generated unit"
+        });
+      }
+
       const item: Item = {
-        id: Date.now().toString(),
+        id: itemId,
         name: newItem.name.trim(),
         model: newItem.model.trim(),
         categoryId: selectedCategory,
         quantityInStock: newItem.quantityInStock,
         quantityRentedOut: 0,
         location: newItem.location.trim(),
-        units: []
+        units: units
       };
+      
       setItems([...items, item]);
+      
+      // Update category item count
+      setCategories(categories.map(cat => 
+        cat.id === selectedCategory 
+          ? { ...cat, itemCount: cat.itemCount + 1 }
+          : cat
+      ));
+      
       setNewItem({ name: "", model: "", location: "", quantityInStock: 0 });
       setShowAddItem(false);
     }
@@ -206,16 +244,20 @@ export default function Inventory() {
       const unit: Unit = {
         id: Date.now().toString(),
         serialNumber: newUnit.serialNumber.trim(),
-        barcode: newUnit.barcode.trim(),
+        barcode: newUnit.barcode.trim() || generateBarcode().toString(),
         status: newUnit.status,
-        location: newUnit.location.trim(),
+        location: newUnit.location.trim() || selectedItemData?.location || "Warehouse",
         warrantyExpiry: newUnit.warrantyExpiry,
         notes: newUnit.notes.trim()
       };
       
       setItems(items.map(item => 
         item.id === selectedItem 
-          ? { ...item, units: [...item.units, unit] }
+          ? { 
+              ...item, 
+              units: [...item.units, unit],
+              quantityInStock: item.quantityInStock + 1
+            }
           : item
       ));
       
@@ -365,11 +407,15 @@ export default function Inventory() {
                           <Label className="text-black">Quantity in Stock</Label>
                           <Input
                             type="number"
+                            min="1"
                             value={newItem.quantityInStock}
                             onChange={(e) => setNewItem({...newItem, quantityInStock: parseInt(e.target.value) || 0})}
-                            placeholder="0"
+                            placeholder="Enter quantity (will generate unique serial numbers)"
                             className="border-black"
                           />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Each unit will automatically get a unique serial number
+                          </p>
                         </div>
                         <div className="flex gap-2">
                           <Button 
@@ -482,21 +528,47 @@ export default function Inventory() {
                       <div className="space-y-4">
                         <div>
                           <Label className="text-black">Serial Number</Label>
-                          <Input
-                            value={newUnit.serialNumber}
-                            onChange={(e) => setNewUnit({...newUnit, serialNumber: e.target.value})}
-                            placeholder="Enter serial number"
-                            className="border-black"
-                          />
+                          <div className="flex gap-2">
+                            <Input
+                              value={newUnit.serialNumber}
+                              onChange={(e) => setNewUnit({...newUnit, serialNumber: e.target.value})}
+                              placeholder="Enter serial number"
+                              className="border-black"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-black"
+                              onClick={() => {
+                                const autoSerial = generateSerialNumber(selectedItemData?.name || "ITEM", selectedItemData?.units.length || 0);
+                                setNewUnit({...newUnit, serialNumber: autoSerial});
+                              }}
+                            >
+                              Auto
+                            </Button>
+                          </div>
                         </div>
                         <div>
                           <Label className="text-black">Barcode</Label>
-                          <Input
-                            value={newUnit.barcode}
-                            onChange={(e) => setNewUnit({...newUnit, barcode: e.target.value})}
-                            placeholder="Enter barcode"
-                            className="border-black"
-                          />
+                          <div className="flex gap-2">
+                            <Input
+                              value={newUnit.barcode}
+                              onChange={(e) => setNewUnit({...newUnit, barcode: e.target.value})}
+                              placeholder="Enter barcode"
+                              className="border-black"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-black"
+                              onClick={() => {
+                                const autoBarcode = generateBarcode().toString();
+                                setNewUnit({...newUnit, barcode: autoBarcode});
+                              }}
+                            >
+                              Generate
+                            </Button>
+                          </div>
                         </div>
                         <div>
                           <Label className="text-black">Status</Label>
@@ -572,50 +644,60 @@ export default function Inventory() {
 
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="space-y-4">
-                  {filteredUnits.map((unit) => (
-                    <Card key={unit.id} className="border-black">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-4 mb-3">
-                              <div className="font-medium text-black">{unit.serialNumber}</div>
-                              <Badge className={`${getStatusColor(unit.status)} border`}>
-                                {getStatusIcon(unit.status)}
-                                <span className="ml-1">{unit.status}</span>
-                              </Badge>
+                  {filteredUnits.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No units found for this item</p>
+                      <p className="text-sm text-gray-400">Add new units to track individual serial numbers</p>
+                    </div>
+                  ) : (
+                    filteredUnits.map((unit) => (
+                      <Card key={unit.id} className="border-black">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-4 mb-3">
+                                <div className="font-medium text-black">{unit.serialNumber}</div>
+                                <Badge className={`${getStatusColor(unit.status)} border`}>
+                                  {getStatusIcon(unit.status)}
+                                  <span className="ml-1">{unit.status}</span>
+                                </Badge>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <Barcode className="w-4 h-4 text-gray-500" />
+                                  <span className="text-black">{unit.barcode}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="w-4 h-4 text-gray-500" />
+                                  <span className="text-black">{unit.location}</span>
+                                </div>
+                                {unit.warrantyExpiry && (
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-gray-500" />
+                                    <span className="text-black">Warranty: {unit.warrantyExpiry}</span>
+                                  </div>
+                                )}
+                              </div>
+                              {unit.notes && (
+                                <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
+                                  <p className="text-sm text-black">{unit.notes}</p>
+                                </div>
+                              )}
                             </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div className="flex items-center gap-2">
-                                <Barcode className="w-4 h-4 text-gray-500" />
-                                <span className="text-black">{unit.barcode}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-gray-500" />
-                                <span className="text-black">{unit.location}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-gray-500" />
-                                <span className="text-black">Warranty: {unit.warrantyExpiry}</span>
-                              </div>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm" className="border-black">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="border-black">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
-                            {unit.notes && (
-                              <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
-                                <p className="text-sm text-black">{unit.notes}</p>
-                              </div>
-                            )}
                           </div>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="border-black">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="outline" size="sm" className="border-black">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
