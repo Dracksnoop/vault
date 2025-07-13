@@ -243,7 +243,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                     </div>
                     
                     <div className="text-right">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-3 gap-4 text-sm">
                         <div>
                           <p className="text-gray-600">Quantity Rented</p>
                           <p className="font-semibold text-lg">{serviceItem.quantity}</p>
@@ -255,10 +255,6 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                         <div>
                           <p className="text-gray-600">Total Value</p>
                           <p className="font-semibold text-lg text-green-600">₹{serviceItem.totalValue}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">Available Units</p>
-                          <p className="font-semibold text-lg">{serviceItem.availableUnits}</p>
                         </div>
                       </div>
                     </div>
@@ -361,7 +357,6 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                   <div className="space-y-2 text-sm">
                     <p><strong>Unit Price:</strong> ₹{selectedItem.unitPrice}</p>
                     <p><strong>Total Value:</strong> ₹{selectedItem.totalValue}</p>
-                    <p><strong>Available Units:</strong> {selectedItem.availableUnits}</p>
                     <p><strong>Rented Units:</strong> {selectedItem.rentedUnits}</p>
                   </div>
                 </div>
