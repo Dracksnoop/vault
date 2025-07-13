@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { 
   User, 
   Mail, 
@@ -34,6 +40,21 @@ export default function CustomerDetails() {
   const customerId = params?.id ? parseInt(params.id) : null;
   const [selectedTab, setSelectedTab] = useState('overview');
   const [showRentalItems, setShowRentalItems] = useState(false);
+  const [showEditCustomer, setShowEditCustomer] = useState(false);
+  const [editCustomerData, setEditCustomerData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    customerType: '',
+    companyName: '',
+    billingAddress: '',
+    shippingAddress: '',
+    gstVatNumber: '',
+    paymentTerms: ''
+  });
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: customer, isLoading: customerLoading } = useQuery({
     queryKey: ['/api/customers', customerId],
@@ -51,6 +72,56 @@ export default function CustomerDetails() {
   const { data: items = [] } = useQuery({
     queryKey: ['/api/items'],
   });
+
+  const updateCustomerMutation = useMutation({
+    mutationFn: (customerData: any) =>
+      apiRequest(`/api/customers/${customerId}`, {
+        method: 'PUT',
+        body: JSON.stringify(customerData),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId] });
+      setShowEditCustomer(false);
+      toast({
+        title: 'Customer Updated',
+        description: 'Customer information has been successfully updated.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update customer information.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleEditCustomer = () => {
+    setEditCustomerData({
+      name: customer.name || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      customerType: customer.customerType || '',
+      companyName: customer.companyName || '',
+      billingAddress: customer.billingAddress || '',
+      shippingAddress: customer.shippingAddress || '',
+      gstVatNumber: customer.gstVatNumber || '',
+      paymentTerms: customer.paymentTerms || ''
+    });
+    setShowEditCustomer(true);
+  };
+
+  const handleSaveCustomer = () => {
+    updateCustomerMutation.mutate(editCustomerData);
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setEditCustomerData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   if (customerLoading || !customer) {
     return (
@@ -187,7 +258,7 @@ export default function CustomerDetails() {
                 </Badge>
               </div>
             </div>
-            <Button variant="outline" className="border-black">
+            <Button variant="outline" className="border-black" onClick={handleEditCustomer}>
               <Edit className="w-4 h-4 mr-2" />
               Edit Customer
             </Button>
@@ -490,6 +561,141 @@ export default function CustomerDetails() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Customer Dialog */}
+      <Dialog open={showEditCustomer} onOpenChange={setShowEditCustomer}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Customer Information</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Customer Name *</Label>
+                <Input
+                  id="name"
+                  value={editCustomerData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="border-black"
+                  placeholder="Enter customer name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editCustomerData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="border-black"
+                  placeholder="Enter email address"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="phone">Phone *</Label>
+                <Input
+                  id="phone"
+                  value={editCustomerData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="border-black"
+                  placeholder="Enter phone number"
+                />
+              </div>
+              <div>
+                <Label>Customer Type *</Label>
+                <RadioGroup 
+                  value={editCustomerData.customerType} 
+                  onValueChange={(value) => handleInputChange('customerType', value)}
+                  className="flex gap-4 mt-2"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="one-time" id="edit-one-time" />
+                    <Label htmlFor="edit-one-time">One-Time</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="rental" id="edit-rental" />
+                    <Label htmlFor="edit-rental">Rental</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="company">Company Name</Label>
+                <Input
+                  id="company"
+                  value={editCustomerData.companyName}
+                  onChange={(e) => handleInputChange('companyName', e.target.value)}
+                  className="border-black"
+                  placeholder="Enter company name (optional)"
+                />
+              </div>
+              <div>
+                <Label htmlFor="gst">GST/VAT Number</Label>
+                <Input
+                  id="gst"
+                  value={editCustomerData.gstVatNumber}
+                  onChange={(e) => handleInputChange('gstVatNumber', e.target.value)}
+                  className="border-black"
+                  placeholder="Enter GST/VAT number (optional)"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="billingAddress">Billing Address *</Label>
+              <Textarea
+                id="billingAddress"
+                value={editCustomerData.billingAddress}
+                onChange={(e) => handleInputChange('billingAddress', e.target.value)}
+                className="border-black"
+                placeholder="Enter billing address"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="shippingAddress">Shipping Address</Label>
+              <Textarea
+                id="shippingAddress"
+                value={editCustomerData.shippingAddress}
+                onChange={(e) => handleInputChange('shippingAddress', e.target.value)}
+                className="border-black"
+                placeholder="Enter shipping address (optional)"
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="paymentTerms">Payment Terms</Label>
+              <Input
+                id="paymentTerms"
+                value={editCustomerData.paymentTerms}
+                onChange={(e) => handleInputChange('paymentTerms', e.target.value)}
+                className="border-black"
+                placeholder="e.g., Net 30 days, Cash on delivery"
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setShowEditCustomer(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveCustomer} 
+                disabled={updateCustomerMutation.isPending}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {updateCustomerMutation.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
