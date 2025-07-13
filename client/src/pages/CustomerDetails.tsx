@@ -138,10 +138,23 @@ export default function CustomerDetails() {
   const activeRentals = customerRentals.filter((rental: any) => rental.isOngoing);
   const completedRentals = customerRentals.filter((rental: any) => !rental.isOngoing);
   
-  // Mock calculation for demonstration (in real app, this would come from payment records)
-  const totalRentPaid = 15000;
-  const totalDue = 5000;
-  const nextRentDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+  // Calculate real rental financial data
+  const totalRentPaid = customerRentals.reduce((sum: number, rental: any) => {
+    return sum + (rental.totalAmount || 0);
+  }, 0);
+  
+  const totalDue = activeRentals.reduce((sum: number, rental: any) => {
+    if (rental.paymentFrequency === 'monthly') {
+      const monthlyRate = rental.totalAmount / rental.duration;
+      return sum + monthlyRate;
+    }
+    return sum + (rental.totalAmount || 0);
+  }, 0);
+  
+  // Find next rent due date from active rentals
+  const nextRentDate = activeRentals.length > 0 
+    ? new Date(Math.min(...activeRentals.map((rental: any) => new Date(rental.endDate).getTime())))
+    : null;
 
   // If showing rental items panel, render it instead
   if (showRentalItems) {
@@ -345,7 +358,9 @@ export default function CustomerDetails() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600">Next Rent Due</p>
-                    <p className="text-sm font-bold text-orange-600">{nextRentDate.toLocaleDateString()}</p>
+                    <p className="text-sm font-bold text-orange-600">
+                      {nextRentDate ? nextRentDate.toLocaleDateString() : 'No active rentals'}
+                    </p>
                   </div>
                   <Clock className="w-8 h-8 text-orange-500" />
                 </div>
@@ -360,27 +375,29 @@ export default function CustomerDetails() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <span className="text-sm">Rent payment received for July 2025</span>
+                {customerServices.length > 0 ? (
+                  customerServices.slice(-3).reverse().map((service: any, index: number) => (
+                    <div key={service.id} className="flex items-center justify-between py-2 border-b border-gray-200">
+                      <div className="flex items-center space-x-3">
+                        <Package className="w-5 h-5 text-blue-500" />
+                        <span className="text-sm">
+                          {service.serviceType === 'rent' ? 'Rental service' : 
+                           service.serviceType === 'sell' ? 'Sale service' : 
+                           service.serviceType === 'maintenance' ? 'Maintenance service' : 
+                           'Other service'} created
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(service.createdAt || Date.now()).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p>No recent activity found</p>
                   </div>
-                  <span className="text-xs text-gray-500">2 days ago</span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-gray-200">
-                  <div className="flex items-center space-x-3">
-                    <Package className="w-5 h-5 text-blue-500" />
-                    <span className="text-sm">Rental service created</span>
-                  </div>
-                  <span className="text-xs text-gray-500">1 week ago</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center space-x-3">
-                    <User className="w-5 h-5 text-gray-500" />
-                    <span className="text-sm">Customer account created</span>
-                  </div>
-                  <span className="text-xs text-gray-500">1 week ago</span>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
