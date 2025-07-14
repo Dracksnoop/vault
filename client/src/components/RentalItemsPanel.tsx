@@ -53,6 +53,13 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   const [selectedUnitsToAdd, setSelectedUnitsToAdd] = useState<string[]>([]);
   const [modifyActiveTab, setModifyActiveTab] = useState('remove');
   
+  // New states for adding more items
+  const [showAddItemDialog, setShowAddItemDialog] = useState(false);
+  const [pendingItems, setPendingItems] = useState<any[]>([]);
+  const [selectedItemToAdd, setSelectedItemToAdd] = useState<any>(null);
+  const [selectedUnitsForNewItem, setSelectedUnitsForNewItem] = useState<string[]>([]);
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+  
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -144,6 +151,123 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     setShowModifyDialog(true);
   };
 
+  const handleAddMoreItems = () => {
+    setShowAddItemDialog(true);
+    setSelectedItemToAdd(null);
+    setSelectedUnitsForNewItem([]);
+    setItemSearchTerm('');
+  };
+
+  const handleAddItemToPending = () => {
+    if (!selectedItemToAdd || selectedUnitsForNewItem.length === 0) return;
+    
+    const newPendingItem = {
+      id: `pending-${Date.now()}`,
+      itemId: selectedItemToAdd.id,
+      itemDetails: selectedItemToAdd,
+      units: selectedUnitsForNewItem,
+      unitPrice: '1000', // Default price - can be customized
+      totalValue: selectedUnitsForNewItem.length * 1000
+    };
+    
+    setPendingItems([...pendingItems, newPendingItem]);
+    setSelectedItemToAdd(null);
+    setSelectedUnitsForNewItem([]);
+    setItemSearchTerm('');
+    setShowAddItemDialog(false);
+    
+    toast({
+      title: "Item Added to Pending",
+      description: `${selectedItemToAdd.name} added to pending items`,
+    });
+  };
+
+  const handlePushToTimeline = async () => {
+    if (pendingItems.length === 0) return;
+    
+    try {
+      // Add each pending item to the rental
+      for (const pendingItem of pendingItems) {
+        // Update unit statuses to rented
+        await Promise.all(pendingItem.units.map((unitId: string) => 
+          apiRequest(`/api/units/${unitId}`, {
+            method: 'PUT',
+            body: { status: 'rented' }
+          })
+        ));
+        
+        // Create service item record
+        await apiRequest('/api/service-items', {
+          method: 'POST',
+          body: {
+            id: `service-item-${Date.now()}-${Math.random()}`,
+            serviceId: serviceItems[0]?.serviceId || 'default-service',
+            itemId: pendingItem.itemId,
+            quantity: pendingItem.units.length,
+            unitPrice: pendingItem.unitPrice,
+            totalValue: pendingItem.totalValue.toString()
+          }
+        });
+      }
+      
+      // Create timeline entry for all pending items
+      try {
+        await apiRequest(`/api/customers/${customerId}/timeline`, {
+          method: 'POST',
+          body: {
+            id: `timeline-${Date.now()}`,
+            customerId: parseInt(customerId.toString()),
+            serviceId: serviceItems[0]?.serviceId || 'default-service',
+            changeType: 'added',
+            title: 'New Items Added to Rental',
+            description: `Added ${pendingItems.length} new item type(s) to rental`,
+            itemsSnapshot: JSON.stringify(pendingItems.map(item => ({
+              itemName: item.itemDetails.name,
+              units: item.units.map((unitId: string) => {
+                const unit = units.find((u: any) => u.id === unitId);
+                return {
+                  unitId,
+                  serialNumber: unit?.serialNumber || 'N/A',
+                  barcode: unit?.barcode || 'N/A'
+                };
+              })
+            }))),
+            totalValue: pendingItems.reduce((sum, item) => sum + item.totalValue, 0).toString()
+          }
+        });
+      } catch (timelineError) {
+        console.warn('Failed to create timeline entry:', timelineError);
+      }
+      
+      // Clear pending items and refresh data
+      setPendingItems([]);
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      
+      toast({
+        title: "Items Pushed to Timeline",
+        description: `${pendingItems.length} item(s) added to rental successfully`,
+      });
+    } catch (error) {
+      console.error('Error pushing to timeline:', error);
+      toast({
+        title: "Error Pushing Items",
+        description: "Failed to add items to rental. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemovePendingItem = (itemId: string) => {
+    setPendingItems(pendingItems.filter(item => item.id !== itemId));
+    toast({
+      title: "Item Removed",
+      description: "Item removed from pending list",
+    });
+  };
+
   const handleAddUnits = async () => {
     if (selectedUnitsToAdd.length === 0) return;
     
@@ -172,12 +296,13 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           method: 'POST',
           body: {
             id: `timeline-${Date.now()}`,
+            customerId: parseInt(customerId),
             serviceId: selectedItem.serviceId,
             changeType: 'added',
             title: 'Units Added to Rental',
             description: `Added ${selectedUnitsToAdd.length} unit(s) to ${selectedItem.itemDetails?.name || 'rental'}`,
             itemsSnapshot: JSON.stringify(addedUnitDetails),
-            totalValue: (getRentedUnitsForItem(selectedItem.itemId).length + selectedUnitsToAdd.length) * parseFloat(selectedItem.unitPrice || '0')
+            totalValue: ((getRentedUnitsForItem(selectedItem.itemId).length + selectedUnitsToAdd.length) * parseFloat(selectedItem.unitPrice || '0')).toString()
           }
         });
       } catch (timelineError) {
@@ -238,12 +363,13 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           method: 'POST',
           body: {
             id: `timeline-${Date.now()}`,
+            customerId: parseInt(customerId),
             serviceId: selectedItem.serviceId,
             changeType: 'removed',
             title: 'Units Removed from Rental',
             description: `Removed ${selectedUnitsToRemove.length} unit(s) from ${selectedItem.itemDetails?.name || 'rental'}`,
             itemsSnapshot: JSON.stringify(removedUnitDetails),
-            totalValue: (getRentedUnitsForItem(selectedItem.itemId).length - selectedUnitsToRemove.length) * parseFloat(selectedItem.unitPrice || '0')
+            totalValue: ((getRentedUnitsForItem(selectedItem.itemId).length - selectedUnitsToRemove.length) * parseFloat(selectedItem.unitPrice || '0')).toString()
           }
         });
       } catch (timelineError) {
@@ -414,12 +540,69 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       {/* Rental Items */}
       <Card className="border-black">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Package className="w-5 h-5" />
-            <span>Rental Items</span>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Package className="w-5 h-5" />
+              <span>Rental Items</span>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleAddMoreItems}
+              className="border-black hover:bg-gray-50"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add More Items
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Pending Items Section */}
+          {pendingItems.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-black">Pending Items</h3>
+                <Button 
+                  onClick={handlePushToTimeline}
+                  className="bg-black text-white hover:bg-gray-800"
+                  size="sm"
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  Push to Timeline
+                </Button>
+              </div>
+              <div className="space-y-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                {pendingItems.map((item: any) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Package className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-black">{item.itemDetails.name}</h4>
+                        <p className="text-sm text-gray-600">{item.units.length} units • ₹{item.unitPrice} per unit</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="text-right">
+                        <div className="font-semibold text-black">₹{item.totalValue}</div>
+                        <div className="text-xs text-gray-500">Total</div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleRemovePendingItem(item.id)}
+                        className="border-red-300 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {enrichedServiceItems.length === 0 ? (
             <div className="text-center py-12">
               <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -814,6 +997,125 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add New Item Dialog */}
+      <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Item to Rental</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Item Selection */}
+            <div>
+              <Label htmlFor="search-items">Search Items</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="search-items"
+                  placeholder="Search items by name, model, or category..."
+                  value={itemSearchTerm}
+                  onChange={(e) => setItemSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Available Items */}
+            <div>
+              <Label>Available Items</Label>
+              <ScrollArea className="h-60 border rounded-lg p-4">
+                <div className="space-y-2">
+                  {items?.filter((item: any) => 
+                    item.name.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
+                    item.model.toLowerCase().includes(itemSearchTerm.toLowerCase())
+                  ).map((item: any) => (
+                    <div 
+                      key={item.id} 
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedItemToAdd?.id === item.id 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                      onClick={() => setSelectedItemToAdd(item)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Package className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-black">{item.name}</h4>
+                          <p className="text-sm text-gray-600">{item.model}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-black">{getAvailableUnitsForItem(item.id).length} available</p>
+                          <p className="text-xs text-gray-500">{getAvailableUnitsForItem(item.id).length + getRentedUnitsForItem(item.id).length} total</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Unit Selection */}
+            {selectedItemToAdd && (
+              <div>
+                <Label>Select Units for {selectedItemToAdd.name}</Label>
+                <ScrollArea className="h-60 border rounded-lg p-4">
+                  <div className="space-y-2">
+                    {getAvailableUnitsForItem(selectedItemToAdd.id).map((unit: any) => (
+                      <div 
+                        key={unit.id} 
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedUnitsForNewItem.includes(unit.id)
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200 hover:bg-gray-50'
+                        }`}
+                        onClick={() => {
+                          if (selectedUnitsForNewItem.includes(unit.id)) {
+                            setSelectedUnitsForNewItem(selectedUnitsForNewItem.filter(id => id !== unit.id));
+                          } else {
+                            setSelectedUnitsForNewItem([...selectedUnitsForNewItem, unit.id]);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                              <Package className="w-4 h-4 text-green-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-black">#{unit.serialNumber}</p>
+                              <p className="text-sm text-gray-600">{unit.barcode}</p>
+                            </div>
+                          </div>
+                          <Badge variant="secondary">{unit.status}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setShowAddItemDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddItemToPending}
+                disabled={!selectedItemToAdd || selectedUnitsForNewItem.length === 0}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add to Pending ({selectedUnitsForNewItem.length} units)
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
