@@ -336,58 +336,47 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         }
       }
       
-      // Create timeline entry showing complete rental snapshot (existing + new items)
+      // Refresh data to get the latest state after all updates
+      await queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/service-items'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/units'] });
+      
+      // Create timeline entry showing complete rental snapshot after all changes
       try {
+        // Get updated service items and units to ensure we have the latest state
+        const updatedServiceItems = await apiRequest('/api/service-items');
+        const updatedUnits = await apiRequest('/api/units');
+        
+        // Filter service items for this customer
+        const customerServiceItems = updatedServiceItems.filter((item: any) => 
+          services.some(service => service.customerId === customerId && service.id === item.serviceId)
+        );
+        
         // Create complete snapshot of all items in rental after adding new items
         const completeItemsSnapshot = [];
         
-        // Add existing items with their current units
-        for (const existingItem of enrichedServiceItems) {
-          const existingUnits = getUnitsForItem(existingItem.itemId);
-          if (existingUnits.length > 0) {
+        // Process each service item for this customer
+        for (const serviceItem of customerServiceItems) {
+          // Find the item details
+          const itemDetails = items.find(item => item.id === serviceItem.itemId);
+          
+          // Get all units for this item that are rented by this customer
+          const itemUnits = updatedUnits.filter((unit: any) => 
+            unit.itemId === serviceItem.itemId && 
+            unit.currentCustomerId === customerId &&
+            unit.status === 'Rented'
+          );
+          
+          if (itemUnits.length > 0) {
             completeItemsSnapshot.push({
-              itemName: existingItem.itemDetails?.name || 'Unknown Item',
-              unitPrice: parseFloat(existingItem.unitPrice || '0'),
-              units: existingUnits.map((unit: any) => ({
+              itemName: itemDetails?.name || 'Unknown Item',
+              unitPrice: parseFloat(serviceItem.unitPrice || '0'),
+              units: itemUnits.map((unit: any) => ({
                 unitId: unit.id,
                 serialNumber: unit.serialNumber || 'N/A',
                 barcode: unit.barcode || 'N/A'
               }))
-            });
-          }
-        }
-        
-        // Add newly added items
-        for (const newItem of pendingItems) {
-          // Check if this item already exists in existing items
-          const existingItemIndex = completeItemsSnapshot.findIndex(
-            item => item.itemName === newItem.itemDetails.name
-          );
-          
-          if (existingItemIndex >= 0) {
-            // Add units to existing item
-            const newUnits = newItem.units.map((unitId: string) => {
-              const unit = units.find((u: any) => u.id === unitId);
-              return {
-                unitId,
-                serialNumber: unit?.serialNumber || 'N/A',
-                barcode: unit?.barcode || 'N/A'
-              };
-            });
-            completeItemsSnapshot[existingItemIndex].units.push(...newUnits);
-          } else {
-            // Add as new item
-            completeItemsSnapshot.push({
-              itemName: newItem.itemDetails.name,
-              unitPrice: parseFloat(newItem.unitPrice || '0'),
-              units: newItem.units.map((unitId: string) => {
-                const unit = units.find((u: any) => u.id === unitId);
-                return {
-                  unitId,
-                  serialNumber: unit?.serialNumber || 'N/A',
-                  barcode: unit?.barcode || 'N/A'
-                };
-              })
             });
           }
         }
