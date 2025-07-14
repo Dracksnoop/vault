@@ -26,7 +26,8 @@ import {
   ArrowRight,
   Edit,
   Trash2,
-  Plus
+  Plus,
+  Search
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -309,6 +310,7 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
   });
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>(formData.selectedItems || []);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const groupedItems = items.reduce((acc: any, item: any) => {
     const category = categories.find((cat: any) => cat.id === item.categoryId);
@@ -318,13 +320,21 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
     const itemUnits = units.filter((unit: any) => unit.itemId === item.id);
     const availableQuantity = itemUnits.filter((unit: any) => unit.status === "In Stock").length;
     
-    if (!acc[categoryName]) {
-      acc[categoryName] = [];
+    // Filter items based on search term
+    const matchesSearch = searchTerm === '' || 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      categoryName.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (matchesSearch) {
+      if (!acc[categoryName]) {
+        acc[categoryName] = [];
+      }
+      acc[categoryName].push({
+        ...item,
+        realTimeAvailableQuantity: availableQuantity
+      });
     }
-    acc[categoryName].push({
-      ...item,
-      realTimeAvailableQuantity: availableQuantity
-    });
     return acc;
   }, {});
 
@@ -410,52 +420,88 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
         {/* Available Items */}
         <div>
           <h3 className="font-semibold text-black mb-4">Available Items</h3>
+          
+          {/* Search Input */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="Search items by name, model, or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 border-gray-300 focus:border-black"
+              />
+            </div>
+          </div>
+
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {Object.entries(groupedItems).map(([categoryName, categoryItems]: [string, any]) => (
-              <div key={categoryName}>
-                <h4 className="font-medium text-black mb-2">{categoryName}</h4>
-                <div className="space-y-2">
-                  {categoryItems.map((item: any) => (
-                    <Card key={item.id} className={`border-gray-200 ${item.realTimeAvailableQuantity === 0 ? 'opacity-50' : ''}`}>
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <Checkbox
-                              checked={selectedItems.some(selected => selected.itemId === item.id)}
-                              onCheckedChange={(checked) => handleItemSelect(item, checked as boolean)}
-                              disabled={item.realTimeAvailableQuantity === 0}
-                            />
-                            <div>
-                              <p className="font-medium text-black">{item.name}</p>
-                              <p className="text-sm text-gray-600">{item.model}</p>
-                              <div className="flex items-center space-x-2">
-                                <p className={`text-sm ${
-                                  item.realTimeAvailableQuantity === 0 ? 'text-red-500' : 
-                                  item.realTimeAvailableQuantity <= 5 ? 'text-orange-500' : 
-                                  'text-gray-500'
-                                }`}>
-                                  Available: {item.realTimeAvailableQuantity}
-                                </p>
-                                {item.realTimeAvailableQuantity === 0 && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    Out of Stock
-                                  </Badge>
-                                )}
-                                {item.realTimeAvailableQuantity > 0 && item.realTimeAvailableQuantity <= 5 && (
-                                  <Badge variant="outline" className="text-xs border-orange-500 text-orange-500">
-                                    Low Stock
-                                  </Badge>
-                                )}
+            {Object.entries(groupedItems).length === 0 ? (
+              <div className="text-center py-8">
+                <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">
+                  {searchTerm ? `No items found matching "${searchTerm}"` : 'No items available'}
+                </p>
+                {searchTerm && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSearchTerm('')}
+                    className="mt-2 border-gray-300"
+                  >
+                    Clear search
+                  </Button>
+                )}
+              </div>
+            ) : (
+              Object.entries(groupedItems).map(([categoryName, categoryItems]: [string, any]) => (
+                <div key={categoryName}>
+                  <h4 className="font-medium text-black mb-2">
+                    {categoryName} ({categoryItems.length} items)
+                  </h4>
+                  <div className="space-y-2">
+                    {categoryItems.map((item: any) => (
+                      <Card key={item.id} className={`border-gray-200 ${item.realTimeAvailableQuantity === 0 ? 'opacity-50' : ''}`}>
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <Checkbox
+                                checked={selectedItems.some(selected => selected.itemId === item.id)}
+                                onCheckedChange={(checked) => handleItemSelect(item, checked as boolean)}
+                                disabled={item.realTimeAvailableQuantity === 0}
+                              />
+                              <div>
+                                <p className="font-medium text-black">{item.name}</p>
+                                <p className="text-sm text-gray-600">{item.model}</p>
+                                <div className="flex items-center space-x-2">
+                                  <p className={`text-sm ${
+                                    item.realTimeAvailableQuantity === 0 ? 'text-red-500' : 
+                                    item.realTimeAvailableQuantity <= 5 ? 'text-orange-500' : 
+                                    'text-gray-500'
+                                  }`}>
+                                    Available: {item.realTimeAvailableQuantity}
+                                  </p>
+                                  {item.realTimeAvailableQuantity === 0 && (
+                                    <Badge variant="destructive" className="text-xs">
+                                      Out of Stock
+                                    </Badge>
+                                  )}
+                                  {item.realTimeAvailableQuantity > 0 && item.realTimeAvailableQuantity <= 5 && (
+                                    <Badge variant="outline" className="text-xs border-orange-500 text-orange-500">
+                                      Low Stock
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
