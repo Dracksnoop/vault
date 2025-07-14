@@ -30,7 +30,7 @@ interface UnitDetails {
   name: string;
   location: string;
   warranty: string;
-  status: "In Stock" | "rented" | "Maintenance" | "Retired";
+  status: "Available" | "Rented" | "Maintenance" | "Retired";
   notes: string;
   barcode: string;
 }
