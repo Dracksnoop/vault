@@ -32,14 +32,14 @@ import {
   Download,
   Plus
 } from 'lucide-react';
-import { Link, useRouter } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useNavigation } from '@/contexts/NavigationContext';
 import RentalItemsPanel from '@/components/RentalItemsPanel';
 
 export default function CustomerDetails() {
   const [match, params] = useRoute('/customer/:id');
   const customerId = params?.id ? parseInt(params.id) : null;
-  const router = useRouter();
+  const [location, navigate] = useLocation();
   const { navigateWithLoader } = useNavigation();
   const [selectedTab, setSelectedTab] = useState('overview');
   const [showRentalItems, setShowRentalItems] = useState(false);
@@ -180,7 +180,7 @@ export default function CustomerDetails() {
             size="sm" 
             className="border-black"
             onClick={() => navigateWithLoader(
-              () => router.navigate('/customer'), 
+              () => navigate('/customer'), 
               'Loading Customers...'
             )}
           >

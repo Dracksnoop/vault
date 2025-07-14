@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Link, useRouter } from "wouter";
+import { Link } from "wouter";
 import { 
   Home, 
   Package, 
@@ -34,8 +34,7 @@ const navigationItems = [
 ];
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const [location] = useLocation();
-  const router = useRouter();
+  const [location, navigate] = useLocation();
   const { navigateWithLoader } = useNavigation();
 
   return (
@@ -71,7 +70,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   onClose();
                   if (location !== item.href) {
                     navigateWithLoader(
-                      () => router.navigate(item.href),
+                      () => navigate(item.href),
                       `Loading ${item.name}...`
                     );
                   }
