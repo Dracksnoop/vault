@@ -27,6 +27,12 @@ export default function Home() {
     cacheTime: 0,
   });
 
+  const { data: serviceItems = [] } = useQuery({
+    queryKey: ['/api/service-items'],
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
   // Calculate real-time statistics
   const totalUnits = units.length;
   const rentedUnits = units.filter((unit: any) => unit.status === 'rented').length;
@@ -35,6 +41,11 @@ export default function Home() {
     rentals.some((rental: any) => rental.customerId === customer.id && rental.isOngoing)
   ).length;
   const activeRentals = rentals.filter((rental: any) => rental.isOngoing).length;
+  
+  // Calculate total rental value from service items
+  const totalRentalValue = serviceItems.reduce((sum: number, item: any) => {
+    return sum + (parseFloat(item.totalValue) || 0);
+  }, 0);
   
   // Calculate monthly revenue (simplified)
   const monthlyRevenue = rentals.reduce((sum: number, rental: any) => {
@@ -92,9 +103,9 @@ export default function Home() {
         <div className="bg-white p-6 rounded-lg border border-black">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-black font-medium">Monthly Revenue</p>
-              <p className="text-2xl font-bold text-black">₹{monthlyRevenue.toLocaleString()}</p>
-              <p className="text-xs text-gray-600">from active rentals</p>
+              <p className="text-sm text-black font-medium">Total Rental Value</p>
+              <p className="text-2xl font-bold text-black">₹{totalRentalValue.toLocaleString()}</p>
+              <p className="text-xs text-gray-600">{serviceItems.length} service items</p>
             </div>
             <div className="w-12 h-12 bg-white border border-black rounded-lg flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-black" />

@@ -210,8 +210,48 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         });
       }
       
-      // Create timeline entry for all pending items
+      // Create timeline entry showing complete rental snapshot (existing + new items)
       try {
+        // Get all current service items (existing + new)
+        const allServiceItems = await apiRequest('/api/service-items');
+        
+        // Create complete snapshot of all items in rental
+        const completeItemsSnapshot = [];
+        
+        // Add existing items
+        for (const existingItem of enrichedServiceItems) {
+          const existingUnits = getUnitsForItem(existingItem.itemId);
+          completeItemsSnapshot.push({
+            itemName: existingItem.itemDetails?.name || 'Unknown Item',
+            units: existingUnits.map((unit: any) => ({
+              unitId: unit.id,
+              serialNumber: unit.serialNumber || 'N/A',
+              barcode: unit.barcode || 'N/A'
+            }))
+          });
+        }
+        
+        // Add newly added items
+        for (const newItem of pendingItems) {
+          completeItemsSnapshot.push({
+            itemName: newItem.itemDetails.name,
+            units: newItem.units.map((unitId: string) => {
+              const unit = units.find((u: any) => u.id === unitId);
+              return {
+                unitId,
+                serialNumber: unit?.serialNumber || 'N/A',
+                barcode: unit?.barcode || 'N/A'
+              };
+            })
+          });
+        }
+        
+        // Calculate total value of entire rental
+        const existingRentalValue = enrichedServiceItems.reduce((sum: number, item: any) => 
+          sum + (parseFloat(item.totalValue) || 0), 0);
+        const newItemsValue = pendingItems.reduce((sum, item) => sum + item.totalValue, 0);
+        const totalRentalValue = existingRentalValue + newItemsValue;
+        
         await apiRequest(`/api/customers/${customerId}/timeline`, {
           method: 'POST',
           body: {
@@ -219,32 +259,30 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
             customerId: parseInt(customerId.toString()),
             serviceId: serviceItems[0]?.serviceId || 'default-service',
             changeType: 'added',
-            title: 'New Items Added to Rental',
-            description: `Added ${pendingItems.length} new item type(s) to rental`,
-            itemsSnapshot: JSON.stringify(pendingItems.map(item => ({
-              itemName: item.itemDetails.name,
-              units: item.units.map((unitId: string) => {
-                const unit = units.find((u: any) => u.id === unitId);
-                return {
-                  unitId,
-                  serialNumber: unit?.serialNumber || 'N/A',
-                  barcode: unit?.barcode || 'N/A'
-                };
-              })
-            }))),
-            totalValue: pendingItems.reduce((sum, item) => sum + item.totalValue, 0).toString()
+            title: 'Items Added to Rental',
+            description: `Added ${pendingItems.length} new item type(s) to rental (Total: ${completeItemsSnapshot.length} item types)`,
+            itemsSnapshot: JSON.stringify(completeItemsSnapshot),
+            totalValue: totalRentalValue.toString()
           }
         });
       } catch (timelineError) {
         console.warn('Failed to create timeline entry:', timelineError);
       }
       
-      // Clear pending items and refresh data
+      // Clear pending items and refresh all related data
       setPendingItems([]);
+      
+      // Invalidate all queries to ensure fresh data across the entire app
       queryClient.invalidateQueries({ queryKey: ['/api/units'] });
       queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
       queryClient.invalidateQueries({ queryKey: ['/api/items'] });
       queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/services'] });
+      
+      // Force refetch service items to update the current view
+      await queryClient.refetchQueries({ queryKey: ['/api/service-items'] });
       
       toast({
         title: "Items Pushed to Timeline",
