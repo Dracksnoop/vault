@@ -386,49 +386,68 @@ export default function Inventory() {
   };
 
   const handleAddItem = async () => {
-    if (newItem.name.trim() && newItem.model.trim() && newItem.quantityInStock > 0) {
-      const itemId = Date.now().toString();
+    console.log("handleAddItem called with:", newItem);
+    
+    if (!newItem.name.trim()) {
+      console.error("Product name is required");
+      return;
+    }
+    
+    if (!newItem.model.trim()) {
+      console.error("Model/Specification is required");
+      return;
+    }
+    
+    if (newItem.quantityInStock <= 0) {
+      console.error("Quantity must be greater than 0");
+      return;
+    }
+    
+    const itemId = Date.now().toString();
+    
+    const item = {
+      id: itemId,
+      name: newItem.name.trim(),
+      model: newItem.model.trim(),
+      categoryId: selectedCategory,
+      quantityInStock: newItem.quantityInStock,
+      quantityRentedOut: 0,
+      location: newItem.location.trim() || "Warehouse",
+    };
+    
+    console.log("Creating item:", item);
+    
+    try {
+      // First create the item
+      await createItemMutation.mutateAsync(item);
       
-      const item = {
-        id: itemId,
-        name: newItem.name.trim(),
-        model: newItem.model.trim(),
-        categoryId: selectedCategory,
-        quantityInStock: newItem.quantityInStock,
-        quantityRentedOut: 0,
-        location: newItem.location.trim(),
-      };
-      
-      try {
-        // First create the item
-        await createItemMutation.mutateAsync(item);
-        
-        // Then create all units
-        const unitPromises = [];
-        for (let i = 0; i < newItem.quantityInStock; i++) {
-          const unit = {
-            id: `${itemId}_unit_${i}`,
-            itemId: itemId,
-            serialNumber: generateSerialNumber(newItem.name, i),
-            barcode: generateBarcode().toString(),
-            status: "Available",
-            location: newItem.location.trim() || "Warehouse",
-            warrantyExpiry: "",
-            notes: "Auto-generated unit"
-          };
-          unitPromises.push(createUnitMutation.mutateAsync(unit));
-        }
-        
-        await Promise.all(unitPromises);
-        
-        // Invalidate all queries to ensure UI updates
-        queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/units"] });
-        
-      } catch (error) {
-        console.error("Error creating item and units:", error);
+      // Then create all units
+      const unitPromises = [];
+      for (let i = 0; i < newItem.quantityInStock; i++) {
+        const unit = {
+          id: `${itemId}_unit_${i}`,
+          itemId: itemId,
+          serialNumber: generateSerialNumber(newItem.name, i),
+          barcode: generateBarcode().toString(),
+          status: "Available",
+          location: newItem.location.trim() || "Warehouse",
+          warrantyExpiry: "",
+          notes: "Auto-generated unit"
+        };
+        unitPromises.push(createUnitMutation.mutateAsync(unit));
       }
+      
+      await Promise.all(unitPromises);
+      
+      // Invalidate all queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      
+      console.log("Item and units created successfully");
+      
+    } catch (error) {
+      console.error("Error creating item and units:", error);
     }
   };
 
@@ -809,9 +828,10 @@ export default function Inventory() {
                         <div className="flex gap-2">
                           <Button 
                             onClick={handleAddItem}
-                            className="bg-black text-white hover:bg-gray-800"
+                            disabled={createItemMutation.isPending || createUnitMutation.isPending || !newItem.name.trim() || !newItem.model.trim() || newItem.quantityInStock <= 0}
+                            className="bg-black text-white hover:bg-gray-800 disabled:opacity-50"
                           >
-                            Add Item
+                            {createItemMutation.isPending ? 'Adding...' : 'Add Item'}
                           </Button>
                           <Button 
                             variant="outline" 
