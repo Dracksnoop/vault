@@ -61,7 +61,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <button
                 key={item.name}
                 className={cn(
-                  "w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  "w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors text-left min-h-[2.5rem]",
                   isActive
                     ? "nav-item-active"
                     : "text-black hover:bg-gray-50 hover:text-black"
@@ -76,8 +76,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   }
                 }}
               >
-                <Icon className="w-5 h-5 mr-3" />
-                <span>{item.name}</span>
+                <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                <span className="nav-item-text flex-1 text-left">{item.name}</span>
               </button>
             );
           })}

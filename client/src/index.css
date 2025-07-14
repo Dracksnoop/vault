@@ -91,4 +91,25 @@
       gap: 0.5rem;
     }
   }
+
+  /* Responsive navigation items */
+  .nav-item-text {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  @media (max-width: 1024px) {
+    .nav-item-text {
+      font-size: 0.8rem;
+      line-height: 1.1;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .nav-item-text {
+      font-size: 0.75rem;
+      line-height: 1.0;
+    }
+  }
 }
