@@ -1199,7 +1199,7 @@ export default function Inventory() {
                                 </div>
                               )}
                             </div>
-                            <div className="flex flex-row sm:flex-col gap-2 self-end sm:self-start" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-row gap-2 self-end sm:self-start" onClick={(e) => e.stopPropagation()}>
                               <Button 
                                 variant="outline" 
                                 size="sm" 
