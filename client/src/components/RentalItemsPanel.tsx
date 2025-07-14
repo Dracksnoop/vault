@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Package, 
   Calendar, 
@@ -30,8 +31,12 @@ import {
   Minus,
   Settings,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Search
 } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface RentalItemsPanelProps {
   customerId: number;
@@ -43,9 +48,15 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   const [showViewUnitsDialog, setShowViewUnitsDialog] = useState(false);
   const [showModifyDialog, setShowModifyDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUnitsToRemove, setSelectedUnitsToRemove] = useState<string[]>([]);
+  const [selectedUnitsToAdd, setSelectedUnitsToAdd] = useState<string[]>([]);
+  const [modifyActiveTab, setModifyActiveTab] = useState('remove');
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  // Timeline helper functions
-  const getTimelineIcon = (changeType: string) => {
+  const getChangeTypeIcon = (changeType: string) => {
     switch (changeType) {
       case 'created':
         return <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center"><CheckCircle className="w-4 h-4 text-green-600" /></div>;
@@ -80,6 +91,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     return item ? item.name : 'Unknown Item';
   };
 
+  // Data queries
   const { data: services = [] } = useQuery({
     queryKey: ['/api/services'],
   });
@@ -104,6 +116,110 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   const { data: timeline = [] } = useQuery({
     queryKey: ['/api/customers', customerId, 'timeline'],
   });
+
+  // Handler functions
+  const handleViewUnits = (serviceItem: any) => {
+    setSelectedItem(serviceItem);
+    setShowViewUnitsDialog(true);
+  };
+
+  const handleModify = (serviceItem: any) => {
+    setSelectedItem(serviceItem);
+    setSelectedUnitsToRemove([]);
+    setSelectedUnitsToAdd([]);
+    setSearchTerm('');
+    setModifyActiveTab('remove');
+    setShowModifyDialog(true);
+  };
+
+  const handleAddUnits = async () => {
+    if (selectedUnitsToAdd.length === 0) return;
+    
+    try {
+      // Simple implementation for now
+      await Promise.all(selectedUnitsToAdd.map(unitId => 
+        apiRequest(`/api/units/${unitId}`, {
+          method: 'PUT',
+          body: { status: 'rented' }
+        })
+      ));
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      
+      setSelectedUnitsToAdd([]);
+      setShowModifyDialog(false);
+      toast({
+        title: "Units Added Successfully",
+        description: `Added ${selectedUnitsToAdd.length} units to rental`,
+      });
+    } catch (error) {
+      console.error('Error adding units:', error);
+      toast({
+        title: "Error Adding Units",
+        description: "Failed to add units to rental. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveUnits = async () => {
+    if (selectedUnitsToRemove.length === 0) return;
+    
+    try {
+      await Promise.all(selectedUnitsToRemove.map(unitId => 
+        apiRequest(`/api/units/${unitId}`, {
+          method: 'PUT',
+          body: { status: 'In Stock' }
+        })
+      ));
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      
+      setSelectedUnitsToRemove([]);
+      setShowModifyDialog(false);
+      toast({
+        title: "Units Removed Successfully",
+        description: `Removed ${selectedUnitsToRemove.length} units from rental`,
+      });
+    } catch (error) {
+      console.error('Error removing units:', error);
+      toast({
+        title: "Error Removing Units",
+        description: "Failed to remove units from rental. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleUnitSelection = (unitId: string, isRemoving: boolean) => {
+    if (isRemoving) {
+      setSelectedUnitsToRemove(prev => 
+        prev.includes(unitId) 
+          ? prev.filter(id => id !== unitId)
+          : [...prev, unitId]
+      );
+    } else {
+      setSelectedUnitsToAdd(prev => 
+        prev.includes(unitId) 
+          ? prev.filter(id => id !== unitId)
+          : [...prev, unitId]
+      );
+    }
+  };
+
+  const getRentedUnitsForItem = (itemId: string) => {
+    return units.filter((unit: any) => unit.itemId === itemId && unit.status === 'rented');
+  };
+
+  const getAvailableUnitsForItem = (itemId: string) => {
+    return units.filter((unit: any) => unit.itemId === itemId && unit.status === 'In Stock');
+  };
 
   // Get customer services
   const customerServices = services.filter((service: any) => service.customerId === customerId);
@@ -139,18 +255,6 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     sum + item.quantity, 0
   );
 
-  // Handle View Units button click
-  const handleViewUnits = (serviceItem: any) => {
-    setSelectedItem(serviceItem);
-    setShowViewUnitsDialog(true);
-  };
-
-  // Handle Modify button click
-  const handleModify = (serviceItem: any) => {
-    setSelectedItem(serviceItem);
-    setShowModifyDialog(true);
-  };
-
   // Get units for the selected item that are actually rented by this customer
   const getItemUnits = (itemId: string, serviceItem: any) => {
     // Get units for this item that are currently rented
@@ -183,157 +287,119 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
             <p className="text-gray-600">{customerName} - Rental Details</p>
           </div>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" className="border-black">
-            <BarChart3 className="w-4 h-4 mr-2" />
-            View Reports
-          </Button>
-          <Button className="bg-blue-600 text-white hover:bg-blue-700">
-            <Edit className="w-4 h-4 mr-2" />
-            Modify Rental
-          </Button>
-        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card className="border-black">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Items</p>
-                <p className="text-2xl font-bold text-black">{totalItemsRented}</p>
-              </div>
-              <Package className="w-8 h-8 text-blue-500" />
-            </div>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <Package className="w-4 h-4 mr-2" />
+              Total Items Rented
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-black">{totalItemsRented}</div>
+            <p className="text-sm text-gray-600">items across all rentals</p>
           </CardContent>
         </Card>
 
         <Card className="border-black">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Item Types</p>
-                <p className="text-2xl font-bold text-black">{enrichedServiceItems.length}</p>
-              </div>
-              <Package className="w-8 h-8 text-green-500" />
-            </div>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Total Rental Value
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-black">₹{totalRentalValue.toFixed(2)}</div>
+            <p className="text-sm text-gray-600">current rental value</p>
           </CardContent>
         </Card>
 
         <Card className="border-black">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Value</p>
-                <p className="text-2xl font-bold text-green-600">₹{totalRentalValue.toLocaleString()}</p>
-              </div>
-              <DollarSign className="w-8 h-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-black">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Since</p>
-                <p className="text-lg font-bold text-orange-600">
-                  {activeRentals.length > 0 ? new Date(activeRentals[0].startDate).toLocaleDateString() : 'N/A'}
-                </p>
-              </div>
-              <Calendar className="w-8 h-8 text-orange-500" />
-            </div>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Active Rentals
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-black">{activeRentals.length}</div>
+            <p className="text-sm text-gray-600">ongoing rental agreements</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Rental Items List */}
+      {/* Rental Items */}
       <Card className="border-black">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Package className="w-5 h-5" />
-            <span>Rental Items Details</span>
+            <span>Rental Items</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {enrichedServiceItems.length === 0 ? (
-            <div className="text-center py-8">
+            <div className="text-center py-12">
               <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No rental items found</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Rentals</h3>
+              <p className="text-gray-600">This customer doesn't have any active rental items.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {enrichedServiceItems.map((serviceItem: any) => (
-                <div key={serviceItem.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={serviceItem.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Package className="w-8 h-8 text-gray-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg text-black">
-                          {serviceItem.itemDetails?.name || 'Unknown Item'}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {serviceItem.itemDetails?.description || 'No description'}
-                        </p>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <Badge variant="outline">
-                            SKU: {serviceItem.itemDetails?.sku || 'N/A'}
-                          </Badge>
-                          <Badge variant="secondary">
-                            Category: {serviceItem.itemDetails?.categoryId || 'N/A'}
-                          </Badge>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <Package className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-black">{serviceItem.itemDetails?.name || 'Unknown Item'}</h3>
+                          <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                            <span className="flex items-center">
+                              <Package className="w-4 h-4 mr-1" />
+                              SKU: {serviceItem.itemDetails?.sku || 'N/A'}
+                            </span>
+                            <span className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-1" />
+                              Quantity: {serviceItem.quantity}
+                            </span>
+                            <span className="flex items-center">
+                              <DollarSign className="w-4 h-4 mr-1" />
+                              ₹{serviceItem.unitPrice} per unit
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="text-right">
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-600">Quantity Rented</p>
-                          <p className="font-semibold text-lg">{serviceItem.quantity}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">Unit Price</p>
-                          <p className="font-semibold text-lg">₹{serviceItem.unitPrice}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">Total Value</p>
-                          <p className="font-semibold text-lg text-green-600">₹{serviceItem.totalValue}</p>
-                        </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-black">₹{serviceItem.totalValue}</div>
+                        <div className="text-sm text-gray-600">Total Value</div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Item Actions */}
-                  <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>
-                        Rented since: {activeRentals.length > 0 ? new Date(activeRentals[0].startDate).toLocaleDateString() : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="border-black"
-                        onClick={() => handleViewUnits(serviceItem)}
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View Units
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="border-blue-500 text-blue-500"
-                        onClick={() => handleModify(serviceItem)}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Modify
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewUnits(serviceItem)}
+                          className="border-black hover:bg-gray-50"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View Units
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleModify(serviceItem)}
+                          className="border-black hover:bg-gray-50"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Modify
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -343,11 +409,11 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         </CardContent>
       </Card>
 
-      {/* Rental Timeline */}
+      {/* Timeline */}
       <Card className="border-black">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Calendar className="w-5 h-5" />
+            <Clock className="w-5 h-5" />
             <span>Rental Timeline</span>
           </CardTitle>
         </CardHeader>
@@ -355,60 +421,36 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           <ScrollArea className="h-96">
             {timeline.length === 0 ? (
               <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No timeline entries yet</p>
-                <p className="text-sm text-gray-500 mt-1">Timeline will appear here as rental modifications are made</p>
+                <p className="text-sm text-gray-500 mt-1">Timeline will show rental modifications and changes</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {timeline.map((entry: any, index: number) => (
-                  <div key={entry.id} className="flex items-start space-x-3">
-                    {/* Timeline Icon */}
-                    <div className="flex-shrink-0 mt-1">
-                      {getTimelineIcon(entry.changeType)}
-                    </div>
-                    
-                    {/* Timeline Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-black">{entry.title}</p>
-                          <p className="text-sm text-gray-600">{entry.description}</p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={getChangeTypeBadgeVariant(entry.changeType)}>
-                            {entry.changeType}
-                          </Badge>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {new Date(entry.createdAt).toLocaleDateString()} {new Date(entry.createdAt).toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Items Snapshot */}
-                      {entry.itemsSnapshot && (
-                        <div className="mt-2 p-2 bg-gray-50 rounded border">
-                          <p className="text-xs text-gray-600 mb-1">Items Affected:</p>
-                          <div className="space-y-1">
-                            {JSON.parse(entry.itemsSnapshot).map((item: any) => (
-                              <div key={item.id} className="flex justify-between text-xs">
-                                <span>{getItemName(item.itemId)} (x{item.quantity})</span>
-                                <span>₹{item.totalPrice}</span>
-                              </div>
-                            ))}
+                  <div key={entry.id} className="relative">
+                    <div className="flex items-start space-x-4">
+                      {getChangeTypeIcon(entry.changeType)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-black">{entry.title}</h3>
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={getChangeTypeBadgeVariant(entry.changeType)}>
+                              {entry.changeType}
+                            </Badge>
+                            <span className="text-sm text-gray-500">
+                              {new Date(entry.createdAt).toLocaleDateString()} at {new Date(entry.createdAt).toLocaleTimeString()}
+                            </span>
                           </div>
-                          {entry.totalValue && (
-                            <div className="border-t pt-1 mt-1">
-                              <div className="flex justify-between text-xs font-medium">
-                                <span>Total Value:</span>
-                                <span>₹{entry.totalValue}</span>
-                              </div>
-                            </div>
-                          )}
                         </div>
-                      )}
+                        <p className="text-gray-600 mt-1">{entry.description}</p>
+                        {entry.totalValue && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            Total Value: ₹{entry.totalValue}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    
                     {/* Timeline Line */}
                     {index < timeline.length - 1 && (
                       <div className="absolute left-4 top-8 w-0.5 h-16 bg-gray-200" style={{ marginLeft: '10px' }} />
@@ -499,9 +541,9 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         </DialogContent>
       </Dialog>
 
-      {/* Modify Dialog */}
+      {/* Enhanced Modify Dialog */}
       <Dialog open={showModifyDialog} onOpenChange={setShowModifyDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <Edit className="w-5 h-5" />
@@ -510,84 +552,165 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           </DialogHeader>
           {selectedItem && (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    defaultValue={selectedItem.quantity}
-                    className="border-black"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="unitPrice">Unit Price (₹)</Label>
-                  <Input
-                    id="unitPrice"
-                    type="number"
-                    defaultValue={selectedItem.unitPrice}
-                    className="border-black"
-                  />
+              {/* Current Rental Status */}
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <p className="font-medium">Current Quantity:</p>
+                    <p className="text-lg font-bold">{selectedItem.quantity} units</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Unit Price:</p>
+                    <p className="text-lg font-bold">₹{selectedItem.unitPrice}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">Total Value:</p>
+                    <p className="text-lg font-bold">₹{selectedItem.totalValue}</p>
+                  </div>
                 </div>
               </div>
-              
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  defaultValue={selectedItem.itemDetails?.description || ''}
-                  className="border-black"
-                  rows={3}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Select defaultValue="active">
-                    <SelectTrigger className="border-black">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="paused">Paused</SelectItem>
-                      <SelectItem value="terminated">Terminated</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="priority">Priority</Label>
-                  <Select defaultValue="normal">
-                    <SelectTrigger className="border-black">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="normal">Normal</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Add any additional notes..."
-                  className="border-black"
-                  rows={2}
-                />
-              </div>
-              
+
+              {/* Tabbed Interface */}
+              <Tabs value={modifyActiveTab} onValueChange={setModifyActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="remove" className="flex items-center space-x-2">
+                    <Minus className="w-4 h-4" />
+                    <span>Remove Units</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="add" className="flex items-center space-x-2">
+                    <Plus className="w-4 h-4" />
+                    <span>Add Units</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Remove Units Tab */}
+                <TabsContent value="remove" className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-3">Currently Rented Units</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {getRentedUnitsForItem(selectedItem.itemId).map((unit: any) => (
+                        <div
+                          key={unit.id}
+                          className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                            selectedUnitsToRemove.includes(unit.id)
+                              ? 'border-red-500 bg-red-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => toggleUnitSelection(unit.id, true)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Package className="w-4 h-4 text-gray-600" />
+                              <span className="font-medium">#{unit.serialNumber}</span>
+                            </div>
+                            <Badge variant="destructive">Rented</Badge>
+                          </div>
+                          <div className="mt-2 text-sm text-gray-600">
+                            <p>Status: {unit.status}</p>
+                            {unit.barcode && <p>Barcode: {unit.barcode}</p>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedUnitsToRemove.length > 0 && (
+                      <div className="mt-4 p-3 bg-red-50 rounded-lg">
+                        <p className="font-medium text-red-800">
+                          Selected {selectedUnitsToRemove.length} units for removal
+                        </p>
+                        <p className="text-sm text-red-600 mt-1">
+                          These units will be returned to inventory as "In Stock"
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                {/* Add Units Tab */}
+                <TabsContent value="add" className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-3">Available Units to Add</h3>
+                    
+                    {/* Search Input */}
+                    <div className="relative mb-4">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Search by serial number or barcode..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 border-black"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {getAvailableUnitsForItem(selectedItem.itemId)
+                        .filter((unit: any) => 
+                          unit.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (unit.barcode && unit.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
+                        )
+                        .map((unit: any) => (
+                          <div
+                            key={unit.id}
+                            className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                              selectedUnitsToAdd.includes(unit.id)
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            onClick={() => toggleUnitSelection(unit.id, false)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <Package className="w-4 h-4 text-gray-600" />
+                                <span className="font-medium">#{unit.serialNumber}</span>
+                              </div>
+                              <Badge variant="secondary">Available</Badge>
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600">
+                              <p>Status: {unit.status}</p>
+                              {unit.barcode && <p>Barcode: {unit.barcode}</p>}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                    
+                    {selectedUnitsToAdd.length > 0 && (
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p className="font-medium text-blue-800">
+                          Selected {selectedUnitsToAdd.length} units to add
+                        </p>
+                        <p className="text-sm text-blue-600 mt-1">
+                          These units will be marked as "rented" and added to this rental
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {/* Action Buttons */}
               <div className="flex justify-end space-x-2 pt-4">
                 <Button variant="outline" onClick={() => setShowModifyDialog(false)}>
                   Cancel
                 </Button>
-                <Button className="bg-blue-600 text-white hover:bg-blue-700">
-                  Save Changes
-                </Button>
+                {modifyActiveTab === 'remove' && (
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleRemoveUnits}
+                    disabled={selectedUnitsToRemove.length === 0}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove {selectedUnitsToRemove.length} Units
+                  </Button>
+                )}
+                {modifyActiveTab === 'add' && (
+                  <Button 
+                    onClick={handleAddUnits}
+                    disabled={selectedUnitsToAdd.length === 0}
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add {selectedUnitsToAdd.length} Units
+                  </Button>
+                )}
               </div>
             </div>
           )}
