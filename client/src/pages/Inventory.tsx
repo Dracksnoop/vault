@@ -462,12 +462,37 @@ export default function Inventory() {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       // Invalidate all queries to ensure UI updates
-      await queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
       
-      // Wait for UI to refresh with new data
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for the actual data to be available in the UI
+      let attempts = 0;
+      const maxAttempts = 30; // 3 seconds max wait
+      
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Check if the new item appears in the items list with correct unit count
+        const updatedItems = await queryClient.fetchQuery({ queryKey: ["/api/items"] });
+        const newItemInList = updatedItems.find(i => i.id === itemId);
+        
+        if (newItemInList) {
+          // Check if units are properly created
+          const updatedUnits = await queryClient.fetchQuery({ queryKey: ["/api/units"] });
+          const newItemUnits = updatedUnits.filter(u => u.itemId === itemId);
+          
+          if (newItemUnits.length === newItem.quantityInStock) {
+            console.log("All units verified in database");
+            break;
+          }
+        }
+        
+        attempts++;
+      }
+      
+      // Final delay to ensure UI has time to render
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       console.log("Item and units created successfully");
       
