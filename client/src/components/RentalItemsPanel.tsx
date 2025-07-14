@@ -593,7 +593,11 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   };
 
   const getRentedUnitsForItem = (itemId: string) => {
-    return units.filter((unit: any) => unit.itemId === itemId && unit.status === 'Rented');
+    return units.filter((unit: any) => 
+      unit.itemId === itemId && 
+      unit.status === 'Rented' && 
+      unit.currentCustomerId === customerId
+    );
   };
 
   const getAvailableUnitsForItem = (itemId: string) => {
