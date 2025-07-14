@@ -403,12 +403,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/customers/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Check if customer exists
+      const customer = await storage.getCustomer(id);
+      if (!customer) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      
+      // Get all services for this customer
+      const services = await storage.getServicesByCustomer(id);
+      
+      // For each service, restore rented items to inventory
+      for (const service of services) {
+        if (service.serviceType === 'rent') {
+          // Get service items for this rental service
+          const serviceItems = await storage.getServiceItemsByService(service.id);
+          
+          for (const serviceItem of serviceItems) {
+            // Get all units for this item that are currently rented
+            const units = await storage.getUnitsByItem(serviceItem.itemId);
+            const rentedUnits = units.filter(unit => unit.status === 'rented');
+            
+            // Restore the rented quantity back to 'In Stock'
+            const unitsToRestore = rentedUnits.slice(0, serviceItem.quantity);
+            for (const unit of unitsToRestore) {
+              await storage.updateUnit(unit.id, { status: 'In Stock' });
+            }
+            
+            // Update item quantities
+            const currentItem = await storage.getItem(serviceItem.itemId);
+            if (currentItem) {
+              const newQuantityRentedOut = Math.max(0, (currentItem.quantityRentedOut || 0) - serviceItem.quantity);
+              const newQuantityInStock = (currentItem.quantityInStock || 0) + serviceItem.quantity;
+              await storage.updateItem(serviceItem.itemId, {
+                quantityRentedOut: newQuantityRentedOut,
+                quantityInStock: newQuantityInStock
+              });
+            }
+          }
+          
+          // Delete service items
+          for (const serviceItem of serviceItems) {
+            await storage.deleteServiceItem(serviceItem.id);
+          }
+        }
+        
+        // Delete rentals for this service
+        const rentals = await storage.getRentalsByService(service.id);
+        for (const rental of rentals) {
+          await storage.deleteRental(rental.id);
+        }
+        
+        // Delete the service
+        await storage.deleteService(service.id);
+      }
+      
+      // Finally, delete the customer
       const deleted = await storage.deleteCustomer(id);
       if (!deleted) {
         return res.status(404).json({ error: "Customer not found" });
       }
-      res.json({ success: true });
+      
+      res.json({ success: true, message: "Customer and all related data deleted successfully" });
     } catch (error) {
+      console.error("Delete customer error:", error);
       res.status(500).json({ error: "Failed to delete customer" });
     }
   });

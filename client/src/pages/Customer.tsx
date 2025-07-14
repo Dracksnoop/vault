@@ -1,7 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import { 
   User, 
   Mail, 
@@ -13,11 +24,19 @@ import {
   Edit,
   Trash2,
   Package,
-  CreditCard
+  CreditCard,
+  AlertTriangle
 } from 'lucide-react';
 import { Link } from 'wouter';
+import { useState } from 'react';
 
 export default function Customer() {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<any>(null);
+  const [confirmationText, setConfirmationText] = useState('');
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ['/api/customers'],
   });
@@ -29,6 +48,49 @@ export default function Customer() {
   const { data: rentals = [] } = useQuery({
     queryKey: ['/api/rentals'],
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (customerId: number) => {
+      const response = await apiRequest(`/api/customers/${customerId}`, {
+        method: 'DELETE',
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/services'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      toast({
+        title: "Success",
+        description: "Customer deleted successfully. All rented items have been returned to inventory.",
+      });
+      setDeleteDialogOpen(false);
+      setCustomerToDelete(null);
+      setConfirmationText('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete customer",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteClick = (e: React.MouseEvent, customer: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCustomerToDelete(customer);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (confirmationText === 'delete' && customerToDelete) {
+      deleteMutation.mutate(customerToDelete.id);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -155,7 +217,12 @@ export default function Customer() {
                       <Edit className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
-                    <Button variant="outline" size="sm" className="border-red-500 text-red-500">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="border-red-500 text-red-500 hover:bg-red-50"
+                      onClick={(e) => handleDeleteClick(e, customer)}
+                    >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -166,6 +233,83 @@ export default function Customer() {
           })}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-white border-black">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Delete Customer
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h4 className="font-medium text-red-800 mb-2">Warning: This action cannot be undone!</h4>
+              <p className="text-sm text-red-700">
+                Deleting this customer will:
+              </p>
+              <ul className="text-sm text-red-700 mt-2 space-y-1">
+                <li>• Remove all customer information permanently</li>
+                <li>• Delete all associated services and rentals</li>
+                <li>• Return all rented items back to inventory</li>
+                <li>• Clear all rental history for this customer</li>
+              </ul>
+            </div>
+
+            {customerToDelete && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-800 mb-2">Customer to be deleted:</h4>
+                <p className="text-sm text-gray-700">
+                  <strong>{customerToDelete.name}</strong> ({customerToDelete.email})
+                </p>
+                {customerToDelete.companyName && (
+                  <p className="text-sm text-gray-700">
+                    Company: {customerToDelete.companyName}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmationText" className="text-sm font-medium text-gray-700">
+                Type <span className="font-bold text-red-600">delete</span> to confirm:
+              </Label>
+              <Input
+                id="confirmationText"
+                type="text"
+                value={confirmationText}
+                onChange={(e) => setConfirmationText(e.target.value)}
+                placeholder="Type 'delete' to confirm"
+                className="border-black focus:border-red-500"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setCustomerToDelete(null);
+                setConfirmationText('');
+              }}
+              className="border-black"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={confirmationText !== 'delete' || deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete Customer'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
