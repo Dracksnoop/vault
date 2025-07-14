@@ -166,34 +166,33 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         };
       });
       
-      // Create timeline entry for units added
-      await apiRequest(`/api/customers/${customerId}/timeline`, {
-        method: 'POST',
-        body: {
-          id: `timeline-${Date.now()}`,
-          serviceId: selectedItem.serviceId,
-          changeType: 'added',
-          title: 'Units Added to Rental',
-          description: `Added ${selectedUnitsToAdd.length} unit(s) to ${selectedItem.itemDetails?.name || 'rental'}`,
-          itemsSnapshot: JSON.stringify(addedUnitDetails),
-          totalValue: (getRentedUnitsForItem(selectedItem.itemId).length + selectedUnitsToAdd.length) * parseFloat(selectedItem.unitPrice || '0')
-        }
-      });
+      // Create timeline entry for units added (don't fail if this fails)
+      try {
+        await apiRequest(`/api/customers/${customerId}/timeline`, {
+          method: 'POST',
+          body: {
+            id: `timeline-${Date.now()}`,
+            serviceId: selectedItem.serviceId,
+            changeType: 'added',
+            title: 'Units Added to Rental',
+            description: `Added ${selectedUnitsToAdd.length} unit(s) to ${selectedItem.itemDetails?.name || 'rental'}`,
+            itemsSnapshot: JSON.stringify(addedUnitDetails),
+            totalValue: (getRentedUnitsForItem(selectedItem.itemId).length + selectedUnitsToAdd.length) * parseFloat(selectedItem.unitPrice || '0')
+          }
+        });
+      } catch (timelineError) {
+        console.warn('Failed to create timeline entry:', timelineError);
+      }
       
       // Invalidate all relevant queries to force refetch
-      await queryClient.invalidateQueries({ queryKey: ['/api/units'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/items'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/services'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      
-      // Force refetch of all queries
-      await queryClient.refetchQueries({ queryKey: ['/api/units'] });
-      await queryClient.refetchQueries({ queryKey: ['/api/service-items'] });
-      await queryClient.refetchQueries({ queryKey: ['/api/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/services'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       
       setSelectedUnitsToAdd([]);
       setShowModifyDialog(false);
@@ -233,34 +232,33 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         })
       ));
       
-      // Create timeline entry for units removed
-      await apiRequest(`/api/customers/${customerId}/timeline`, {
-        method: 'POST',
-        body: {
-          id: `timeline-${Date.now()}`,
-          serviceId: selectedItem.serviceId,
-          changeType: 'removed',
-          title: 'Units Removed from Rental',
-          description: `Removed ${selectedUnitsToRemove.length} unit(s) from ${selectedItem.itemDetails?.name || 'rental'}`,
-          itemsSnapshot: JSON.stringify(removedUnitDetails),
-          totalValue: (getRentedUnitsForItem(selectedItem.itemId).length - selectedUnitsToRemove.length) * parseFloat(selectedItem.unitPrice || '0')
-        }
-      });
+      // Create timeline entry for units removed (don't fail if this fails)
+      try {
+        await apiRequest(`/api/customers/${customerId}/timeline`, {
+          method: 'POST',
+          body: {
+            id: `timeline-${Date.now()}`,
+            serviceId: selectedItem.serviceId,
+            changeType: 'removed',
+            title: 'Units Removed from Rental',
+            description: `Removed ${selectedUnitsToRemove.length} unit(s) from ${selectedItem.itemDetails?.name || 'rental'}`,
+            itemsSnapshot: JSON.stringify(removedUnitDetails),
+            totalValue: (getRentedUnitsForItem(selectedItem.itemId).length - selectedUnitsToRemove.length) * parseFloat(selectedItem.unitPrice || '0')
+          }
+        });
+      } catch (timelineError) {
+        console.warn('Failed to create timeline entry:', timelineError);
+      }
       
       // Invalidate all relevant queries to force refetch
-      await queryClient.invalidateQueries({ queryKey: ['/api/units'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/items'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/services'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      
-      // Force refetch of all queries
-      await queryClient.refetchQueries({ queryKey: ['/api/units'] });
-      await queryClient.refetchQueries({ queryKey: ['/api/service-items'] });
-      await queryClient.refetchQueries({ queryKey: ['/api/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/services'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       
       setSelectedUnitsToRemove([]);
       setShowModifyDialog(false);
