@@ -39,12 +39,40 @@ export default function Home() {
     cacheTime: 0,
   });
 
+  const { data: units = [] } = useQuery({
+    queryKey: ['/api/units'],
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/categories'],
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
   // Use dashboard stats or calculate fallback values
   const totalUnits = dashboardStats?.totalUnits || 0;
   const rentedUnits = dashboardStats?.rentedUnits || 0;
   const availableUnits = dashboardStats?.inStockUnits || 0;
   const activeCustomers = dashboardStats?.activeCustomers || 0;
   const activeRentals = rentals.filter((rental: any) => rental.isOngoing).length;
+  
+  // Calculate CPU units on rent
+  const cpuUnitsOnRent = units.filter((unit: any) => {
+    // Check if unit is rented
+    if (unit.status === 'Rented') {
+      // Find the item this unit belongs to
+      const unitItem = items.find((item: any) => item.id === unit.itemId);
+      if (unitItem) {
+        // Find the category for this item
+        const itemCategory = categories.find((cat: any) => cat.id === unitItem.categoryId);
+        // Check if it's a CPU category
+        return itemCategory && itemCategory.name.toLowerCase() === 'cpu';
+      }
+    }
+    return false;
+  }).length;
   
   // Calculate total rental value from service items
   const totalRentalValue = serviceItems.reduce((sum: number, item: any) => {
@@ -158,12 +186,12 @@ export default function Home() {
         <div className="bg-white p-6 rounded-lg border border-black">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-black font-medium">Active Rentals</p>
-              <p className="text-2xl font-bold text-black">{activeRentals}</p>
-              <p className="text-xs text-gray-600">ongoing agreements</p>
+              <p className="text-sm text-black font-medium">CPU Units on Rent</p>
+              <p className="text-2xl font-bold text-black">{cpuUnitsOnRent}</p>
+              <p className="text-xs text-gray-600">CPU units currently rented</p>
             </div>
             <div className="w-12 h-12 bg-white border border-black rounded-lg flex items-center justify-center">
-              <Clock className="w-6 h-6 text-black" />
+              <Package className="w-6 h-6 text-black" />
             </div>
           </div>
         </div>
