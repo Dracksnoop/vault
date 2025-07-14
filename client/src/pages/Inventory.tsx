@@ -810,14 +810,14 @@ export default function Inventory() {
                         Add New Item
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="border-black max-w-md w-[95vw] sm:w-full relative mx-auto">
+                    <DialogContent className="border-black max-w-md w-[95vw] sm:w-full relative">
                       <DialogHeader>
                         <DialogTitle className="text-black">Add New Item</DialogTitle>
                         <DialogDescription className="text-black">
                           Add a new item to {selectedCategoryData?.name}
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="space-y-4 p-1">
+                      <div className="space-y-4">
                         <div>
                           <Label className="text-black text-sm font-medium">Product Name</Label>
                           <Input
@@ -859,7 +859,7 @@ export default function Inventory() {
                             Each unit will automatically get a unique serial number
                           </p>
                         </div>
-                        <div className="flex flex-col sm:flex-row gap-2 mt-6">
+                        <div className="flex flex-col sm:flex-row gap-2 pt-2">
                           <Button 
                             onClick={handleAddItem}
                             disabled={createItemMutation.isPending || createUnitMutation.isPending || !newItem.name.trim() || !newItem.model.trim() || newItem.quantityInStock <= 0 || isCreatingUnits}
