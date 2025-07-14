@@ -801,14 +801,14 @@ const ReviewStep: React.FC<StepProps & { onSubmit: () => void; isSubmitting: boo
                   </div>
                   <div className="text-right">
                     <p>Qty: {item.quantity}</p>
-                    <p>Total: ${item.totalPrice}</p>
+                    <p>Total: ₹{item.totalPrice}</p>
                   </div>
                 </div>
               ))}
               <Separator />
               <div className="flex justify-between items-center font-semibold">
                 <span>Total Value:</span>
-                <span>${totalValue.toFixed(2)}</span>
+                <span>₹{totalValue.toFixed(2)}</span>
               </div>
             </div>
           </CardContent>
@@ -828,8 +828,8 @@ const ReviewStep: React.FC<StepProps & { onSubmit: () => void; isSubmitting: boo
               {rentalData.endDate && <div><strong>End Date:</strong> {rentalData.endDate}</div>}
               {rentalData.isOngoing && <div><strong>Duration:</strong> Ongoing</div>}
               <div><strong>Payment Frequency:</strong> {rentalData.paymentFrequency}</div>
-              {rentalData.monthlyRate && <div><strong>Monthly Rate:</strong> ${rentalData.monthlyRate}</div>}
-              {rentalData.totalValue && <div><strong>Total Value:</strong> ${rentalData.totalValue}</div>}
+              {rentalData.monthlyRate && <div><strong>Monthly Rate:</strong> ₹{rentalData.monthlyRate}</div>}
+              {rentalData.totalValue && <div><strong>Total Value:</strong> ₹{rentalData.totalValue}</div>}
               {rentalData.notes && <div><strong>Notes:</strong> {rentalData.notes}</div>}
             </CardContent>
           </Card>
