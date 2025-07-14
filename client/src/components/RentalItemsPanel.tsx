@@ -56,9 +56,9 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   // New states for adding more items
   const [showAddItemDialog, setShowAddItemDialog] = useState(false);
   const [pendingItems, setPendingItems] = useState<any[]>([]);
-  const [selectedItemToAdd, setSelectedItemToAdd] = useState<any>(null);
-  const [selectedUnitsForNewItem, setSelectedUnitsForNewItem] = useState<string[]>([]);
   const [itemSearchTerm, setItemSearchTerm] = useState('');
+  const [selectedItems, setSelectedItems] = useState<any[]>([]);
+  const [currentStep, setCurrentStep] = useState(1); // 1: Select Items, 2: Configure Units & Pricing
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -153,32 +153,129 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
 
   const handleAddMoreItems = () => {
     setShowAddItemDialog(true);
-    setSelectedItemToAdd(null);
-    setSelectedUnitsForNewItem([]);
+    setSelectedItems([]);
     setItemSearchTerm('');
+    setCurrentStep(1);
   };
 
-  const handleAddItemToPending = () => {
-    if (!selectedItemToAdd || selectedUnitsForNewItem.length === 0) return;
-    
-    const newPendingItem = {
-      id: `pending-${Date.now()}`,
-      itemId: selectedItemToAdd.id,
-      itemDetails: selectedItemToAdd,
-      units: selectedUnitsForNewItem,
-      unitPrice: '1000', // Default price - can be customized
-      totalValue: selectedUnitsForNewItem.length * 1000
+  const handleSelectItem = (item: any) => {
+    const availableUnits = getAvailableUnitsForItem(item.id);
+    if (availableUnits.length === 0) {
+      toast({
+        title: "No Units Available",
+        description: `${item.name} has no available units for rental`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const isAlreadySelected = selectedItems.some(selected => selected.id === item.id);
+    if (isAlreadySelected) {
+      toast({
+        title: "Item Already Selected",
+        description: `${item.name} is already in your selection`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newSelectedItem = {
+      id: item.id,
+      itemDetails: item,
+      availableUnits: availableUnits,
+      selectedUnits: [],
+      unitPrice: '1000', // Default price
+      totalValue: 0
     };
+
+    setSelectedItems([...selectedItems, newSelectedItem]);
+    toast({
+      title: "Item Added",
+      description: `${item.name} added to selection`,
+    });
+  };
+
+  const handleRemoveSelectedItem = (itemId: string) => {
+    setSelectedItems(selectedItems.filter(item => item.id !== itemId));
+  };
+
+  const handleUnitSelection = (itemId: string, unitId: string) => {
+    setSelectedItems(selectedItems.map(item => {
+      if (item.id === itemId) {
+        const isSelected = item.selectedUnits.includes(unitId);
+        const newSelectedUnits = isSelected 
+          ? item.selectedUnits.filter((id: string) => id !== unitId)
+          : [...item.selectedUnits, unitId];
+        
+        return {
+          ...item,
+          selectedUnits: newSelectedUnits,
+          totalValue: newSelectedUnits.length * parseFloat(item.unitPrice)
+        };
+      }
+      return item;
+    }));
+  };
+
+  const handleUnitPriceChange = (itemId: string, newPrice: string) => {
+    setSelectedItems(selectedItems.map(item => {
+      if (item.id === itemId) {
+        const price = parseFloat(newPrice) || 0;
+        return {
+          ...item,
+          unitPrice: newPrice,
+          totalValue: item.selectedUnits.length * price
+        };
+      }
+      return item;
+    }));
+  };
+
+  const handleNextStep = () => {
+    if (selectedItems.length === 0) {
+      toast({
+        title: "No Items Selected",
+        description: "Please select at least one item to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+    setCurrentStep(2);
+  };
+
+  const handlePreviousStep = () => {
+    setCurrentStep(1);
+  };
+
+  const handleAddToPending = () => {
+    const validItems = selectedItems.filter(item => item.selectedUnits.length > 0);
     
-    setPendingItems([...pendingItems, newPendingItem]);
-    setSelectedItemToAdd(null);
-    setSelectedUnitsForNewItem([]);
-    setItemSearchTerm('');
+    if (validItems.length === 0) {
+      toast({
+        title: "No Units Selected",
+        description: "Please select units for at least one item",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newPendingItems = validItems.map(item => ({
+      id: `pending-${Date.now()}-${Math.random()}`,
+      itemId: item.id,
+      itemDetails: item.itemDetails,
+      units: item.selectedUnits,
+      unitPrice: item.unitPrice,
+      totalValue: item.totalValue
+    }));
+
+    setPendingItems([...pendingItems, ...newPendingItems]);
+    setSelectedItems([]);
+    setCurrentStep(1);
     setShowAddItemDialog(false);
     
     toast({
-      title: "Item Added to Pending",
-      description: `${selectedItemToAdd.name} added to pending items`,
+      title: "Items Added to Pending",
+      description: `${validItems.length} item(s) added to pending list`,
     });
   };
 
@@ -1038,101 +1135,190 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         </DialogContent>
       </Dialog>
 
-      {/* Add New Item Dialog */}
+      {/* Add New Item Dialog - Multi-Step Form */}
       <Dialog open={showAddItemDialog} onOpenChange={setShowAddItemDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New Item to Rental</DialogTitle>
+            <DialogTitle>Add More Items to Rental</DialogTitle>
+            <div className="flex items-center space-x-2 mt-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                currentStep === 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+              }`}>
+                1
+              </div>
+              <div className="flex-1 h-0.5 bg-gray-200">
+                <div className={`h-full transition-all duration-300 ${
+                  currentStep === 2 ? 'w-full bg-blue-600' : 'w-0 bg-gray-200'
+                }`}></div>
+              </div>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                currentStep === 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'
+              }`}>
+                2
+              </div>
+            </div>
+            <div className="flex justify-between text-sm text-gray-600 mt-2">
+              <span>Select Items</span>
+              <span>Configure Units & Pricing</span>
+            </div>
           </DialogHeader>
           
           <div className="space-y-6">
-            {/* Item Selection */}
-            <div>
-              <Label htmlFor="search-items">Search Items</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="search-items"
-                  placeholder="Search items by name, model, or category..."
-                  value={itemSearchTerm}
-                  onChange={(e) => setItemSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Available Items */}
-            <div>
-              <Label>Available Items</Label>
-              <ScrollArea className="h-60 border rounded-lg p-4">
-                <div className="space-y-2">
-                  {items?.filter((item: any) => 
-                    item.name.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
-                    item.model.toLowerCase().includes(itemSearchTerm.toLowerCase())
-                  ).map((item: any) => (
-                    <div 
-                      key={item.id} 
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        selectedItemToAdd?.id === item.id 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:bg-gray-50'
-                      }`}
-                      onClick={() => setSelectedItemToAdd(item)}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <Package className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-black">{item.name}</h4>
-                          <p className="text-sm text-gray-600">{item.model}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-black">{getAvailableUnitsForItem(item.id).length} available</p>
-                          <p className="text-xs text-gray-500">{getAvailableUnitsForItem(item.id).length + getRentedUnitsForItem(item.id).length} total</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+            {/* Step 1: Item Selection */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="search-items">Search Items</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="search-items"
+                      placeholder="Search items by name, model, or category..."
+                      value={itemSearchTerm}
+                      onChange={(e) => setItemSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
-              </ScrollArea>
-            </div>
 
-            {/* Unit Selection */}
-            {selectedItemToAdd && (
-              <div>
-                <Label>Select Units for {selectedItemToAdd.name}</Label>
-                <ScrollArea className="h-60 border rounded-lg p-4">
-                  <div className="space-y-2">
-                    {getAvailableUnitsForItem(selectedItemToAdd.id).map((unit: any) => (
-                      <div 
-                        key={unit.id} 
-                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                          selectedUnitsForNewItem.includes(unit.id)
-                            ? 'border-blue-500 bg-blue-50' 
-                            : 'border-gray-200 hover:bg-gray-50'
-                        }`}
-                        onClick={() => {
-                          if (selectedUnitsForNewItem.includes(unit.id)) {
-                            setSelectedUnitsForNewItem(selectedUnitsForNewItem.filter(id => id !== unit.id));
-                          } else {
-                            setSelectedUnitsForNewItem([...selectedUnitsForNewItem, unit.id]);
-                          }
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                              <Package className="w-4 h-4 text-green-600" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-black">#{unit.serialNumber}</p>
-                              <p className="text-sm text-gray-600">{unit.barcode}</p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Available Items */}
+                  <div>
+                    <Label>Available Items</Label>
+                    <ScrollArea className="h-96 border rounded-lg p-4">
+                      <div className="space-y-2">
+                        {items?.filter((item: any) => 
+                          !selectedItems.some(selected => selected.id === item.id) &&
+                          (item.name.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
+                           item.model.toLowerCase().includes(itemSearchTerm.toLowerCase()))
+                        ).map((item: any) => (
+                          <div 
+                            key={item.id} 
+                            className="p-3 rounded-lg border cursor-pointer transition-colors hover:bg-gray-50"
+                            onClick={() => handleSelectItem(item)}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <Package className="w-5 h-5 text-blue-600" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-medium text-black">{item.name}</h4>
+                                <p className="text-sm text-gray-600">{item.model}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-medium text-black">{getAvailableUnitsForItem(item.id).length} available</p>
+                                <p className="text-xs text-gray-500">{getAvailableUnitsForItem(item.id).length + getRentedUnitsForItem(item.id).length} total</p>
+                              </div>
                             </div>
                           </div>
-                          <Badge variant="secondary">{unit.status}</Badge>
-                        </div>
+                        ))}
                       </div>
+                    </ScrollArea>
+                  </div>
+
+                  {/* Selected Items */}
+                  <div>
+                    <Label>Selected Items ({selectedItems.length})</Label>
+                    <ScrollArea className="h-96 border rounded-lg p-4">
+                      {selectedItems.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600">No items selected</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {selectedItems.map((item: any) => (
+                            <div key={item.id} className="p-3 rounded-lg border bg-blue-50">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <Package className="w-4 h-4 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-black">{item.itemDetails.name}</h4>
+                                    <p className="text-sm text-gray-600">{item.availableUnits.length} units available</p>
+                                  </div>
+                                </div>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleRemoveSelectedItem(item.id)}
+                                  className="border-red-300 text-red-600 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Configure Units & Pricing */}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Configure Units and Pricing</Label>
+                  <p className="text-sm text-gray-600">Select units and set prices for each item</p>
+                </div>
+
+                <ScrollArea className="h-96">
+                  <div className="space-y-6">
+                    {selectedItems.map((item: any) => (
+                      <Card key={item.id} className="border-black">
+                        <CardHeader>
+                          <CardTitle className="text-lg">{item.itemDetails.name}</CardTitle>
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-2">
+                              <Label htmlFor={`price-${item.id}`}>Unit Price (₹)</Label>
+                              <Input
+                                id={`price-${item.id}`}
+                                type="number"
+                                value={item.unitPrice}
+                                onChange={(e) => handleUnitPriceChange(item.id, e.target.value)}
+                                className="w-32"
+                                min="0"
+                              />
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-600">Selected: {item.selectedUnits.length} units</p>
+                              <p className="text-lg font-bold text-black">₹{item.totalValue.toFixed(2)}</p>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {item.availableUnits.map((unit: any) => (
+                              <div 
+                                key={unit.id} 
+                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  item.selectedUnits.includes(unit.id)
+                                    ? 'border-blue-500 bg-blue-50' 
+                                    : 'border-gray-200 hover:bg-gray-50'
+                                }`}
+                                onClick={() => handleUnitSelection(item.id, unit.id)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-6 h-6 bg-green-100 rounded-lg flex items-center justify-center">
+                                      <Package className="w-3 h-3 text-green-600" />
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-black text-sm">#{unit.serialNumber}</p>
+                                      <p className="text-xs text-gray-600">{unit.barcode}</p>
+                                    </div>
+                                  </div>
+                                  <Badge variant="secondary" className="text-xs">{unit.status}</Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
                 </ScrollArea>
@@ -1140,18 +1326,31 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
             )}
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="flex justify-between pt-4">
               <Button variant="outline" onClick={() => setShowAddItemDialog(false)}>
                 Cancel
               </Button>
-              <Button 
-                onClick={handleAddItemToPending}
-                disabled={!selectedItemToAdd || selectedUnitsForNewItem.length === 0}
-                className="bg-blue-600 text-white hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add to Pending ({selectedUnitsForNewItem.length} units)
-              </Button>
+              
+              <div className="flex space-x-2">
+                {currentStep === 2 && (
+                  <Button variant="outline" onClick={handlePreviousStep}>
+                    Previous
+                  </Button>
+                )}
+                
+                {currentStep === 1 && (
+                  <Button onClick={handleNextStep} className="bg-blue-600 text-white hover:bg-blue-700">
+                    Next: Configure Units
+                  </Button>
+                )}
+                
+                {currentStep === 2 && (
+                  <Button onClick={handleAddToPending} className="bg-green-600 text-white hover:bg-green-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add to Pending ({selectedItems.reduce((sum, item) => sum + item.selectedUnits.length, 0)} units)
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </DialogContent>
