@@ -186,3 +186,14 @@ The application follows a clean architecture pattern with clear separation betwe
   - Integrated with existing inventory system for item selection
   - Added new navigation item "Customer Management" to sidebar
   - Maintained minimal white theme with black borders throughout all forms
+
+- **July 14, 2025**: Fixed critical inventory synchronization and customer deletion issues
+  - Resolved inventory sync problem where units remained "Rented" after customer deletion
+  - Updated customer deletion logic to properly return all rented units to "Available" status
+  - Fixed status value inconsistencies between frontend ("In Stock") and backend ("Available")
+  - Successfully updated all 622 units to use consistent "Available" status throughout system
+  - Created API endpoints for fixing data inconsistencies and orphaned rental records
+  - Implemented cleanup logic to clear rental assignment fields for Available units
+  - Added orphaned rental detection and correction for units with invalid customer assignments
+  - Fixed dashboard statistics to use correct "Available" and "Rented" status values
+  - Ensured complete data consistency across all inventory management operations

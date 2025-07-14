@@ -420,31 +420,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For each service, restore rented items to inventory
       for (const service of services) {
         if (service.serviceType === 'rent') {
+          // Get all units currently rented by this customer
+          const allUnits = await storage.getUnits();
+          const customerUnits = allUnits.filter(unit => 
+            unit.currentCustomerId === id || 
+            unit.rentedBy === id ||
+            unit.serviceId === service.id
+          );
+          
+          // Return all customer units to Available status
+          for (const unit of customerUnits) {
+            await storage.updateUnit(unit.id, { 
+              status: 'Available',
+              currentCustomerId: null,
+              rentedBy: null,
+              serviceId: null
+            });
+          }
+          
           // Get service items for this rental service
           const serviceItems = await storage.getServiceItemsByService(service.id);
-          
-          for (const serviceItem of serviceItems) {
-            // Get all units for this item that are currently rented
-            const units = await storage.getUnitsByItem(serviceItem.itemId);
-            const rentedUnits = units.filter(unit => unit.status === 'rented');
-            
-            // Restore the rented quantity back to 'In Stock'
-            const unitsToRestore = rentedUnits.slice(0, serviceItem.quantity);
-            for (const unit of unitsToRestore) {
-              await storage.updateUnit(unit.id, { status: 'In Stock' });
-            }
-            
-            // Update item quantities
-            const currentItem = await storage.getItem(serviceItem.itemId);
-            if (currentItem) {
-              const newQuantityRentedOut = Math.max(0, (currentItem.quantityRentedOut || 0) - serviceItem.quantity);
-              const newQuantityInStock = (currentItem.quantityInStock || 0) + serviceItem.quantity;
-              await storage.updateItem(serviceItem.itemId, {
-                quantityRentedOut: newQuantityRentedOut,
-                quantityInStock: newQuantityInStock
-              });
-            }
-          }
           
           // Delete service items
           for (const serviceItem of serviceItems) {
@@ -485,15 +480,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Calculate stats based on units
       const totalUnits = units.length;
-      const inStockUnits = units.filter(unit => unit.status === "In Stock").length;
-      const rentedUnits = units.filter(unit => unit.status === "Rented" || unit.status === "rented").length;
+      const inStockUnits = units.filter(unit => unit.status === "Available").length;
+      const rentedUnits = units.filter(unit => unit.status === "Rented").length;
       const maintenanceUnits = units.filter(unit => unit.status === "Maintenance").length;
       const activeCustomers = customers.length;
       
       // Calculate low stock items (items with < 2 available units)
       const lowStockItems = items.filter(item => {
         const itemUnits = units.filter(unit => unit.itemId === item.id);
-        const availableUnits = itemUnits.filter(unit => unit.status === "In Stock").length;
+        const availableUnits = itemUnits.filter(unit => unit.status === "Available").length;
         return availableUnits < 2;
       }).length;
       
@@ -924,6 +919,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fixing data consistency:", error);
       res.status(500).json({ error: "Failed to fix data consistency" });
+    }
+  });
+
+  // Fix orphaned rented units (units with Rented status but no associated customer)
+  app.post("/api/units/fix-orphaned-rentals", async (req, res) => {
+    try {
+      const units = await storage.getUnits();
+      const customers = await storage.getCustomers();
+      let fixedCount = 0;
+      
+      // Get all valid customer IDs
+      const validCustomerIds = customers.map(c => c.id);
+      
+      for (const unit of units) {
+        if (unit.status === "Rented" && (!unit.currentCustomerId || !validCustomerIds.includes(unit.currentCustomerId))) {
+          await storage.updateUnit(unit.id, { 
+            status: "Available",
+            rentedBy: null,
+            serviceId: null,
+            currentCustomerId: null
+          });
+          fixedCount++;
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Fixed ${fixedCount} orphaned rented units`,
+        fixedCount 
+      });
+    } catch (error) {
+      console.error("Error fixing orphaned rentals:", error);
+      res.status(500).json({ error: "Failed to fix orphaned rentals" });
     }
   });
 
