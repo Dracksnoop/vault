@@ -857,9 +857,69 @@ const ReviewStep: React.FC<StepProps & { onSubmit: () => void; isSubmitting: boo
   );
 };
 
+// Success Confirmation Component
+const SuccessConfirmation: React.FC<{ customer: any; onCreateAnother: () => void }> = ({ customer, onCreateAnother }) => {
+  return (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="w-10 h-10 text-green-600" />
+        </div>
+        <h2 className="text-3xl font-bold text-black mb-2">Customer Created Successfully!</h2>
+        <p className="text-gray-600">The customer record has been created and all units have been assigned.</p>
+      </div>
+
+      <Card className="border-green-200 bg-green-50">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-black">Customer Name:</span>
+              <span className="text-gray-700">{customer.customer?.name}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-black">Email:</span>
+              <span className="text-gray-700">{customer.customer?.email}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-black">Phone:</span>
+              <span className="text-gray-700">{customer.customer?.phone}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-black">Customer ID:</span>
+              <span className="text-gray-700 font-mono">#{customer.customer?.id}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-black">Service Type:</span>
+              <span className="text-gray-700 capitalize">{customer.service?.serviceType}</span>
+            </div>
+            {customer.serviceItems && customer.serviceItems.length > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-black">Items Selected:</span>
+                <span className="text-gray-700">{customer.serviceItems.length} items</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="text-center">
+        <Button 
+          onClick={onCreateAnother}
+          className="bg-black text-white hover:bg-gray-800"
+        >
+          <Plus className="mr-2 w-4 h-4" />
+          Create Another Customer
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 // Main Component
 export default function CustomerManagement() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [createdCustomer, setCreatedCustomer] = useState<any>(null);
   const [customerData, setCustomerData] = useState<CustomerFormData>({
     name: '',
     email: '',
@@ -899,6 +959,36 @@ export default function CustomerManagement() {
     { title: 'Review & Confirm', description: 'Final review' },
   ];
 
+  const resetForm = () => {
+    setCurrentStep(1);
+    setShowSuccess(false);
+    setCreatedCustomer(null);
+    setCustomerData({
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      company: '',
+      customerType: 'one-time',
+      companyName: '',
+      billingAddress: '',
+      shippingAddress: '',
+      gstVatNumber: '',
+      paymentTerms: '',
+    });
+    setServiceData({ serviceType: 'rent', notes: '' });
+    setSelectedItems([]);
+    setRentalData({
+      startDate: '',
+      endDate: '',
+      isOngoing: false,
+      paymentFrequency: 'monthly',
+      monthlyRate: '',
+      totalValue: '',
+      notes: '',
+    });
+  };
+
   const submitMutation = useMutation({
     mutationFn: async (data: any) => {
       return await apiRequest('/api/customers/complete', {
@@ -907,12 +997,7 @@ export default function CustomerManagement() {
         body: data,
       });
     },
-    onSuccess: () => {
-      toast({
-        title: "Success!",
-        description: "Customer created successfully",
-      });
-      
+    onSuccess: (data) => {
       // Invalidate all relevant caches to refresh UI with updated unit statuses
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/units'] });
@@ -922,32 +1007,9 @@ export default function CustomerManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
       
-      // Reset form
-      setCurrentStep(1);
-      setCustomerData({
-        name: '',
-        email: '',
-        phone: '',
-        address: '',
-        company: '',
-        customerType: 'one-time',
-        companyName: '',
-        billingAddress: '',
-        shippingAddress: '',
-        gstVatNumber: '',
-        paymentTerms: '',
-      });
-      setServiceData({ serviceType: 'rent', notes: '' });
-      setSelectedItems([]);
-      setRentalData({
-        startDate: '',
-        endDate: '',
-        isOngoing: false,
-        paymentFrequency: 'monthly',
-        monthlyRate: '',
-        totalValue: '',
-        notes: '',
-      });
+      // Show success screen
+      setCreatedCustomer(data);
+      setShowSuccess(true);
     },
     onError: (error: any) => {
       toast({
@@ -1058,39 +1120,55 @@ export default function CustomerManagement() {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-6xl mx-auto p-2 sm:p-4 lg:p-6">
-        {/* Progress Header */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-black">Customer Management</h1>
-            <div className="text-sm text-gray-600">
-              Step {currentStep} of {steps.length}
+        {/* Progress Header - Hidden on Success */}
+        {!showSuccess && (
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-black">Customer Management</h1>
+              <div className="text-sm text-gray-600">
+                Step {currentStep} of {steps.length}
+              </div>
+            </div>
+            
+            <Progress value={(currentStep / steps.length) * 100} className="mb-4" />
+            
+            <div className="flex justify-between">
+              {steps.map((step, index) => (
+                <div key={index} className="flex flex-col items-center">
+                  <div className={`
+                    w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium
+                    ${index + 1 <= currentStep ? 'bg-black text-white' : 'bg-gray-200 text-gray-600'}
+                  `}>
+                    {index + 1}
+                  </div>
+                  <div className="text-center mt-2 max-w-20 sm:max-w-none">
+                    <p className="text-xs sm:text-sm font-medium text-black">{step.title}</p>
+                    <p className="text-xs text-gray-600 hidden sm:block">{step.description}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          
-          <Progress value={(currentStep / steps.length) * 100} className="mb-4" />
-          
-          <div className="flex justify-between">
-            {steps.map((step, index) => (
-              <div key={index} className="flex flex-col items-center">
-                <div className={`
-                  w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium
-                  ${index + 1 <= currentStep ? 'bg-black text-white' : 'bg-gray-200 text-gray-600'}
-                `}>
-                  {index + 1}
-                </div>
-                <div className="text-center mt-2 max-w-20 sm:max-w-none">
-                  <p className="text-xs sm:text-sm font-medium text-black">{step.title}</p>
-                  <p className="text-xs text-gray-600 hidden sm:block">{step.description}</p>
-                </div>
-              </div>
-            ))}
+        )}
+        
+        {/* Success Header */}
+        {showSuccess && (
+          <div className="mb-6 sm:mb-8 text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-black">Customer Management</h1>
           </div>
-        </div>
+        )}
 
         {/* Step Content */}
         <Card className="border-black">
           <CardContent className="p-4 sm:p-6 lg:p-8">
-            {renderStep()}
+            {showSuccess ? (
+              <SuccessConfirmation 
+                customer={createdCustomer} 
+                onCreateAnother={resetForm}
+              />
+            ) : (
+              renderStep()
+            )}
           </CardContent>
         </Card>
       </div>
