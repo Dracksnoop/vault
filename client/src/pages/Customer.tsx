@@ -27,15 +27,20 @@ import {
   CreditCard,
   AlertTriangle
 } from 'lucide-react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useState } from 'react';
+import { useNavigation } from '@/contexts/NavigationContext';
+import VaultLoader from '@/components/VaultLoader';
 
 export default function Customer() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<any>(null);
   const [confirmationText, setConfirmationText] = useState('');
+  const [preloadingCustomer, setPreloadingCustomer] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const { navigateWithLoader } = useNavigation();
 
   const { data: customers = [], isLoading } = useQuery({
     queryKey: ['/api/customers'],
@@ -48,6 +53,85 @@ export default function Customer() {
   const { data: rentals = [] } = useQuery({
     queryKey: ['/api/rentals'],
   });
+
+  const { data: items = [] } = useQuery({
+    queryKey: ['/api/items'],
+  });
+
+  const { data: units = [] } = useQuery({
+    queryKey: ['/api/units'],
+  });
+
+  const { data: serviceItems = [] } = useQuery({
+    queryKey: ['/api/service-items'],
+  });
+
+  // Comprehensive customer data preloading function
+  const preloadCustomerData = async (customerId: number) => {
+    setPreloadingCustomer(customerId);
+    
+    try {
+      // Preload all customer-related data
+      const preloadPromises = [
+        // Core customer data
+        queryClient.prefetchQuery({
+          queryKey: ['/api/customers', customerId],
+          queryFn: () => apiRequest(`/api/customers/${customerId}`)
+        }),
+        
+        // Customer timeline
+        queryClient.prefetchQuery({
+          queryKey: ['/api/customers', customerId, 'timeline'],
+          queryFn: () => apiRequest(`/api/customers/${customerId}/timeline`)
+        }),
+        
+        // Ensure all related data is cached
+        queryClient.prefetchQuery({
+          queryKey: ['/api/services'],
+          queryFn: () => apiRequest('/api/services')
+        }),
+        
+        queryClient.prefetchQuery({
+          queryKey: ['/api/rentals'],
+          queryFn: () => apiRequest('/api/rentals')
+        }),
+        
+        queryClient.prefetchQuery({
+          queryKey: ['/api/service-items'],
+          queryFn: () => apiRequest('/api/service-items')
+        }),
+        
+        queryClient.prefetchQuery({
+          queryKey: ['/api/items'],
+          queryFn: () => apiRequest('/api/items')
+        }),
+        
+        queryClient.prefetchQuery({
+          queryKey: ['/api/units'],
+          queryFn: () => apiRequest('/api/units')
+        })
+      ];
+      
+      // Wait for all data to be preloaded
+      await Promise.all(preloadPromises);
+      
+      // Add a small delay to ensure smooth loading experience
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Navigate to customer details
+      navigate(`/customer/${customerId}`);
+      
+    } catch (error) {
+      console.error('Error preloading customer data:', error);
+      toast({
+        title: "Loading Error",
+        description: "Failed to load customer data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setPreloadingCustomer(null);
+    }
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (customerId: number) => {
@@ -79,9 +163,7 @@ export default function Customer() {
     },
   });
 
-  const handleDeleteClick = (e: React.MouseEvent, customer: any) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDeleteClick = (customer: any) => {
     setCustomerToDelete(customer);
     setDeleteDialogOpen(true);
   };
@@ -140,8 +222,11 @@ export default function Customer() {
             const customerRentals = rentals.filter((rental: any) => rental.customerId === customer.id);
 
             return (
-              <Link key={customer.id} href={`/customer/${customer.id}`}>
-                <Card className="border-black hover:shadow-lg transition-shadow cursor-pointer">
+              <div key={customer.id} className="relative">
+                <Card 
+                  className="border-black hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => preloadCustomerData(customer.id)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -213,7 +298,15 @@ export default function Customer() {
 
                   {/* Actions */}
                   <div className="flex space-x-2 pt-2">
-                    <Button variant="outline" size="sm" className="flex-1 border-black">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 border-black"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Edit functionality can be added here
+                      }}
+                    >
                       <Edit className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
@@ -221,14 +314,24 @@ export default function Customer() {
                       variant="outline" 
                       size="sm" 
                       className="border-red-500 text-red-500 hover:bg-red-50"
-                      onClick={(e) => handleDeleteClick(e, customer)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(customer);
+                      }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </CardContent>
-              </Card>
-            </Link>
+                </Card>
+                
+                {/* Loading overlay */}
+                {preloadingCustomer === customer.id && (
+                  <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-lg">
+                    <VaultLoader />
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
