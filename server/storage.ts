@@ -406,8 +406,29 @@ export class MongoStorage implements IStorage {
 
   async deleteCustomer(id: number): Promise<boolean> {
     await this.initialize();
-    const result = await this.customers.deleteOne({ id });
-    return result.deletedCount === 1;
+    
+    // Get all services for this customer before deleting them
+    const customerServices = await this.services.find({ customerId: id }).toArray();
+    
+    // Delete all service items for services that belonged to this customer
+    for (const service of customerServices) {
+      await this.serviceItems.deleteMany({ serviceId: service.id });
+    }
+    
+    // Delete all services for this customer
+    await this.services.deleteMany({ customerId: id });
+    
+    // Delete all rentals for this customer
+    await this.rentals.deleteMany({ customerId: id });
+    
+    // Delete all timeline entries for this customer
+    await this.rentalTimeline.deleteMany({ customerId: id });
+    
+    // Delete customer record
+    const customerResult = await this.customers.deleteOne({ id });
+    
+    console.log(`Deleted customer ${id} and all associated data`);
+    return customerResult.deletedCount === 1;
   }
 
   // Service methods
@@ -775,7 +796,29 @@ export class MemStorage implements IStorage {
   }
 
   async deleteCustomer(id: number): Promise<boolean> {
-    return this.customers.delete(id);
+    // Delete customer record
+    const customerDeleted = this.customers.delete(id);
+    
+    // Delete all timeline entries for this customer
+    const timelineEntries = Array.from(this.rentalTimeline.values()).filter(entry => entry.customerId === id);
+    timelineEntries.forEach(entry => this.rentalTimeline.delete(entry.id));
+    
+    // Delete all services for this customer
+    const customerServices = Array.from(this.services.values()).filter(service => service.customerId === id);
+    customerServices.forEach(service => this.services.delete(service.id));
+    
+    // Delete all service items for services that belonged to this customer
+    customerServices.forEach(service => {
+      const serviceItems = Array.from(this.serviceItems.values()).filter(item => item.serviceId === service.id);
+      serviceItems.forEach(item => this.serviceItems.delete(item.id));
+    });
+    
+    // Delete all rentals for this customer
+    const customerRentals = Array.from(this.rentals.values()).filter(rental => rental.customerId === id);
+    customerRentals.forEach(rental => this.rentals.delete(rental.id));
+    
+    console.log(`Deleted customer ${id} and all associated data`);
+    return customerDeleted;
   }
 
   // Service methods

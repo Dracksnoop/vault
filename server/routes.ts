@@ -1256,6 +1256,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cleanup orphaned timeline entries
+  app.post("/api/timeline/cleanup", async (req, res) => {
+    try {
+      const customers = await storage.getCustomers();
+      const validCustomerIds = customers.map(c => c.id);
+      
+      let deletedCount = 0;
+      
+      // For MongoDB storage, we need to handle this differently
+      if (storage.constructor.name === 'MongoStorage') {
+        // Delete timeline entries for customers that no longer exist
+        const mongoStorage = storage as any;
+        await mongoStorage.initialize();
+        
+        const result = await mongoStorage.rentalTimeline.deleteMany({
+          customerId: { $nin: validCustomerIds }
+        });
+        deletedCount = result.deletedCount;
+      } else {
+        // For memory storage
+        const memStorage = storage as any;
+        const timelineEntries = Array.from(memStorage.rentalTimeline.values());
+        
+        timelineEntries.forEach(entry => {
+          if (!validCustomerIds.includes(entry.customerId)) {
+            memStorage.rentalTimeline.delete(entry.id);
+            deletedCount++;
+          }
+        });
+      }
+      
+      console.log(`Cleaned up ${deletedCount} orphaned timeline entries`);
+      res.json({ 
+        success: true, 
+        deletedCount,
+        message: `Cleaned up ${deletedCount} orphaned timeline entries`
+      });
+    } catch (error) {
+      console.error("Timeline cleanup error:", error);
+      res.status(500).json({ error: "Failed to cleanup timeline entries" });
+    }
+  });
+
+  // Deep cleanup timeline entries that don't match current customer names
+  app.post("/api/timeline/deep-cleanup", async (req, res) => {
+    try {
+      const customers = await storage.getCustomers();
+      let deletedCount = 0;
+      
+      // For MongoDB storage
+      if (storage.constructor.name === 'MongoStorage') {
+        const mongoStorage = storage as any;
+        await mongoStorage.initialize();
+        
+        // For each customer, check if their timeline entries match their current name
+        for (const customer of customers) {
+          const timelineEntries = await mongoStorage.rentalTimeline.find({ customerId: customer.id }).toArray();
+          
+          for (const entry of timelineEntries) {
+            // Check if the description contains a different customer name
+            if (entry.description && entry.description.includes('New rental started for ')) {
+              const nameInDescription = entry.description.replace('New rental started for ', '');
+              if (nameInDescription !== customer.name) {
+                console.log(`Removing timeline entry for customer ${customer.id} (${customer.name}) that references ${nameInDescription}`);
+                await mongoStorage.rentalTimeline.deleteOne({ id: entry.id });
+                deletedCount++;
+              }
+            }
+          }
+        }
+      } else {
+        // For memory storage
+        const memStorage = storage as any;
+        
+        for (const customer of customers) {
+          const timelineEntries = Array.from(memStorage.rentalTimeline.values()).filter(entry => entry.customerId === customer.id);
+          
+          for (const entry of timelineEntries) {
+            if (entry.description && entry.description.includes('New rental started for ')) {
+              const nameInDescription = entry.description.replace('New rental started for ', '');
+              if (nameInDescription !== customer.name) {
+                console.log(`Removing timeline entry for customer ${customer.id} (${customer.name}) that references ${nameInDescription}`);
+                memStorage.rentalTimeline.delete(entry.id);
+                deletedCount++;
+              }
+            }
+          }
+        }
+      }
+      
+      console.log(`Deep cleaned ${deletedCount} mismatched timeline entries`);
+      res.json({ 
+        success: true, 
+        deletedCount,
+        message: `Deep cleaned ${deletedCount} mismatched timeline entries`
+      });
+    } catch (error) {
+      console.error("Deep cleanup error:", error);
+      res.status(500).json({ error: "Failed to deep cleanup timeline entries" });
+    }
+  });
+
   // Test endpoint to verify MongoDB connection
   app.get("/api/test/db", async (req, res) => {
     try {
