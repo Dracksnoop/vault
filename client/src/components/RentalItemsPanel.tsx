@@ -297,18 +297,38 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           })
         ));
         
-        // Create service item record - ensure it's linked to customer's service
-        await apiRequest('/api/service-items', {
-          method: 'POST',
-          body: {
-            id: `service-item-${Date.now()}-${Math.random()}`,
-            serviceId: serviceId,
-            itemId: pendingItem.itemId,
-            quantity: pendingItem.units.length,
-            unitPrice: pendingItem.unitPrice,
-            totalValue: pendingItem.totalValue.toString()
-          }
-        });
+        // Check if this item already exists for this customer
+        const existingServiceItem = customerServiceItems.find(
+          (serviceItem: any) => serviceItem.itemId === pendingItem.itemId
+        );
+        
+        if (existingServiceItem) {
+          // Update existing service item - increase quantity and recalculate total
+          const newQuantity = existingServiceItem.quantity + pendingItem.units.length;
+          const newTotalValue = (parseFloat(pendingItem.unitPrice) * newQuantity).toFixed(2);
+          
+          await apiRequest(`/api/service-items/${existingServiceItem.id}`, {
+            method: 'PUT',
+            body: {
+              quantity: newQuantity,
+              unitPrice: pendingItem.unitPrice,
+              totalValue: newTotalValue
+            }
+          });
+        } else {
+          // Create new service item record
+          await apiRequest('/api/service-items', {
+            method: 'POST',
+            body: {
+              id: `service-item-${Date.now()}-${Math.random()}`,
+              serviceId: serviceId,
+              itemId: pendingItem.itemId,
+              quantity: pendingItem.units.length,
+              unitPrice: pendingItem.unitPrice,
+              totalValue: pendingItem.totalValue.toString()
+            }
+          });
+        }
       }
       
       // Create timeline entry showing complete rental snapshot (existing + new items)
@@ -575,8 +595,26 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     customerServices.some((service: any) => service.id === serviceItem.serviceId)
   );
 
-  // Enrich service items with actual item details
-  const enrichedServiceItems = customerServiceItems.map((serviceItem: any) => {
+  // Group service items by item ID to avoid duplicates
+  const groupedServiceItems = customerServiceItems.reduce((acc: any, serviceItem: any) => {
+    if (!acc[serviceItem.itemId]) {
+      acc[serviceItem.itemId] = {
+        ...serviceItem,
+        quantity: 0,
+        totalValue: 0
+      };
+    }
+    
+    // Sum quantities and recalculate total value based on latest unit price
+    acc[serviceItem.itemId].quantity += serviceItem.quantity || 0;
+    acc[serviceItem.itemId].unitPrice = serviceItem.unitPrice; // Use latest unit price
+    acc[serviceItem.itemId].totalValue = (parseFloat(serviceItem.unitPrice || '0') * acc[serviceItem.itemId].quantity).toFixed(2);
+    
+    return acc;
+  }, {});
+
+  // Enrich grouped service items with actual item details
+  const enrichedServiceItems = Object.values(groupedServiceItems).map((serviceItem: any) => {
     const itemDetails = items.find((item: any) => item.id === serviceItem.itemId);
     const itemUnits = units.filter((unit: any) => unit.itemId === serviceItem.itemId);
     const rentedUnits = itemUnits.filter((unit: any) => unit.status === 'rented');
@@ -586,7 +624,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       itemDetails,
       availableUnits: itemUnits.length,
       rentedUnits: rentedUnits.length,
-      quantity: rentedUnits.length, // Use actual rented units count
+      quantity: rentedUnits.length, // Use actual rented units count for accuracy
       unitPrice: serviceItem.unitPrice || itemDetails?.price || '0',
       totalValue: (parseFloat(serviceItem.unitPrice || itemDetails?.price || '0') * rentedUnits.length).toFixed(2)
     };
