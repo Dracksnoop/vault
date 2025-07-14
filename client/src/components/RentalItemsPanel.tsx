@@ -148,13 +148,37 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     if (selectedUnitsToAdd.length === 0) return;
     
     try {
-      // Simple implementation for now
+      // Update unit statuses to rented
       await Promise.all(selectedUnitsToAdd.map(unitId => 
         apiRequest(`/api/units/${unitId}`, {
           method: 'PUT',
           body: { status: 'rented' }
         })
       ));
+      
+      // Get unit details for timeline entry
+      const addedUnitDetails = selectedUnitsToAdd.map(unitId => {
+        const unit = units.find((u: any) => u.id === unitId);
+        return {
+          unitId: unitId,
+          serialNumber: unit?.serialNumber || 'N/A',
+          barcode: unit?.barcode || 'N/A'
+        };
+      });
+      
+      // Create timeline entry for units added
+      await apiRequest(`/api/customers/${customerId}/timeline`, {
+        method: 'POST',
+        body: {
+          id: `timeline-${Date.now()}`,
+          serviceId: selectedItem.serviceId,
+          changeType: 'added',
+          title: 'Units Added to Rental',
+          description: `Added ${selectedUnitsToAdd.length} unit(s) to ${selectedItem.itemDetails?.name || 'rental'}`,
+          itemsSnapshot: JSON.stringify(addedUnitDetails),
+          totalValue: (getRentedUnitsForItem(selectedItem.itemId).length + selectedUnitsToAdd.length) * parseFloat(selectedItem.unitPrice || '0')
+        }
+      });
       
       // Invalidate all relevant queries to force refetch
       await queryClient.invalidateQueries({ queryKey: ['/api/units'] });
@@ -191,12 +215,37 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     if (selectedUnitsToRemove.length === 0) return;
     
     try {
+      // Get unit details for timeline entry before removing
+      const removedUnitDetails = selectedUnitsToRemove.map(unitId => {
+        const unit = units.find((u: any) => u.id === unitId);
+        return {
+          unitId: unitId,
+          serialNumber: unit?.serialNumber || 'N/A',
+          barcode: unit?.barcode || 'N/A'
+        };
+      });
+      
+      // Update unit statuses to In Stock
       await Promise.all(selectedUnitsToRemove.map(unitId => 
         apiRequest(`/api/units/${unitId}`, {
           method: 'PUT',
           body: { status: 'In Stock' }
         })
       ));
+      
+      // Create timeline entry for units removed
+      await apiRequest(`/api/customers/${customerId}/timeline`, {
+        method: 'POST',
+        body: {
+          id: `timeline-${Date.now()}`,
+          serviceId: selectedItem.serviceId,
+          changeType: 'removed',
+          title: 'Units Removed from Rental',
+          description: `Removed ${selectedUnitsToRemove.length} unit(s) from ${selectedItem.itemDetails?.name || 'rental'}`,
+          itemsSnapshot: JSON.stringify(removedUnitDetails),
+          totalValue: (getRentedUnitsForItem(selectedItem.itemId).length - selectedUnitsToRemove.length) * parseFloat(selectedItem.unitPrice || '0')
+        }
+      });
       
       // Invalidate all relevant queries to force refetch
       await queryClient.invalidateQueries({ queryKey: ['/api/units'] });
@@ -481,6 +530,26 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                           <p className="text-sm text-gray-500 mt-1">
                             Total Value: ₹{entry.totalValue}
                           </p>
+                        )}
+                        {entry.itemsSnapshot && (
+                          <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Unit Details:</p>
+                            <div className="space-y-1">
+                              {(() => {
+                                try {
+                                  const units = JSON.parse(entry.itemsSnapshot);
+                                  return units.map((unit: any, unitIndex: number) => (
+                                    <div key={unitIndex} className="flex items-center justify-between text-sm">
+                                      <span className="text-gray-600">#{unit.serialNumber}</span>
+                                      <span className="text-gray-500">{unit.barcode}</span>
+                                    </div>
+                                  ));
+                                } catch (e) {
+                                  return <span className="text-sm text-gray-500">Unit details unavailable</span>;
+                                }
+                              })()}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </div>
