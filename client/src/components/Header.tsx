@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import logoPath from "@assets/WhatsApp_Image_2025-07-13_at_1.27.05_AM-removebg-preview_1752387426033.png";
+import GlobalSearch from "./GlobalSearch";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -36,8 +37,15 @@ export default function Header({ onMenuClick, user, onLogout }: HeaderProps) {
           <span className="ml-3 text-lg font-semibold text-black">VAULT</span>
         </div>
         
-        {/* Spacer for desktop */}
-        <div className="hidden lg:block"></div>
+        {/* Mobile Search */}
+        <div className="lg:hidden flex-1 max-w-xs mx-2">
+          <GlobalSearch />
+        </div>
+        
+        {/* Global Search */}
+        <div className="hidden lg:block flex-1 max-w-md mx-4">
+          <GlobalSearch />
+        </div>
         
         {/* User dropdown */}
         <DropdownMenu>
