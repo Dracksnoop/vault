@@ -89,7 +89,7 @@ export default function MonitorSpecsEditor({ unit, isOpen, onClose }: MonitorSpe
     mutationFn: async (updatedSpecs: MonitorUnit) => {
       const response = await apiRequest(`/api/units/${unit.id}`, {
         method: 'PUT',
-        body: JSON.stringify(updatedSpecs)
+        body: updatedSpecs
       });
       return response;
     },
