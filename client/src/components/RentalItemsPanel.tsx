@@ -575,6 +575,30 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         })
       ));
       
+      // Check if all units for this item have been removed
+      const remainingUnits = getRentedUnitsForItem(selectedItem.itemId).filter(
+        (unit: any) => !selectedUnitsToRemove.includes(unit.id)
+      );
+      
+      // If no units remain, delete the service item from the database
+      if (remainingUnits.length === 0) {
+        await apiRequest(`/api/service-items/${selectedItem.id}`, {
+          method: 'DELETE'
+        });
+      } else {
+        // Update service item with new quantity and total value
+        const newQuantity = remainingUnits.length;
+        const newTotalValue = (newQuantity * parseFloat(selectedItem.unitPrice || '0')).toFixed(2);
+        
+        await apiRequest(`/api/service-items/${selectedItem.id}`, {
+          method: 'PUT',
+          body: {
+            quantity: newQuantity,
+            totalValue: newTotalValue
+          }
+        });
+      }
+      
       // Create timeline entry for units removed with complete rental state snapshot
       try {
         // Create complete snapshot of all items in rental after removing units
@@ -705,7 +729,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     return acc;
   }, {});
 
-  // Enrich grouped service items with actual item details
+  // Enrich grouped service items with actual item details and filter out items with 0 quantity
   const enrichedServiceItems = Object.values(groupedServiceItems).map((serviceItem: any) => {
     const itemDetails = items.find((item: any) => item.id === serviceItem.itemId);
     const itemUnits = units.filter((unit: any) => unit.itemId === serviceItem.itemId);
@@ -724,7 +748,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       unitPrice: serviceItem.unitPrice || itemDetails?.price || '0',
       totalValue: (parseFloat(serviceItem.unitPrice || itemDetails?.price || '0') * customerRentedUnits.length).toFixed(2)
     };
-  });
+  }).filter(item => item.quantity > 0); // Filter out items with 0 quantity
 
   const totalRentalValue = enrichedServiceItems.reduce((sum, item) => 
     sum + parseFloat(item.totalValue), 0
