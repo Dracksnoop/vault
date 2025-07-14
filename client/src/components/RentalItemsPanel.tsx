@@ -289,11 +289,15 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       
       // Add each pending item to the rental
       for (const pendingItem of pendingItems) {
-        // Update unit statuses to rented
+        // Update unit statuses to rented and assign to customer
         await Promise.all(pendingItem.units.map((unitId: string) => 
           apiRequest(`/api/units/${unitId}`, {
             method: 'PUT',
-            body: { status: 'rented' }
+            body: { 
+              status: 'rented',
+              rentedBy: customerId,
+              serviceId: serviceId
+            }
           })
         ));
         
@@ -582,7 +586,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   };
 
   const getAvailableUnitsForItem = (itemId: string) => {
-    return units.filter((unit: any) => unit.itemId === itemId && unit.status === 'In Stock');
+    return units.filter((unit: any) => unit.itemId === itemId && unit.status === 'In Stock' && !unit.rentedBy);
   };
 
   // Get customer services
@@ -617,16 +621,20 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   const enrichedServiceItems = Object.values(groupedServiceItems).map((serviceItem: any) => {
     const itemDetails = items.find((item: any) => item.id === serviceItem.itemId);
     const itemUnits = units.filter((unit: any) => unit.itemId === serviceItem.itemId);
-    const rentedUnits = itemUnits.filter((unit: any) => unit.status === 'rented');
+    
+    // Only count units that are rented by THIS specific customer
+    const customerRentedUnits = itemUnits.filter((unit: any) => 
+      unit.status === 'rented' && unit.rentedBy === customerId
+    );
     
     return {
       ...serviceItem,
       itemDetails,
       availableUnits: itemUnits.length,
-      rentedUnits: rentedUnits.length,
-      quantity: rentedUnits.length, // Use actual rented units count for accuracy
+      rentedUnits: customerRentedUnits.length,
+      quantity: customerRentedUnits.length, // Use customer-specific rented units count
       unitPrice: serviceItem.unitPrice || itemDetails?.price || '0',
-      totalValue: (parseFloat(serviceItem.unitPrice || itemDetails?.price || '0') * rentedUnits.length).toFixed(2)
+      totalValue: (parseFloat(serviceItem.unitPrice || itemDetails?.price || '0') * customerRentedUnits.length).toFixed(2)
     };
   });
 
@@ -640,20 +648,13 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
 
   // Get units for the selected item that are actually rented by this customer
   const getItemUnits = (itemId: string, serviceItem: any) => {
-    // Get units for this item that are currently rented
+    // Get units for this item that are rented by THIS specific customer
     const allItemUnits = units.filter((unit: any) => unit.itemId === itemId);
-    const rentedUnits = allItemUnits.filter((unit: any) => unit.status === 'rented');
-    
-    // If we have the exact quantity rented, show only that many units
-    // This assumes the first N rented units are the ones for this customer
-    const quantityRented = serviceItem.quantity || 0;
-    
-    // Sort by creation date and take the first N units that are rented
-    const sortedRentedUnits = rentedUnits.sort((a, b) => 
-      new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+    const customerRentedUnits = allItemUnits.filter((unit: any) => 
+      unit.status === 'rented' && unit.rentedBy === customerId
     );
     
-    return sortedRentedUnits.slice(0, quantityRented);
+    return customerRentedUnits;
   };
 
   return (

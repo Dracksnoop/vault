@@ -33,6 +33,8 @@ export const units = pgTable("units", {
   location: text("location"),
   warrantyExpiry: text("warranty_expiry"),
   notes: text("notes"),
+  rentedBy: integer("rented_by"), // Customer ID who has rented this unit
+  serviceId: text("service_id"), // Service ID for rental tracking
   
   // CPU Specifications
   cpuBrand: text("cpu_brand"),
@@ -241,6 +243,8 @@ export const insertUnitSchema = createInsertSchema(units).pick({
   adjustablePivot: true,
   mountCompatibility: true,
   colorGamut: true,
+  rentedBy: true,
+  serviceId: true,
 });
 
 export const insertInventorySchema = createInsertSchema(inventory).pick({

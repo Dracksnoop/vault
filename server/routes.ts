@@ -870,6 +870,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clean up duplicate rentals and assign units properly to customers
+  app.post("/api/rentals/cleanup-duplicates", async (req, res) => {
+    try {
+      console.log("Starting rental cleanup...");
+      
+      // First, reset all rented units to In Stock and clear rental assignments
+      const allUnits = await storage.getUnits();
+      const rentedUnits = allUnits.filter(unit => unit.status === 'rented');
+      
+      console.log(`Found ${rentedUnits.length} rented units to reset`);
+      
+      for (const unit of rentedUnits) {
+        await storage.updateUnit(unit.id, { 
+          status: 'In Stock', 
+          rentedBy: null, 
+          serviceId: null 
+        });
+      }
+      
+      // Get all services and service items
+      const services = await storage.getServices();
+      const serviceItems = await storage.getServiceItems();
+      
+      // Group service items by customer to avoid conflicts
+      const servicesByCustomer = services.reduce((acc, service) => {
+        if (!acc[service.customerId]) {
+          acc[service.customerId] = [];
+        }
+        acc[service.customerId].push(service);
+        return acc;
+      }, {} as Record<number, any[]>);
+      
+      let totalAssignments = 0;
+      
+      // Process each customer's rentals
+      for (const [customerId, customerServices] of Object.entries(servicesByCustomer)) {
+        console.log(`Processing customer ${customerId}...`);
+        
+        for (const service of customerServices) {
+          if (service.serviceType === 'rent') {
+            const items = serviceItems.filter(item => item.serviceId === service.id);
+            
+            for (const serviceItem of items) {
+              // Get available units for this item (not rented by anyone)
+              const availableUnits = await storage.getUnitsByItem(serviceItem.itemId);
+              const inStockUnits = availableUnits.filter(unit => 
+                unit.status === 'In Stock' && !unit.rentedBy
+              );
+              
+              // Assign the required quantity to this customer
+              const unitsToAssign = inStockUnits.slice(0, serviceItem.quantity);
+              console.log(`Assigning ${unitsToAssign.length} units of ${serviceItem.itemId} to customer ${customerId}`);
+              
+              for (const unit of unitsToAssign) {
+                await storage.updateUnit(unit.id, { 
+                  status: 'rented',
+                  rentedBy: parseInt(customerId),
+                  serviceId: service.id
+                });
+                totalAssignments++;
+              }
+            }
+          }
+        }
+      }
+      
+      console.log(`Cleanup completed. Total units assigned: ${totalAssignments}`);
+      
+      res.json({ 
+        success: true, 
+        message: `Cleanup completed successfully. ${totalAssignments} units properly assigned to customers.`,
+        totalAssignments 
+      });
+    } catch (error) {
+      console.error("Error cleaning up rental duplicates:", error);
+      res.status(500).json({ error: "Failed to clean up rental duplicates" });
+    }
+  });
+
   // Get unit details by serial number (for QR scanning)
   app.get("/api/units/serial/:serialNumber", async (req, res) => {
     try {
