@@ -52,7 +52,7 @@ interface Unit {
   id: string;
   serialNumber: string;
   barcode: string;
-  status: "In Stock" | "Rented" | "Maintenance" | "Retired";
+  status: "Available" | "Rented" | "Maintenance" | "Retired";
   location: string;
   warrantyExpiry: string;
   notes: string;
@@ -149,7 +149,7 @@ export default function Inventory() {
   const [editUnitData, setEditUnitData] = useState({
     serialNumber: "",
     barcode: "",
-    status: "In Stock" as const,
+    status: "Available" as const,
     location: "",
     warrantyExpiry: "",
     notes: ""
@@ -842,7 +842,7 @@ export default function Inventory() {
                   {filteredItems.map((item) => {
                     // Calculate real-time stats based on unit statuses
                     const itemUnits = units.filter(unit => unit.itemId === item.id);
-                    const inStockCount = itemUnits.filter(unit => unit.status === "In Stock").length;
+                    const inStockCount = itemUnits.filter(unit => unit.status === "Available").length;
                     const rentedCount = itemUnits.filter(unit => unit.status === "Rented" || unit.status === "rented").length;
                     const maintenanceCount = itemUnits.filter(unit => unit.status === "Maintenance").length;
                     const totalStockCount = inStockCount + rentedCount; // Total units (in stock + rented)

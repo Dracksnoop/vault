@@ -121,7 +121,8 @@ export default function QRScanDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "In Stock": return "bg-green-100 text-green-800";
+      case "Available": return "bg-green-100 text-green-800";
+      case "Rented": return "bg-blue-100 text-blue-800";
       case "rented": return "bg-blue-100 text-blue-800";
       case "Maintenance": return "bg-yellow-100 text-yellow-800";
       case "Retired": return "bg-red-100 text-red-800";
@@ -131,7 +132,8 @@ export default function QRScanDashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "In Stock": return <CheckCircle className="w-4 h-4" />;
+      case "Available": return <CheckCircle className="w-4 h-4" />;
+      case "Rented": return <Package className="w-4 h-4" />;
       case "rented": return <Package className="w-4 h-4" />;
       case "Maintenance": return <AlertTriangle className="w-4 h-4" />;
       case "Retired": return <Lock className="w-4 h-4" />;

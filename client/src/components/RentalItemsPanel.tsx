@@ -1090,7 +1090,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                           Selected {selectedUnitsToRemove.length} units for removal
                         </p>
                         <p className="text-sm text-red-600 mt-1">
-                          These units will be returned to inventory as "In Stock"
+                          These units will be returned to inventory as "Available"
                         </p>
                       </div>
                     )}

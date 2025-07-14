@@ -846,7 +846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           for (const serviceItem of items) {
             // Get available units for this item
             const availableUnits = await storage.getUnitsByItem(serviceItem.itemId);
-            const inStockUnits = availableUnits.filter(unit => unit.status === 'In Stock');
+            const inStockUnits = availableUnits.filter(unit => unit.status === 'Available');
             
             // Mark the required quantity of units as rented
             const unitsToRent = inStockUnits.slice(0, serviceItem.quantity);
