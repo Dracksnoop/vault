@@ -168,6 +168,12 @@ export default function Inventory() {
     warrantyExpiry: "",
     notes: ""
   });
+  
+  // Loading animation states
+  const [isCreatingUnits, setIsCreatingUnits] = useState(false);
+  const [unitsCreated, setUnitsCreated] = useState(0);
+  const [totalUnitsToCreate, setTotalUnitsToCreate] = useState(0);
+  const [currentUnitCreation, setCurrentUnitCreation] = useState("");
 
   // API queries
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
@@ -418,26 +424,39 @@ export default function Inventory() {
     console.log("Creating item:", item);
     
     try {
+      // Initialize loading states
+      setIsCreatingUnits(true);
+      setUnitsCreated(0);
+      setTotalUnitsToCreate(newItem.quantityInStock);
+      setCurrentUnitCreation(`Creating item: ${newItem.name}`);
+      
       // First create the item
       await createItemMutation.mutateAsync(item);
       
-      // Then create all units
-      const unitPromises = [];
+      // Then create units one by one with progress updates
       for (let i = 0; i < newItem.quantityInStock; i++) {
+        const serialNumber = generateSerialNumber(newItem.name, i);
+        setCurrentUnitCreation(`Creating unit ${i + 1} of ${newItem.quantityInStock}: ${serialNumber}`);
+        
         const unit = {
           id: `${itemId}_unit_${i}`,
           itemId: itemId,
-          serialNumber: generateSerialNumber(newItem.name, i),
+          serialNumber: serialNumber,
           barcode: generateBarcode().toString(),
           status: "Available",
           location: newItem.location.trim() || "Warehouse",
           warrantyExpiry: "",
           notes: "Auto-generated unit"
         };
-        unitPromises.push(createUnitMutation.mutateAsync(unit));
+        
+        await createUnitMutation.mutateAsync(unit);
+        setUnitsCreated(i + 1);
+        
+        // Add small delay to show progress
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      await Promise.all(unitPromises);
+      setCurrentUnitCreation("Finalizing...");
       
       // Invalidate all queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
@@ -446,8 +465,23 @@ export default function Inventory() {
       
       console.log("Item and units created successfully");
       
+      // Reset form and close dialog
+      setNewItem({
+        name: "",
+        model: "",
+        location: "",
+        quantityInStock: 0
+      });
+      setShowAddItem(false);
+      
     } catch (error) {
       console.error("Error creating item and units:", error);
+    } finally {
+      // Reset loading states
+      setIsCreatingUnits(false);
+      setUnitsCreated(0);
+      setTotalUnitsToCreate(0);
+      setCurrentUnitCreation("");
     }
   };
 
@@ -776,7 +810,7 @@ export default function Inventory() {
                         Add New Item
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="border-black max-w-md w-[90vw] sm:w-full">
+                    <DialogContent className="border-black max-w-md w-[90vw] sm:w-full relative">
                       <DialogHeader>
                         <DialogTitle className="text-black">Add New Item</DialogTitle>
                         <DialogDescription className="text-black">
@@ -828,20 +862,56 @@ export default function Inventory() {
                         <div className="flex gap-2">
                           <Button 
                             onClick={handleAddItem}
-                            disabled={createItemMutation.isPending || createUnitMutation.isPending || !newItem.name.trim() || !newItem.model.trim() || newItem.quantityInStock <= 0}
+                            disabled={createItemMutation.isPending || createUnitMutation.isPending || !newItem.name.trim() || !newItem.model.trim() || newItem.quantityInStock <= 0 || isCreatingUnits}
                             className="bg-black text-white hover:bg-gray-800 disabled:opacity-50"
                           >
-                            {createItemMutation.isPending ? 'Adding...' : 'Add Item'}
+                            {isCreatingUnits ? 'Creating Units...' : (createItemMutation.isPending ? 'Adding...' : 'Add Item')}
                           </Button>
                           <Button 
                             variant="outline" 
                             onClick={() => setShowAddItem(false)}
                             className="border-black"
+                            disabled={isCreatingUnits}
                           >
                             Cancel
                           </Button>
                         </div>
                       </div>
+                      
+                      {/* Loading Animation Overlay */}
+                      {isCreatingUnits && (
+                        <div className="absolute inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50 rounded-lg">
+                          <div className="text-center space-y-4 max-w-sm mx-auto p-6">
+                            <div className="flex items-center justify-center space-x-2">
+                              <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                              <div className="text-xl font-bold text-black">VAULT</div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="text-sm font-medium text-black">
+                                {currentUnitCreation}
+                              </div>
+                              
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-black h-2 rounded-full transition-all duration-300 ease-out"
+                                  style={{ width: `${(unitsCreated / totalUnitsToCreate) * 100}%` }}
+                                ></div>
+                              </div>
+                              
+                              <div className="text-xs text-gray-600">
+                                {unitsCreated} of {totalUnitsToCreate} units created
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-center space-x-1">
+                              <div className="w-2 h-2 bg-black rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-2 h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </DialogContent>
                   </Dialog>
                 </div>
