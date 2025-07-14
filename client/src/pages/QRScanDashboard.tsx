@@ -165,15 +165,25 @@ export default function QRScanDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-6">
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <p className="text-sm text-black font-medium mb-2">Login Options:</p>
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <p>• <strong>System Users:</strong> Use your username and password</p>
+                    <p>• <strong>Customers:</strong> Use your name or email as username, phone as password</p>
+                  </div>
+                </div>
+              </div>
+              
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="userId" className="text-black">User ID</Label>
+                  <Label htmlFor="userId" className="text-black">Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="userId"
                       type="text"
-                      placeholder="Enter your User ID"
+                      placeholder="Enter your username, name, or email"
                       value={loginForm.userId}
                       onChange={(e) => setLoginForm({ ...loginForm, userId: e.target.value })}
                       className="pl-10 border-black"
@@ -189,7 +199,7 @@ export default function QRScanDashboard() {
                     <Input
                       id="password"
                       type="password"
-                      placeholder="Enter your password"
+                      placeholder="Enter your password or phone number"
                       value={loginForm.password}
                       onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                       className="pl-10 border-black"
@@ -451,6 +461,9 @@ export default function QRScanDashboard() {
                     <div>
                       <p className="text-sm font-medium text-black">Logged in as</p>
                       <p className="text-xs text-gray-600">{authenticatedUser?.username}</p>
+                      {authenticatedUser?.email && (
+                        <p className="text-xs text-gray-500">{authenticatedUser?.email}</p>
+                      )}
                     </div>
                   </div>
                   
@@ -458,7 +471,9 @@ export default function QRScanDashboard() {
                     <Shield className="w-4 h-4 text-gray-500" />
                     <div>
                       <p className="text-sm font-medium text-black">Access Level</p>
-                      <p className="text-xs text-gray-600">Unit Details View</p>
+                      <p className="text-xs text-gray-600">
+                        {authenticatedUser?.type === 'customer' ? 'Customer Access' : 'System User'}
+                      </p>
                     </div>
                   </div>
                 </div>

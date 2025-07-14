@@ -36,19 +36,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Username and password required" });
       }
 
+      // First check system users
       const user = await storage.getUserByUsername(username);
-      if (!user || user.password !== password) {
-        return res.status(401).json({ error: "Invalid credentials" });
+      if (user && user.password === password) {
+        const sessionId = Math.random().toString(36).substring(2, 15);
+        sessions.set(sessionId, { 
+          id: user.id, 
+          username: user.username, 
+          type: 'user',
+          role: user.role 
+        });
+        
+        return res.json({ 
+          user: { id: user.id, username: user.username, type: 'user', role: user.role }, 
+          token: sessionId 
+        });
       }
 
-      const sessionId = Math.random().toString(36).substring(2, 15);
-      sessions.set(sessionId, { id: user.id, username: user.username });
+      // If not found in users, check customers
+      const customers = await storage.getCustomers();
+      const customer = customers.find(c => c.name === username || c.email === username);
       
-      res.json({ 
-        user: { id: user.id, username: user.username }, 
-        token: sessionId 
-      });
+      if (customer && customer.phone === password) {
+        const sessionId = Math.random().toString(36).substring(2, 15);
+        sessions.set(sessionId, { 
+          id: customer.id, 
+          username: customer.name, 
+          type: 'customer',
+          email: customer.email,
+          phone: customer.phone
+        });
+        
+        return res.json({ 
+          user: { 
+            id: customer.id, 
+            username: customer.name, 
+            type: 'customer',
+            email: customer.email 
+          }, 
+          token: sessionId 
+        });
+      }
+
+      return res.status(401).json({ error: "Invalid credentials" });
     } catch (error) {
+      console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
     }
   });
@@ -67,6 +99,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ error: "Not authenticated" });
     }
     res.json(sessions.get(sessionId));
+  });
+
+  // Get all customers for authentication (shows available login options)
+  app.get("/api/auth/customers", async (req, res) => {
+    try {
+      const customers = await storage.getCustomers();
+      // Return only basic info needed for login
+      const loginInfo = customers.map(c => ({
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        loginHint: `Use name/email as username and phone as password`
+      }));
+      res.json(loginInfo);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customers" });
+    }
   });
 
   // User management routes
