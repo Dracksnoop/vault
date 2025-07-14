@@ -283,6 +283,10 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     if (pendingItems.length === 0) return;
     
     try {
+      // Get the service ID for this customer
+      const customerService = customerServices.find(service => service.customerId === customerId);
+      const serviceId = customerService?.id || serviceItems[0]?.serviceId || 'default-service';
+      
       // Add each pending item to the rental
       for (const pendingItem of pendingItems) {
         // Update unit statuses to rented
@@ -293,12 +297,12 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           })
         ));
         
-        // Create service item record
+        // Create service item record - ensure it's linked to customer's service
         await apiRequest('/api/service-items', {
           method: 'POST',
           body: {
             id: `service-item-${Date.now()}-${Math.random()}`,
-            serviceId: serviceItems[0]?.serviceId || 'default-service',
+            serviceId: serviceId,
             itemId: pendingItem.itemId,
             quantity: pendingItem.units.length,
             unitPrice: pendingItem.unitPrice,
@@ -354,7 +358,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           body: {
             id: `timeline-${Date.now()}`,
             customerId: parseInt(customerId.toString()),
-            serviceId: serviceItems[0]?.serviceId || 'default-service',
+            serviceId: serviceId,
             changeType: 'added',
             title: 'Items Added to Rental',
             description: `Added ${pendingItems.length} new item type(s) to rental (Total: ${completeItemsSnapshot.length} item types)`,
