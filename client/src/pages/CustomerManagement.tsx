@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import VaultLoader from '@/components/VaultLoader';
 
 // Types for the multi-step form
 interface CustomerFormData {
@@ -1119,6 +1120,11 @@ export default function CustomerManagement() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Custom Loading UI */}
+      {submitMutation.isPending && (
+        <VaultLoader message="Creating customer record..." />
+      )}
+      
       <div className="max-w-6xl mx-auto p-2 sm:p-4 lg:p-6">
         {/* Progress Header - Hidden on Success */}
         {!showSuccess && (
