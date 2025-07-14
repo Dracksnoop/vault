@@ -92,9 +92,9 @@ export default function GlobalSearch() {
 
     // Search items
     items.forEach((item: any) => {
-      if (item.name.toLowerCase().includes(term) || 
-          item.model.toLowerCase().includes(term) ||
-          item.location.toLowerCase().includes(term)) {
+      if (item.name?.toLowerCase().includes(term) || 
+          item.model?.toLowerCase().includes(term) ||
+          item.location?.toLowerCase().includes(term)) {
         searchResults.push({
           id: `item-${item.id}`,
           title: item.name,
@@ -108,9 +108,9 @@ export default function GlobalSearch() {
 
     // Search customers
     customers.forEach((customer: any) => {
-      if (customer.name.toLowerCase().includes(term) ||
-          customer.email.toLowerCase().includes(term) ||
-          customer.phone.toLowerCase().includes(term)) {
+      if (customer.name?.toLowerCase().includes(term) ||
+          customer.email?.toLowerCase().includes(term) ||
+          customer.phone?.toLowerCase().includes(term)) {
         searchResults.push({
           id: `customer-${customer.id}`,
           title: customer.name,
@@ -124,9 +124,9 @@ export default function GlobalSearch() {
 
     // Search units
     units.forEach((unit: any) => {
-      if (unit.serialNumber.toLowerCase().includes(term) ||
-          unit.barcode.toLowerCase().includes(term) ||
-          unit.location.toLowerCase().includes(term)) {
+      if (unit.serialNumber?.toLowerCase().includes(term) ||
+          unit.barcode?.toLowerCase().includes(term) ||
+          unit.location?.toLowerCase().includes(term)) {
         const item = items.find((i: any) => i.id === unit.itemId);
         searchResults.push({
           id: `unit-${unit.id}`,
@@ -141,8 +141,8 @@ export default function GlobalSearch() {
 
     // Search services
     services.forEach((service: any) => {
-      if (service.type.toLowerCase().includes(term) ||
-          service.description.toLowerCase().includes(term)) {
+      if (service.type?.toLowerCase().includes(term) ||
+          service.description?.toLowerCase().includes(term)) {
         searchResults.push({
           id: `service-${service.id}`,
           title: service.type,
@@ -157,8 +157,8 @@ export default function GlobalSearch() {
     // Search rentals
     rentals.forEach((rental: any) => {
       const customer = customers.find((c: any) => c.id === rental.customerId);
-      if (customer?.name.toLowerCase().includes(term) ||
-          rental.startDate.toLowerCase().includes(term)) {
+      if (customer?.name?.toLowerCase().includes(term) ||
+          rental.startDate?.toLowerCase().includes(term)) {
         searchResults.push({
           id: `rental-${rental.id}`,
           title: `Rental - ${customer?.name || 'Unknown'}`,
