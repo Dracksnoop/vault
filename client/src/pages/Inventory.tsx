@@ -163,7 +163,7 @@ export default function Inventory() {
   const [newUnit, setNewUnit] = useState({
     serialNumber: "",
     barcode: "",
-    status: "In Stock" as const,
+    status: "Available" as const,
     location: "",
     warrantyExpiry: "",
     notes: ""
@@ -316,9 +316,10 @@ export default function Inventory() {
     unit.serialNumber.toLowerCase().includes(unitSearchTerm.toLowerCase()) ||
     unit.barcode.toLowerCase().includes(unitSearchTerm.toLowerCase())
   ).sort((a, b) => {
-    // Define status priority order: In Stock first, then Rented, then others
+    // Define status priority order: Available first, then Rented, then others
     const statusOrder = {
-      "In Stock": 0,
+      "Available": 0,
+      "In Stock": 0, // Legacy support
       "Rented": 1,
       "rented": 1, // Handle lowercase rented
       "Maintenance": 2,
@@ -338,6 +339,7 @@ export default function Inventory() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "Available":
       case "In Stock": return "bg-green-100 text-green-800 border-green-300";
       case "Rented": 
       case "rented": return "bg-blue-100 text-blue-800 border-blue-300";
@@ -349,6 +351,7 @@ export default function Inventory() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case "Available":
       case "In Stock": return <CheckCircle className="w-4 h-4" />;
       case "Rented": 
       case "rented": return <Package className="w-4 h-4" />;
@@ -408,7 +411,7 @@ export default function Inventory() {
             itemId: itemId,
             serialNumber: generateSerialNumber(newItem.name, i),
             barcode: generateBarcode().toString(),
-            status: "In Stock",
+            status: "Available",
             location: newItem.location.trim() || "Warehouse",
             warrantyExpiry: "",
             notes: "Auto-generated unit"
@@ -475,7 +478,7 @@ export default function Inventory() {
           setNewUnit({
             serialNumber: "",
             barcode: "",
-            status: "In Stock",
+            status: "Available",
             location: "",
             warrantyExpiry: "",
             notes: ""
@@ -931,7 +934,7 @@ export default function Inventory() {
                       setNewUnit({
                         serialNumber: autoSerialNumber,
                         barcode: "",
-                        status: "In Stock",
+                        status: "Available",
                         location: "",
                         warrantyExpiry: "",
                         notes: ""

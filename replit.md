@@ -140,6 +140,19 @@ The application follows a clean architecture pattern with clear separation betwe
   - Removed admin menu item from regular user navigation
   - Maintained consistent minimal white theme across admin interface
 
+- **July 14, 2025**: Implemented enhanced inventory status management system
+  - Added 'Available'/'Rented' status field to units table for clear inventory tracking
+  - Added 'currentCustomerId' field to track which customer has rented each unit
+  - Created 'Available' status for units ready for rental
+  - Created 'Rented' status for units currently assigned to customers
+  - Updated all rental creation logic to assign units to specific customers
+  - Added API endpoints for returning units to available status
+  - Updated frontend unit filtering to show only truly available units for selection
+  - Implemented customer-specific unit tracking to prevent double assignments
+  - Added cleanup functionality to fix existing duplicate rental assignments
+  - All new units default to 'Available' status when created
+  - System now enforces unit uniqueness across all customer rentals
+
 - **July 13, 2025**: Built comprehensive Inventory Section UI
 - **July 13, 2025**: Fixed MongoDB Atlas integration and authentication system
   - Resolved API request method issues in queryClient.ts

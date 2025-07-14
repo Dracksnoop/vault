@@ -294,7 +294,8 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           apiRequest(`/api/units/${unitId}`, {
             method: 'PUT',
             body: { 
-              status: 'rented',
+              status: 'Rented',
+              currentCustomerId: customerId,
               rentedBy: customerId,
               serviceId: serviceId
             }
@@ -435,11 +436,16 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     if (selectedUnitsToAdd.length === 0) return;
     
     try {
-      // Update unit statuses to rented
+      // Update unit statuses to rented and assign to customer
       await Promise.all(selectedUnitsToAdd.map(unitId => 
         apiRequest(`/api/units/${unitId}`, {
           method: 'PUT',
-          body: { status: 'rented' }
+          body: { 
+            status: 'Rented',
+            currentCustomerId: customerId,
+            rentedBy: customerId,
+            serviceId: selectedItem.serviceId
+          }
         })
       ));
       
@@ -512,11 +518,16 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         };
       });
       
-      // Update unit statuses to In Stock
+      // Update unit statuses to Available and clear customer assignment
       await Promise.all(selectedUnitsToRemove.map(unitId => 
         apiRequest(`/api/units/${unitId}`, {
           method: 'PUT',
-          body: { status: 'In Stock' }
+          body: { 
+            status: 'Available',
+            currentCustomerId: null,
+            rentedBy: null,
+            serviceId: null
+          }
         })
       ));
       
@@ -582,11 +593,11 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   };
 
   const getRentedUnitsForItem = (itemId: string) => {
-    return units.filter((unit: any) => unit.itemId === itemId && unit.status === 'rented');
+    return units.filter((unit: any) => unit.itemId === itemId && unit.status === 'Rented');
   };
 
   const getAvailableUnitsForItem = (itemId: string) => {
-    return units.filter((unit: any) => unit.itemId === itemId && unit.status === 'In Stock' && !unit.rentedBy);
+    return units.filter((unit: any) => unit.itemId === itemId && unit.status === 'Available' && !unit.currentCustomerId);
   };
 
   // Get customer services
@@ -624,7 +635,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     
     // Only count units that are rented by THIS specific customer
     const customerRentedUnits = itemUnits.filter((unit: any) => 
-      unit.status === 'rented' && unit.rentedBy === customerId
+      unit.status === 'Rented' && unit.currentCustomerId === customerId
     );
     
     return {
@@ -651,7 +662,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     // Get units for this item that are rented by THIS specific customer
     const allItemUnits = units.filter((unit: any) => unit.itemId === itemId);
     const customerRentedUnits = allItemUnits.filter((unit: any) => 
-      unit.status === 'rented' && unit.rentedBy === customerId
+      unit.status === 'Rented' && unit.currentCustomerId === customerId
     );
     
     return customerRentedUnits;

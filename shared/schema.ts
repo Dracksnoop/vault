@@ -29,11 +29,12 @@ export const units = pgTable("units", {
   itemId: text("item_id").notNull(),
   serialNumber: text("serial_number").notNull().unique(),
   barcode: text("barcode"),
-  status: text("status").notNull(),
+  status: text("status").notNull().default("Available"), // Available, Rented, Maintenance, Retired
+  currentCustomerId: integer("current_customer_id"), // Customer ID who currently has this unit
   location: text("location"),
   warrantyExpiry: text("warranty_expiry"),
   notes: text("notes"),
-  rentedBy: integer("rented_by"), // Customer ID who has rented this unit
+  rentedBy: integer("rented_by"), // Customer ID who has rented this unit (legacy field)
   serviceId: text("service_id"), // Service ID for rental tracking
   
   // CPU Specifications
@@ -245,6 +246,7 @@ export const insertUnitSchema = createInsertSchema(units).pick({
   colorGamut: true,
   rentedBy: true,
   serviceId: true,
+  currentCustomerId: true,
 });
 
 export const insertInventorySchema = createInsertSchema(inventory).pick({

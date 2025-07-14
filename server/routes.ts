@@ -739,14 +739,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: `Item ${item.itemId} not found` });
         }
         
-        // Check actual available units (units with status 'In Stock')
+        // Check actual available units (units with status 'Available')
         const availableUnits = await storage.getUnitsByItem(item.itemId);
-        const inStockUnits = availableUnits.filter(unit => unit.status === 'In Stock');
+        const availableUnitsFiltered = availableUnits.filter(unit => unit.status === 'Available' && !unit.currentCustomerId);
         
         // Check if requested quantity exceeds available units
-        if (item.quantity > inStockUnits.length) {
+        if (item.quantity > availableUnitsFiltered.length) {
           return res.status(400).json({ 
-            error: `Insufficient stock for item "${currentItem.name}". Requested: ${item.quantity}, Available: ${inStockUnits.length}` 
+            error: `Insufficient stock for item "${currentItem.name}". Requested: ${item.quantity}, Available: ${availableUnitsFiltered.length}` 
           });
         }
       }
@@ -769,12 +769,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (serviceData.serviceType === 'rent') {
           // Get available units for this item
           const availableUnits = await storage.getUnitsByItem(item.itemId);
-          const inStockUnits = availableUnits.filter(unit => unit.status === 'In Stock');
+          const availableUnitsFiltered = availableUnits.filter(unit => unit.status === 'Available' && !unit.currentCustomerId);
           
-          // Mark the required quantity of units as rented
-          const unitsToRent = inStockUnits.slice(0, item.quantity);
+          // Mark the required quantity of units as rented and assign to customer
+          const unitsToRent = availableUnitsFiltered.slice(0, item.quantity);
           for (const unit of unitsToRent) {
-            await storage.updateUnit(unit.id, { status: 'rented' });
+            await storage.updateUnit(unit.id, { 
+              status: 'Rented',
+              currentCustomerId: customer.id,
+              rentedBy: customer.id,
+              serviceId: service.id
+            });
           }
 
           // Update item's quantityRentedOut
@@ -875,15 +880,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Starting rental cleanup...");
       
-      // First, reset all rented units to In Stock and clear rental assignments
+      // First, reset all rented units to Available and clear rental assignments
       const allUnits = await storage.getUnits();
-      const rentedUnits = allUnits.filter(unit => unit.status === 'rented');
+      const rentedUnits = allUnits.filter(unit => unit.status === 'Rented' || unit.status === 'rented');
       
       console.log(`Found ${rentedUnits.length} rented units to reset`);
       
       for (const unit of rentedUnits) {
         await storage.updateUnit(unit.id, { 
-          status: 'In Stock', 
+          status: 'Available', 
+          currentCustomerId: null,
           rentedBy: null, 
           serviceId: null 
         });
@@ -915,17 +921,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             for (const serviceItem of items) {
               // Get available units for this item (not rented by anyone)
               const availableUnits = await storage.getUnitsByItem(serviceItem.itemId);
-              const inStockUnits = availableUnits.filter(unit => 
-                unit.status === 'In Stock' && !unit.rentedBy
+              const availableUnitsFiltered = availableUnits.filter(unit => 
+                unit.status === 'Available' && !unit.currentCustomerId
               );
               
               // Assign the required quantity to this customer
-              const unitsToAssign = inStockUnits.slice(0, serviceItem.quantity);
+              const unitsToAssign = availableUnitsFiltered.slice(0, serviceItem.quantity);
               console.log(`Assigning ${unitsToAssign.length} units of ${serviceItem.itemId} to customer ${customerId}`);
               
               for (const unit of unitsToAssign) {
                 await storage.updateUnit(unit.id, { 
-                  status: 'rented',
+                  status: 'Rented',
+                  currentCustomerId: parseInt(customerId),
                   rentedBy: parseInt(customerId),
                   serviceId: service.id
                 });
@@ -946,6 +953,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error cleaning up rental duplicates:", error);
       res.status(500).json({ error: "Failed to clean up rental duplicates" });
+    }
+  });
+
+  // Return units API - mark units as available and clear customer assignment
+  app.post("/api/units/return", async (req, res) => {
+    try {
+      const { unitIds } = req.body;
+      
+      if (!Array.isArray(unitIds) || unitIds.length === 0) {
+        return res.status(400).json({ error: "Unit IDs array is required" });
+      }
+      
+      // Update each unit to available status
+      const updatedUnits = [];
+      for (const unitId of unitIds) {
+        const updatedUnit = await storage.updateUnit(unitId, {
+          status: 'Available',
+          currentCustomerId: null,
+          rentedBy: null,
+          serviceId: null
+        });
+        updatedUnits.push(updatedUnit);
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `${unitIds.length} units returned successfully`,
+        updatedUnits 
+      });
+    } catch (error) {
+      console.error("Error returning units:", error);
+      res.status(500).json({ error: "Failed to return units" });
+    }
+  });
+
+  // Get available units for item selection
+  app.get("/api/items/:itemId/available-units", async (req, res) => {
+    try {
+      const { itemId } = req.params;
+      const units = await storage.getUnitsByItem(itemId);
+      const availableUnits = units.filter(unit => 
+        unit.status === 'Available' && !unit.currentCustomerId
+      );
+      res.json(availableUnits);
+    } catch (error) {
+      console.error("Error fetching available units:", error);
+      res.status(500).json({ error: "Failed to fetch available units" });
     }
   });
 
