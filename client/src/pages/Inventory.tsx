@@ -810,7 +810,7 @@ export default function Inventory() {
                         Add New Item
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="border-black max-w-md w-[95vw] sm:w-full relative">
+                    <DialogContent className="border-black max-w-md w-[95vw] sm:w-full dialog-centered">
                       <DialogHeader>
                         <DialogTitle className="text-black">Add New Item</DialogTitle>
                         <DialogDescription className="text-black">
