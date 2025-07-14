@@ -875,6 +875,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fix unit statuses from "In Stock" to "Available"
+  app.post("/api/units/fix-statuses", async (req, res) => {
+    try {
+      const units = await storage.getUnits();
+      let updatedCount = 0;
+      
+      for (const unit of units) {
+        if (unit.status === "In Stock") {
+          await storage.updateUnit(unit.id, { status: "Available" });
+          updatedCount++;
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Updated ${updatedCount} units from "In Stock" to "Available"`,
+        updatedCount 
+      });
+    } catch (error) {
+      console.error("Error fixing unit statuses:", error);
+      res.status(500).json({ error: "Failed to fix unit statuses" });
+    }
+  });
+
+  // Fix data inconsistencies - clear rental fields for Available units
+  app.post("/api/units/fix-data-consistency", async (req, res) => {
+    try {
+      const units = await storage.getUnits();
+      let fixedCount = 0;
+      
+      for (const unit of units) {
+        if (unit.status === "Available" && (unit.rentedBy || unit.serviceId || unit.currentCustomerId)) {
+          await storage.updateUnit(unit.id, { 
+            rentedBy: null,
+            serviceId: null,
+            currentCustomerId: null
+          });
+          fixedCount++;
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Fixed ${fixedCount} units with inconsistent data`,
+        fixedCount 
+      });
+    } catch (error) {
+      console.error("Error fixing data consistency:", error);
+      res.status(500).json({ error: "Failed to fix data consistency" });
+    }
+  });
+
   // Clean up duplicate rentals and assign units properly to customers
   app.post("/api/rentals/cleanup-duplicates", async (req, res) => {
     try {
