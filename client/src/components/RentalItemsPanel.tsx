@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import VaultLoader from '@/components/VaultLoader';
 
 interface RentalItemsPanelProps {
   customerId: number;
@@ -99,38 +100,38 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   };
 
   // Data queries
-  const { data: services = [] } = useQuery({
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: ['/api/services'],
     staleTime: 0,
     cacheTime: 0,
   });
 
-  const { data: serviceItems = [] } = useQuery({
+  const { data: serviceItems = [], isLoading: serviceItemsLoading } = useQuery({
     queryKey: ['/api/service-items'],
     staleTime: 0,
     cacheTime: 0,
   });
 
-  const { data: rentals = [] } = useQuery({
+  const { data: rentals = [], isLoading: rentalsLoading } = useQuery({
     queryKey: ['/api/rentals'],
     staleTime: 0,
     cacheTime: 0,
   });
 
-  const { data: items = [] } = useQuery({
+  const { data: items = [], isLoading: itemsLoading } = useQuery({
     queryKey: ['/api/items'],
     staleTime: 0,
     cacheTime: 0,
   });
 
-  const { data: units = [] } = useQuery({
+  const { data: units = [], isLoading: unitsLoading } = useQuery({
     queryKey: ['/api/units'],
     staleTime: 0,
     cacheTime: 0,
   });
 
   // Timeline data for the customer
-  const { data: timeline = [] } = useQuery({
+  const { data: timeline = [], isLoading: timelineLoading } = useQuery({
     queryKey: ['/api/customers', customerId, 'timeline'],
     staleTime: 0,
     cacheTime: 0,
@@ -768,6 +769,17 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     
     return customerRentedUnits;
   };
+
+  // Check if any data is loading
+  const isLoading = servicesLoading || serviceItemsLoading || rentalsLoading || itemsLoading || unitsLoading || timelineLoading;
+
+  if (isLoading) {
+    return (
+      <VaultLoader 
+        message="Loading rental details..."
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">

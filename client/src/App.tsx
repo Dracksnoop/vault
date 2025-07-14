@@ -106,9 +106,9 @@ function Router() {
       {/* All other routes require authentication */}
       <Route>
         {isLoading ? (
-          <div className="min-h-screen bg-white flex items-center justify-center">
-            <div className="text-black">Loading...</div>
-          </div>
+          <VaultLoader 
+            message="Initializing Raydify Vault..."
+          />
         ) : isPreloading ? (
           <VaultLoader 
             isVisible={true}
