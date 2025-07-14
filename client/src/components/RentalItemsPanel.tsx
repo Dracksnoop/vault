@@ -94,27 +94,39 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   // Data queries
   const { data: services = [] } = useQuery({
     queryKey: ['/api/services'],
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const { data: serviceItems = [] } = useQuery({
     queryKey: ['/api/service-items'],
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const { data: rentals = [] } = useQuery({
     queryKey: ['/api/rentals'],
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const { data: items = [] } = useQuery({
     queryKey: ['/api/items'],
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const { data: units = [] } = useQuery({
     queryKey: ['/api/units'],
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   // Timeline data for the customer
   const { data: timeline = [] } = useQuery({
     queryKey: ['/api/customers', customerId, 'timeline'],
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   // Handler functions
@@ -144,10 +156,20 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         })
       ));
       
-      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      // Invalidate all relevant queries to force refetch
+      await queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/services'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      
+      // Force refetch of all queries
+      await queryClient.refetchQueries({ queryKey: ['/api/units'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/service-items'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/items'] });
       
       setSelectedUnitsToAdd([]);
       setShowModifyDialog(false);
@@ -176,10 +198,20 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         })
       ));
       
-      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      // Invalidate all relevant queries to force refetch
+      await queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/services'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      
+      // Force refetch of all queries
+      await queryClient.refetchQueries({ queryKey: ['/api/units'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/service-items'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/items'] });
       
       setSelectedUnitsToRemove([]);
       setShowModifyDialog(false);
