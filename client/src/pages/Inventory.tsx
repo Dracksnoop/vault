@@ -810,67 +810,67 @@ export default function Inventory() {
                         Add New Item
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="border-black max-w-md w-[90vw] sm:w-full relative">
+                    <DialogContent className="border-black max-w-md w-[95vw] sm:w-full relative mx-auto">
                       <DialogHeader>
                         <DialogTitle className="text-black">Add New Item</DialogTitle>
                         <DialogDescription className="text-black">
                           Add a new item to {selectedCategoryData?.name}
                         </DialogDescription>
                       </DialogHeader>
-                      <div className="space-y-4">
+                      <div className="space-y-4 p-1">
                         <div>
-                          <Label className="text-black">Product Name</Label>
+                          <Label className="text-black text-sm font-medium">Product Name</Label>
                           <Input
                             value={newItem.name}
                             onChange={(e) => setNewItem({...newItem, name: e.target.value})}
                             placeholder="Enter product name"
-                            className="border-black"
+                            className="border-black w-full mt-1"
                           />
                         </div>
                         <div>
-                          <Label className="text-black">Model/Specification</Label>
+                          <Label className="text-black text-sm font-medium">Model/Specification</Label>
                           <Input
                             value={newItem.model}
                             onChange={(e) => setNewItem({...newItem, model: e.target.value})}
                             placeholder="Enter model number"
-                            className="border-black"
+                            className="border-black w-full mt-1"
                           />
                         </div>
                         <div>
-                          <Label className="text-black">Location</Label>
+                          <Label className="text-black text-sm font-medium">Location</Label>
                           <Input
                             value={newItem.location}
                             onChange={(e) => setNewItem({...newItem, location: e.target.value})}
                             placeholder="Enter storage location"
-                            className="border-black"
+                            className="border-black w-full mt-1"
                           />
                         </div>
                         <div>
-                          <Label className="text-black">Quantity in Stock</Label>
+                          <Label className="text-black text-sm font-medium">Quantity in Stock</Label>
                           <Input
                             type="number"
                             min="1"
                             value={newItem.quantityInStock}
                             onChange={(e) => setNewItem({...newItem, quantityInStock: parseInt(e.target.value) || 0})}
-                            placeholder="Enter quantity (will generate unique serial numbers)"
-                            className="border-black"
+                            placeholder="Enter quantity"
+                            className="border-black w-full mt-1"
                           />
                           <p className="text-xs text-gray-500 mt-1">
                             Each unit will automatically get a unique serial number
                           </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2 mt-6">
                           <Button 
                             onClick={handleAddItem}
                             disabled={createItemMutation.isPending || createUnitMutation.isPending || !newItem.name.trim() || !newItem.model.trim() || newItem.quantityInStock <= 0 || isCreatingUnits}
-                            className="bg-black text-white hover:bg-gray-800 disabled:opacity-50"
+                            className="bg-black text-white hover:bg-gray-800 disabled:opacity-50 flex-1 sm:flex-initial"
                           >
                             {isCreatingUnits ? 'Creating Units...' : (createItemMutation.isPending ? 'Adding...' : 'Add Item')}
                           </Button>
                           <Button 
                             variant="outline" 
                             onClick={() => setShowAddItem(false)}
-                            className="border-black"
+                            className="border-black flex-1 sm:flex-initial"
                             disabled={isCreatingUnits}
                           >
                             Cancel
@@ -881,14 +881,14 @@ export default function Inventory() {
                       {/* Loading Animation Overlay */}
                       {isCreatingUnits && (
                         <div className="absolute inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50 rounded-lg">
-                          <div className="text-center space-y-4 max-w-sm mx-auto p-6">
+                          <div className="text-center space-y-3 max-w-xs mx-auto p-4">
                             <div className="flex items-center justify-center space-x-2">
-                              <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                              <div className="text-xl font-bold text-black">VAULT</div>
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                              <div className="text-lg sm:text-xl font-bold text-black">VAULT</div>
                             </div>
                             
                             <div className="space-y-2">
-                              <div className="text-sm font-medium text-black">
+                              <div className="text-xs sm:text-sm font-medium text-black break-words">
                                 {currentUnitCreation}
                               </div>
                               
@@ -905,9 +905,9 @@ export default function Inventory() {
                             </div>
                             
                             <div className="flex items-center justify-center space-x-1">
-                              <div className="w-2 h-2 bg-black rounded-full animate-bounce"></div>
-                              <div className="w-2 h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                              <div className="w-2 h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-black rounded-full animate-bounce"></div>
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-black rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                             </div>
                           </div>
                         </div>
