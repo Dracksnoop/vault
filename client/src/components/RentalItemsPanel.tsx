@@ -338,45 +338,63 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       
       // Create timeline entry showing complete rental snapshot (existing + new items)
       try {
-        // Get all current service items (existing + new)
-        const allServiceItems = await apiRequest('/api/service-items');
-        
-        // Create complete snapshot of all items in rental
+        // Create complete snapshot of all items in rental after adding new items
         const completeItemsSnapshot = [];
         
-        // Add existing items
+        // Add existing items with their current units
         for (const existingItem of enrichedServiceItems) {
           const existingUnits = getUnitsForItem(existingItem.itemId);
-          completeItemsSnapshot.push({
-            itemName: existingItem.itemDetails?.name || 'Unknown Item',
-            units: existingUnits.map((unit: any) => ({
-              unitId: unit.id,
-              serialNumber: unit.serialNumber || 'N/A',
-              barcode: unit.barcode || 'N/A'
-            }))
-          });
+          if (existingUnits.length > 0) {
+            completeItemsSnapshot.push({
+              itemName: existingItem.itemDetails?.name || 'Unknown Item',
+              unitPrice: parseFloat(existingItem.unitPrice || '0'),
+              units: existingUnits.map((unit: any) => ({
+                unitId: unit.id,
+                serialNumber: unit.serialNumber || 'N/A',
+                barcode: unit.barcode || 'N/A'
+              }))
+            });
+          }
         }
         
         // Add newly added items
         for (const newItem of pendingItems) {
-          completeItemsSnapshot.push({
-            itemName: newItem.itemDetails.name,
-            units: newItem.units.map((unitId: string) => {
+          // Check if this item already exists in existing items
+          const existingItemIndex = completeItemsSnapshot.findIndex(
+            item => item.itemName === newItem.itemDetails.name
+          );
+          
+          if (existingItemIndex >= 0) {
+            // Add units to existing item
+            const newUnits = newItem.units.map((unitId: string) => {
               const unit = units.find((u: any) => u.id === unitId);
               return {
                 unitId,
                 serialNumber: unit?.serialNumber || 'N/A',
                 barcode: unit?.barcode || 'N/A'
               };
-            })
-          });
+            });
+            completeItemsSnapshot[existingItemIndex].units.push(...newUnits);
+          } else {
+            // Add as new item
+            completeItemsSnapshot.push({
+              itemName: newItem.itemDetails.name,
+              unitPrice: parseFloat(newItem.unitPrice || '0'),
+              units: newItem.units.map((unitId: string) => {
+                const unit = units.find((u: any) => u.id === unitId);
+                return {
+                  unitId,
+                  serialNumber: unit?.serialNumber || 'N/A',
+                  barcode: unit?.barcode || 'N/A'
+                };
+              })
+            });
+          }
         }
         
         // Calculate total value of entire rental
-        const existingRentalValue = enrichedServiceItems.reduce((sum: number, item: any) => 
-          sum + (parseFloat(item.totalValue) || 0), 0);
-        const newItemsValue = pendingItems.reduce((sum, item) => sum + item.totalValue, 0);
-        const totalRentalValue = existingRentalValue + newItemsValue;
+        const totalRentalValue = completeItemsSnapshot.reduce((sum: number, item: any) => 
+          sum + (item.unitPrice * item.units.length), 0);
         
         await apiRequest(`/api/customers/${customerId}/timeline`, {
           method: 'POST',
@@ -459,8 +477,45 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         };
       });
       
-      // Create timeline entry for units added (don't fail if this fails)
+      // Create timeline entry for units added with complete rental state snapshot
       try {
+        // Create complete snapshot of all items in rental after adding units
+        const completeItemsSnapshot = [];
+        
+        // Add all current service items with their units
+        for (const serviceItem of enrichedServiceItems) {
+          const itemUnits = getRentedUnitsForItem(serviceItem.itemId);
+          
+          // If this is the item we're adding units to, include the new units
+          if (serviceItem.itemId === selectedItem.itemId) {
+            const newUnits = selectedUnitsToAdd.map(unitId => {
+              const unit = units.find((u: any) => u.id === unitId);
+              return {
+                unitId,
+                serialNumber: unit?.serialNumber || 'N/A',
+                barcode: unit?.barcode || 'N/A'
+              };
+            });
+            itemUnits.push(...newUnits);
+          }
+          
+          if (itemUnits.length > 0) {
+            completeItemsSnapshot.push({
+              itemName: serviceItem.itemDetails?.name || 'Unknown Item',
+              unitPrice: parseFloat(serviceItem.unitPrice || '0'),
+              units: itemUnits.map((unit: any) => ({
+                unitId: unit.id,
+                serialNumber: unit.serialNumber || 'N/A',
+                barcode: unit.barcode || 'N/A'
+              }))
+            });
+          }
+        }
+        
+        // Calculate total value of entire rental
+        const totalRentalValue = completeItemsSnapshot.reduce((sum: number, item: any) => 
+          sum + (item.unitPrice * item.units.length), 0);
+        
         await apiRequest(`/api/customers/${customerId}/timeline`, {
           method: 'POST',
           body: {
@@ -470,8 +525,8 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
             changeType: 'added',
             title: 'Units Added to Rental',
             description: `Added ${selectedUnitsToAdd.length} unit(s) to ${selectedItem.itemDetails?.name || 'rental'}`,
-            itemsSnapshot: JSON.stringify(addedUnitDetails),
-            totalValue: ((getRentedUnitsForItem(selectedItem.itemId).length + selectedUnitsToAdd.length) * parseFloat(selectedItem.unitPrice || '0')).toString()
+            itemsSnapshot: JSON.stringify(completeItemsSnapshot),
+            totalValue: totalRentalValue.toString()
           }
         });
       } catch (timelineError) {
@@ -531,8 +586,37 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         })
       ));
       
-      // Create timeline entry for units removed (don't fail if this fails)
+      // Create timeline entry for units removed with complete rental state snapshot
       try {
+        // Create complete snapshot of all items in rental after removing units
+        const completeItemsSnapshot = [];
+        
+        // Add all current service items with their units
+        for (const serviceItem of enrichedServiceItems) {
+          let itemUnits = getRentedUnitsForItem(serviceItem.itemId);
+          
+          // If this is the item we're removing units from, exclude the removed units
+          if (serviceItem.itemId === selectedItem.itemId) {
+            itemUnits = itemUnits.filter((unit: any) => !selectedUnitsToRemove.includes(unit.id));
+          }
+          
+          if (itemUnits.length > 0) {
+            completeItemsSnapshot.push({
+              itemName: serviceItem.itemDetails?.name || 'Unknown Item',
+              unitPrice: parseFloat(serviceItem.unitPrice || '0'),
+              units: itemUnits.map((unit: any) => ({
+                unitId: unit.id,
+                serialNumber: unit.serialNumber || 'N/A',
+                barcode: unit.barcode || 'N/A'
+              }))
+            });
+          }
+        }
+        
+        // Calculate total value of entire rental
+        const totalRentalValue = completeItemsSnapshot.reduce((sum: number, item: any) => 
+          sum + (item.unitPrice * item.units.length), 0);
+        
         await apiRequest(`/api/customers/${customerId}/timeline`, {
           method: 'POST',
           body: {
@@ -542,8 +626,8 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
             changeType: 'removed',
             title: 'Units Removed from Rental',
             description: `Removed ${selectedUnitsToRemove.length} unit(s) from ${selectedItem.itemDetails?.name || 'rental'}`,
-            itemsSnapshot: JSON.stringify(removedUnitDetails),
-            totalValue: ((getRentedUnitsForItem(selectedItem.itemId).length - selectedUnitsToRemove.length) * parseFloat(selectedItem.unitPrice || '0')).toString()
+            itemsSnapshot: JSON.stringify(completeItemsSnapshot),
+            totalValue: totalRentalValue.toString()
           }
         });
       } catch (timelineError) {
@@ -865,16 +949,19 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         </CardContent>
       </Card>
 
-      {/* Timeline */}
+      {/* Enhanced Rental Timeline */}
       <Card className="border-black">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Clock className="w-5 h-5" />
             <span>Rental Timeline</span>
           </CardTitle>
+          <p className="text-sm text-gray-600 mt-1">
+            Complete rental state snapshots showing all items and quantities at each point in time
+          </p>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-96">
+          <ScrollArea className="h-[500px]">
             {timeline.length === 0 ? (
               <div className="text-center py-8">
                 <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -882,57 +969,134 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                 <p className="text-sm text-gray-500 mt-1">Timeline will show rental modifications and changes</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {timeline.map((entry: any, index: number) => (
-                  <div key={entry.id} className="relative">
-                    <div className="flex items-start space-x-4">
-                      {getChangeTypeIcon(entry.changeType)}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h3 className="font-semibold text-black">{entry.title}</h3>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant={getChangeTypeBadgeVariant(entry.changeType)}>
-                              {entry.changeType}
-                            </Badge>
-                            <span className="text-sm text-gray-500">
-                              {new Date(entry.createdAt).toLocaleDateString()} at {new Date(entry.createdAt).toLocaleTimeString()}
-                            </span>
-                          </div>
+              <div className="relative">
+                {/* Vertical timeline line */}
+                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gray-200" />
+                
+                <div className="space-y-8">
+                  {timeline.map((entry: any, index: number) => (
+                    <div key={entry.id} className="relative">
+                      {/* Timeline dot */}
+                      <div className="absolute left-4 w-4 h-4 bg-white border-2 border-blue-500 rounded-full z-10" />
+                      
+                      {/* Date and time between boxes */}
+                      <div className="ml-12 mb-4">
+                        <div className="text-sm font-medium text-gray-700">
+                          {new Date(entry.createdAt).toLocaleDateString('en-US', { 
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
                         </div>
-                        <p className="text-gray-600 mt-1">{entry.description}</p>
-                        {entry.totalValue && (
-                          <p className="text-sm text-gray-500 mt-1">
-                            Total Value: ₹{entry.totalValue}
-                          </p>
-                        )}
+                        <div className="text-xs text-gray-500">
+                          {new Date(entry.createdAt).toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                          })}
+                        </div>
+                      </div>
+                      
+                      {/* Timeline snapshot box */}
+                      <div className="ml-12 bg-white border-2 border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                        {/* Box header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-2">
+                            {getChangeTypeIcon(entry.changeType)}
+                            <h3 className="font-semibold text-black">{entry.title}</h3>
+                          </div>
+                          <Badge variant={getChangeTypeBadgeVariant(entry.changeType)}>
+                            {entry.changeType}
+                          </Badge>
+                        </div>
+                        
+                        {/* Description */}
+                        <p className="text-gray-600 text-sm mb-4">{entry.description}</p>
+                        
+                        {/* Complete rental snapshot */}
                         {entry.itemsSnapshot && (
-                          <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                            <p className="text-sm font-medium text-gray-700 mb-2">Unit Details:</p>
-                            <div className="space-y-1">
+                          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <h4 className="font-medium text-gray-800 mb-3 flex items-center">
+                              <Package className="w-4 h-4 mr-2" />
+                              Complete Rental State
+                            </h4>
+                            <div className="space-y-3">
                               {(() => {
                                 try {
-                                  const units = JSON.parse(entry.itemsSnapshot);
-                                  return units.map((unit: any, unitIndex: number) => (
-                                    <div key={unitIndex} className="flex items-center justify-between text-sm">
-                                      <span className="text-gray-600">#{unit.serialNumber}</span>
-                                      <span className="text-gray-500">{unit.barcode}</span>
-                                    </div>
-                                  ));
+                                  const snapshotData = JSON.parse(entry.itemsSnapshot);
+                                  
+                                  // Handle different snapshot formats
+                                  if (Array.isArray(snapshotData)) {
+                                    // New format: array of items with their units
+                                    if (snapshotData.length > 0 && snapshotData[0].itemName) {
+                                      return snapshotData.map((item: any, itemIndex: number) => (
+                                        <div key={itemIndex} className="bg-white border border-gray-200 rounded-md p-3">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center space-x-2">
+                                              <Package className="w-4 h-4 text-blue-600" />
+                                              <span className="font-medium text-gray-800">{item.itemName}</span>
+                                            </div>
+                                            <div className="flex items-center space-x-4">
+                                              <span className="text-sm text-gray-600">
+                                                Quantity: {item.units?.length || 0}
+                                              </span>
+                                              <span className="text-sm font-medium text-gray-800">
+                                                ₹{(item.unitPrice * (item.units?.length || 0)).toFixed(2)}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          {item.units && item.units.length > 0 && (
+                                            <div className="ml-6 space-y-1">
+                                              {item.units.map((unit: any, unitIndex: number) => (
+                                                <div key={unitIndex} className="flex items-center text-xs text-gray-500">
+                                                  <span className="mr-2">#{unit.serialNumber}</span>
+                                                  <span>{unit.barcode}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ));
+                                    } else {
+                                      // Old format: array of units
+                                      return (
+                                        <div className="bg-white border border-gray-200 rounded-md p-3">
+                                          <div className="grid grid-cols-2 gap-2">
+                                            {snapshotData.map((unit: any, unitIndex: number) => (
+                                              <div key={unitIndex} className="flex items-center text-sm text-gray-600">
+                                                <span className="mr-2">#{unit.serialNumber}</span>
+                                                <span className="text-gray-500">{unit.barcode}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+                                  } else {
+                                    return <span className="text-sm text-gray-500">Snapshot format not supported</span>;
+                                  }
                                 } catch (e) {
-                                  return <span className="text-sm text-gray-500">Unit details unavailable</span>;
+                                  return <span className="text-sm text-gray-500">Snapshot data unavailable</span>;
                                 }
                               })()}
                             </div>
+                            
+                            {/* Total value */}
+                            {entry.totalValue && (
+                              <div className="mt-3 pt-3 border-t border-gray-200">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-medium text-gray-700">Total Rental Value:</span>
+                                  <span className="text-lg font-bold text-black">₹{parseFloat(entry.totalValue).toFixed(2)}</span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
-                    {/* Timeline Line */}
-                    {index < timeline.length - 1 && (
-                      <div className="absolute left-4 top-8 w-0.5 h-16 bg-gray-200" style={{ marginLeft: '10px' }} />
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </ScrollArea>
