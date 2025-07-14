@@ -48,6 +48,7 @@ interface RentalItemsPanelProps {
 export default function RentalItemsPanel({ customerId, customerName, onBack }: RentalItemsPanelProps) {
   const [showViewUnitsDialog, setShowViewUnitsDialog] = useState(false);
   const [showModifyDialog, setShowModifyDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUnitsToRemove, setSelectedUnitsToRemove] = useState<string[]>([]);
@@ -60,6 +61,13 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   const [itemSearchTerm, setItemSearchTerm] = useState('');
   const [selectedItems, setSelectedItems] = useState<any[]>([]);
   const [currentStep, setCurrentStep] = useState(1); // 1: Select Items, 2: Configure Units & Pricing
+  
+  // Edit dialog states
+  const [editFormData, setEditFormData] = useState({
+    unitPrice: '',
+    quantity: '',
+    notes: ''
+  });
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -150,7 +158,84 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     setSearchTerm('');
     setModifyActiveTab('remove');
     setShowModifyDialog(true);
+  }
+
+  const handleEdit = (serviceItem: any) => {
+    setSelectedItem(serviceItem);
+    setEditFormData({
+      unitPrice: serviceItem.unitPrice || '',
+      quantity: serviceItem.quantity?.toString() || '',
+      notes: serviceItem.notes || ''
+    });
+    setShowEditDialog(true);
   };
+
+  const editServiceItemMutation = useMutation({
+    mutationFn: async (updateData: any) => {
+      return apiRequest(`/api/service-items/${selectedItem.id}`, {
+        method: 'PUT',
+        body: updateData
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId, 'timeline'] });
+      setShowEditDialog(false);
+      toast({
+        title: "Item Updated",
+        description: "Service item details updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      console.error('Error updating service item:', error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update service item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSaveEdit = async () => {
+    if (!selectedItem) return;
+    
+    try {
+      const updateData = {
+        unitPrice: editFormData.unitPrice,
+        quantity: parseInt(editFormData.quantity),
+        notes: editFormData.notes
+      };
+      
+      await editServiceItemMutation.mutateAsync(updateData);
+      
+      // Create timeline entry for edit
+      try {
+        const timelineId = `timeline-${Date.now()}`;
+        await apiRequest(`/api/customers/${customerId}/timeline`, {
+          method: 'POST',
+          body: {
+            id: timelineId,
+            customerId: parseInt(customerId.toString()),
+            serviceId: selectedItem.serviceId,
+            changeType: 'modified',
+            title: 'Rental Item Edited',
+            description: `Updated ${selectedItem.itemDetails?.name || 'item'} - Price: ₹${updateData.unitPrice}, Quantity: ${updateData.quantity}`,
+            itemsSnapshot: JSON.stringify([{
+              itemName: selectedItem.itemDetails?.name || 'Unknown Item',
+              unitPrice: parseFloat(updateData.unitPrice),
+              quantity: updateData.quantity,
+              totalValue: parseFloat(updateData.unitPrice) * updateData.quantity
+            }]),
+            totalValue: (parseFloat(updateData.unitPrice) * updateData.quantity).toString()
+          }
+        });
+      } catch (timelineError) {
+        console.warn('Failed to create timeline entry:', timelineError);
+      }
+    } catch (error) {
+      console.error('Error updating service item:', error);
+    }
+  };;
 
   const handleAddMoreItems = () => {
     setShowAddItemDialog(true);
@@ -958,6 +1043,15 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => handleEdit(serviceItem)}
+                          className="border-black hover:bg-gray-50"
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
                           onClick={() => handleModify(serviceItem)}
                           className="border-black hover:bg-gray-50"
                         >
@@ -1600,6 +1694,86 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Settings className="w-5 h-5" />
+              <span>Edit Item - {selectedItem?.itemDetails?.name}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {selectedItem && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-unit-price">Unit Price (₹)</Label>
+                  <Input
+                    id="edit-unit-price"
+                    type="number"
+                    value={editFormData.unitPrice}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, unitPrice: e.target.value }))}
+                    className="border-black"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-quantity">Quantity</Label>
+                  <Input
+                    id="edit-quantity"
+                    type="number"
+                    value={editFormData.quantity}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, quantity: e.target.value }))}
+                    className="border-black"
+                    min="1"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-notes">Notes</Label>
+                <Textarea
+                  id="edit-notes"
+                  value={editFormData.notes}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  className="border-black"
+                  rows={3}
+                  placeholder="Add any additional notes..."
+                />
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-medium">Total Value:</span>
+                  <span className="text-lg font-bold text-black">
+                    ₹{(parseFloat(editFormData.unitPrice || '0') * parseInt(editFormData.quantity || '0')).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleSaveEdit}
+                  disabled={editServiceItemMutation.isPending || !editFormData.unitPrice || !editFormData.quantity}
+                  className="bg-black text-white hover:bg-gray-800"
+                >
+                  {editServiceItemMutation.isPending ? <VaultLoader /> : (
+                    <>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
