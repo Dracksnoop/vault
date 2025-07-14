@@ -65,7 +65,6 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   // Edit dialog states
   const [editFormData, setEditFormData] = useState({
     unitPrice: '',
-    quantity: '',
     notes: ''
   });
   
@@ -164,7 +163,6 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     setSelectedItem(serviceItem);
     setEditFormData({
       unitPrice: serviceItem.unitPrice || '',
-      quantity: serviceItem.quantity?.toString() || '',
       notes: serviceItem.notes || ''
     });
     setShowEditDialog(true);
@@ -202,7 +200,6 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     try {
       const updateData = {
         unitPrice: editFormData.unitPrice,
-        quantity: parseInt(editFormData.quantity),
         notes: editFormData.notes
       };
       
@@ -219,14 +216,14 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
             serviceId: selectedItem.serviceId,
             changeType: 'modified',
             title: 'Rental Item Edited',
-            description: `Updated ${selectedItem.itemDetails?.name || 'item'} - Price: ₹${updateData.unitPrice}, Quantity: ${updateData.quantity}`,
+            description: `Updated ${selectedItem.itemDetails?.name || 'item'} - Price: ₹${updateData.unitPrice}`,
             itemsSnapshot: JSON.stringify([{
               itemName: selectedItem.itemDetails?.name || 'Unknown Item',
               unitPrice: parseFloat(updateData.unitPrice),
-              quantity: updateData.quantity,
-              totalValue: parseFloat(updateData.unitPrice) * updateData.quantity
+              quantity: selectedItem.quantity,
+              totalValue: parseFloat(updateData.unitPrice) * selectedItem.quantity
             }]),
-            totalValue: (parseFloat(updateData.unitPrice) * updateData.quantity).toString()
+            totalValue: (parseFloat(updateData.unitPrice) * selectedItem.quantity).toString()
           }
         });
       } catch (timelineError) {
@@ -1708,30 +1705,17 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           </DialogHeader>
           {selectedItem && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-unit-price">Unit Price (₹)</Label>
-                  <Input
-                    id="edit-unit-price"
-                    type="number"
-                    value={editFormData.unitPrice}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, unitPrice: e.target.value }))}
-                    className="border-black"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-quantity">Quantity</Label>
-                  <Input
-                    id="edit-quantity"
-                    type="number"
-                    value={editFormData.quantity}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                    className="border-black"
-                    min="1"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="edit-unit-price">Unit Price (₹)</Label>
+                <Input
+                  id="edit-unit-price"
+                  type="number"
+                  value={editFormData.unitPrice}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, unitPrice: e.target.value }))}
+                  className="border-black"
+                  min="0"
+                  step="0.01"
+                />
               </div>
               
               <div>
@@ -1750,8 +1734,12 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                 <div className="flex justify-between items-center text-sm">
                   <span className="font-medium">Total Value:</span>
                   <span className="text-lg font-bold text-black">
-                    ₹{(parseFloat(editFormData.unitPrice || '0') * parseInt(editFormData.quantity || '0')).toFixed(2)}
+                    ₹{(parseFloat(editFormData.unitPrice || '0') * (selectedItem?.quantity || 0)).toFixed(2)}
                   </span>
+                </div>
+                <div className="flex justify-between items-center text-xs text-gray-600 mt-2">
+                  <span>Quantity: {selectedItem?.quantity || 0} units</span>
+                  <span>Unit Price: ₹{editFormData.unitPrice || '0'}</span>
                 </div>
               </div>
 
@@ -1761,7 +1749,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                 </Button>
                 <Button 
                   onClick={handleSaveEdit}
-                  disabled={editServiceItemMutation.isPending || !editFormData.unitPrice || !editFormData.quantity}
+                  disabled={editServiceItemMutation.isPending || !editFormData.unitPrice}
                   className="bg-black text-white hover:bg-gray-800"
                 >
                   {editServiceItemMutation.isPending ? <VaultLoader /> : (
