@@ -329,14 +329,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/units/:id", async (req, res) => {
     try {
+      console.log("PUT /api/units/:id request received:", { id: req.params.id, body: req.body });
       const { id } = req.params;
       const validatedData = insertUnitSchema.partial().parse(req.body);
+      console.log("Validated data:", validatedData);
       const unit = await storage.updateUnit(id, validatedData);
       if (!unit) {
         return res.status(404).json({ error: "Unit not found" });
       }
       res.json(unit);
     } catch (error) {
+      console.error("Error updating unit:", error);
       res.status(500).json({ error: "Failed to update unit" });
     }
   });

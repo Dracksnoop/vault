@@ -22,10 +22,14 @@ export async function apiRequest(
     headers.Authorization = `Bearer ${token}`;
   }
 
+  // Properly serialize the body if it exists
+  const body = options?.body ? JSON.stringify(options.body) : undefined;
+
   const res = await fetch(url, {
     method: "GET",
     ...options,
     headers,
+    body,
     credentials: "include",
   });
 
