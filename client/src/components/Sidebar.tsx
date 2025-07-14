@@ -1,5 +1,5 @@
 import { useLocation } from "wouter";
-import { Link } from "wouter";
+import { Link, useRouter } from "wouter";
 import { 
   Home, 
   Package, 
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoPath from "@assets/WhatsApp_Image_2025-07-13_at_1.27.05_AM-removebg-preview_1752387426033.png";
+import { useNavigation } from "@/contexts/NavigationContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -34,6 +35,8 @@ const navigationItems = [
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [location] = useLocation();
+  const router = useRouter();
+  const { navigateWithLoader } = useNavigation();
 
   return (
     <div className={cn(
@@ -56,20 +59,27 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             const isActive = location === item.href;
             
             return (
-              <Link
+              <button
                 key={item.name}
-                href={item.href}
                 className={cn(
-                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  "w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
                   isActive
                     ? "nav-item-active"
                     : "text-black hover:bg-gray-50 hover:text-black"
                 )}
-                onClick={onClose}
+                onClick={() => {
+                  onClose();
+                  if (location !== item.href) {
+                    navigateWithLoader(
+                      () => router.navigate(item.href),
+                      `Loading ${item.name}...`
+                    );
+                  }
+                }}
               >
                 <Icon className="w-5 h-5 mr-3" />
                 <span>{item.name}</span>
-              </Link>
+              </button>
             );
           })}
         </nav>

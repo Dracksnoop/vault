@@ -32,12 +32,15 @@ import {
   Download,
   Plus
 } from 'lucide-react';
-import { Link } from 'wouter';
+import { Link, useRouter } from 'wouter';
+import { useNavigation } from '@/contexts/NavigationContext';
 import RentalItemsPanel from '@/components/RentalItemsPanel';
 
 export default function CustomerDetails() {
   const [match, params] = useRoute('/customer/:id');
   const customerId = params?.id ? parseInt(params.id) : null;
+  const router = useRouter();
+  const { navigateWithLoader } = useNavigation();
   const [selectedTab, setSelectedTab] = useState('overview');
   const [showRentalItems, setShowRentalItems] = useState(false);
   const [showEditCustomer, setShowEditCustomer] = useState(false);
@@ -172,12 +175,18 @@ export default function CustomerDetails() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link href="/customer">
-            <Button variant="outline" size="sm" className="border-black">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Customers
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-black"
+            onClick={() => navigateWithLoader(
+              () => router.navigate('/customer'), 
+              'Loading Customers...'
+            )}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Customers
+          </Button>
           <div>
             <h1 className="text-3xl font-bold text-black">{customer.name}</h1>
             <p className="text-gray-600 mt-1">Customer Details & Management</p>
