@@ -375,7 +375,13 @@ export class MongoStorage implements IStorage {
     const lastCustomer = await this.customers.findOne({}, { sort: { id: -1 } });
     const id = lastCustomer ? lastCustomer.id + 1 : 1;
     
-    const customer: Customer = { ...insertCustomer, id };
+    const now = new Date().toISOString();
+    const customer: Customer = { 
+      ...insertCustomer, 
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
     await this.customers.insertOne(customer);
     return customer;
   }
@@ -415,7 +421,12 @@ export class MongoStorage implements IStorage {
 
   async createService(insertService: InsertService): Promise<Service> {
     await this.initialize();
-    const service: Service = { ...insertService };
+    const now = new Date().toISOString();
+    const service: Service = { 
+      ...insertService,
+      createdAt: now,
+      updatedAt: now
+    };
     await this.services.insertOne(service);
     return service;
   }
@@ -500,7 +511,12 @@ export class MongoStorage implements IStorage {
 
   async createRental(insertRental: InsertRental): Promise<Rental> {
     await this.initialize();
-    const rental: Rental = { ...insertRental };
+    const now = new Date().toISOString();
+    const rental: Rental = { 
+      ...insertRental,
+      createdAt: now,
+      updatedAt: now
+    };
     await this.rentals.insertOne(rental);
     return rental;
   }

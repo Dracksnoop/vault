@@ -388,7 +388,7 @@ export default function CustomerDetails() {
                         </span>
                       </div>
                       <span className="text-xs text-gray-500">
-                        {new Date(service.createdAt || Date.now()).toLocaleDateString()}
+                        {service.createdAt ? new Date(service.createdAt).toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
                   ))
@@ -583,7 +583,7 @@ export default function CustomerDetails() {
                 <div className="border-l-4 border-blue-500 pl-4">
                   <p className="font-medium">Customer Account Created</p>
                   <p className="text-sm text-gray-600">
-                    {new Date(customer.createdAt || Date.now()).toLocaleDateString()} at {new Date(customer.createdAt || Date.now()).toLocaleTimeString()}
+                    {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : 'N/A'} at {customer.createdAt ? new Date(customer.createdAt).toLocaleTimeString() : 'N/A'}
                   </p>
                   <p className="text-sm text-gray-500">
                     Customer account was created with details: {customer.name}, {customer.email}, {customer.phone}
@@ -600,7 +600,7 @@ export default function CustomerDetails() {
                        'Service Created'}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {new Date(service.createdAt || Date.now()).toLocaleDateString()} at {new Date(service.createdAt || Date.now()).toLocaleTimeString()}
+                      {service.createdAt ? new Date(service.createdAt).toLocaleDateString() : 'N/A'} at {service.createdAt ? new Date(service.createdAt).toLocaleTimeString() : 'N/A'}
                     </p>
                     <p className="text-sm text-gray-500">
                       {service.serviceType === 'rent' ? `Monthly rental service initiated for ${service.duration || 'ongoing'} period` :
@@ -616,7 +616,7 @@ export default function CustomerDetails() {
                   <div key={rental.id} className="border-l-4 border-purple-500 pl-4">
                     <p className="font-medium">Rental Agreement Activated</p>
                     <p className="text-sm text-gray-600">
-                      {new Date(rental.startDate).toLocaleDateString()} at {new Date(rental.startDate).toLocaleTimeString()}
+                      {rental.createdAt ? new Date(rental.createdAt).toLocaleDateString() : 'N/A'} at {rental.createdAt ? new Date(rental.createdAt).toLocaleTimeString() : 'N/A'}
                     </p>
                     <p className="text-sm text-gray-500">
                       Rental agreement #{rental.id} activated with {rental.paymentFrequency} payments, 
