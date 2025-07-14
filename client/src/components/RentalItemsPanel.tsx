@@ -274,8 +274,9 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       itemDetails,
       availableUnits: itemUnits.length,
       rentedUnits: rentedUnits.length,
+      quantity: rentedUnits.length, // Use actual rented units count
       unitPrice: serviceItem.unitPrice || itemDetails?.price || '0',
-      totalValue: (parseFloat(serviceItem.unitPrice || itemDetails?.price || '0') * serviceItem.quantity).toFixed(2)
+      totalValue: (parseFloat(serviceItem.unitPrice || itemDetails?.price || '0') * rentedUnits.length).toFixed(2)
     };
   });
 
@@ -589,7 +590,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="font-medium">Current Quantity:</p>
-                    <p className="text-lg font-bold">{selectedItem.quantity} units</p>
+                    <p className="text-lg font-bold">{getRentedUnitsForItem(selectedItem.itemId).length} units</p>
                   </div>
                   <div>
                     <p className="font-medium">Unit Price:</p>
@@ -597,7 +598,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
                   </div>
                   <div>
                     <p className="font-medium">Total Value:</p>
-                    <p className="text-lg font-bold">₹{selectedItem.totalValue}</p>
+                    <p className="text-lg font-bold">₹{(getRentedUnitsForItem(selectedItem.itemId).length * parseFloat(selectedItem.unitPrice || '0')).toFixed(2)}</p>
                   </div>
                 </div>
               </div>

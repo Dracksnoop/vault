@@ -1,6 +1,48 @@
 import { Package, Users, Clock, DollarSign, Plus, UserPlus, Truck } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Home() {
+  // Fetch real-time data from APIs
+  const { data: units = [] } = useQuery({
+    queryKey: ['/api/units'],
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ['/api/customers'],
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  const { data: rentals = [] } = useQuery({
+    queryKey: ['/api/rentals'],
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  const { data: items = [] } = useQuery({
+    queryKey: ['/api/items'],
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  // Calculate real-time statistics
+  const totalUnits = units.length;
+  const rentedUnits = units.filter((unit: any) => unit.status === 'rented').length;
+  const availableUnits = units.filter((unit: any) => unit.status === 'In Stock').length;
+  const activeCustomers = customers.filter((customer: any) => 
+    rentals.some((rental: any) => rental.customerId === customer.id && rental.isOngoing)
+  ).length;
+  const activeRentals = rentals.filter((rental: any) => rental.isOngoing).length;
+  
+  // Calculate monthly revenue (simplified)
+  const monthlyRevenue = rentals.reduce((sum: number, rental: any) => {
+    if (rental.isOngoing && rental.monthlyRate) {
+      return sum + parseFloat(rental.monthlyRate || '0');
+    }
+    return sum;
+  }, 0);
   return (
     <div className="bg-white rounded-lg border border-black p-6">
       <h1 className="text-2xl font-bold text-black mb-4">Home</h1>
@@ -12,7 +54,8 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-black font-medium">Total Inventory</p>
-              <p className="text-2xl font-bold text-black">1,234</p>
+              <p className="text-2xl font-bold text-black">{totalUnits}</p>
+              <p className="text-xs text-gray-600">{availableUnits} available, {rentedUnits} rented</p>
             </div>
             <div className="w-12 h-12 bg-white border border-black rounded-lg flex items-center justify-center">
               <Package className="w-6 h-6 text-black" />
@@ -24,7 +67,8 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-black font-medium">Active Customers</p>
-              <p className="text-2xl font-bold text-black">567</p>
+              <p className="text-2xl font-bold text-black">{activeCustomers}</p>
+              <p className="text-xs text-gray-600">with ongoing rentals</p>
             </div>
             <div className="w-12 h-12 bg-white border border-black rounded-lg flex items-center justify-center">
               <Users className="w-6 h-6 text-black" />
@@ -35,8 +79,9 @@ export default function Home() {
         <div className="bg-white p-6 rounded-lg border border-black">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-black font-medium">Pending Orders</p>
-              <p className="text-2xl font-bold text-black">89</p>
+              <p className="text-sm text-black font-medium">Active Rentals</p>
+              <p className="text-2xl font-bold text-black">{activeRentals}</p>
+              <p className="text-xs text-gray-600">ongoing agreements</p>
             </div>
             <div className="w-12 h-12 bg-white border border-black rounded-lg flex items-center justify-center">
               <Clock className="w-6 h-6 text-black" />
@@ -48,7 +93,8 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-black font-medium">Monthly Revenue</p>
-              <p className="text-2xl font-bold text-black">$12,345</p>
+              <p className="text-2xl font-bold text-black">₹{monthlyRevenue.toLocaleString()}</p>
+              <p className="text-xs text-gray-600">from active rentals</p>
             </div>
             <div className="w-12 h-12 bg-white border border-black rounded-lg flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-black" />
