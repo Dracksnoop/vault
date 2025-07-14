@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Package, 
   Calendar, 
@@ -24,7 +25,12 @@ import {
   Phone,
   Mail,
   Building,
-  X
+  X,
+  Plus,
+  Minus,
+  Settings,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
 interface RentalItemsPanelProps {
@@ -37,6 +43,42 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
   const [showViewUnitsDialog, setShowViewUnitsDialog] = useState(false);
   const [showModifyDialog, setShowModifyDialog] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+
+  // Timeline helper functions
+  const getTimelineIcon = (changeType: string) => {
+    switch (changeType) {
+      case 'created':
+        return <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center"><CheckCircle className="w-4 h-4 text-green-600" /></div>;
+      case 'added':
+        return <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center"><Plus className="w-4 h-4 text-blue-600" /></div>;
+      case 'removed':
+        return <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center"><Minus className="w-4 h-4 text-red-600" /></div>;
+      case 'modified':
+        return <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center"><Settings className="w-4 h-4 text-yellow-600" /></div>;
+      default:
+        return <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center"><AlertCircle className="w-4 h-4 text-gray-600" /></div>;
+    }
+  };
+
+  const getChangeTypeBadgeVariant = (changeType: string) => {
+    switch (changeType) {
+      case 'created':
+        return 'default';
+      case 'added':
+        return 'default';
+      case 'removed':
+        return 'destructive';
+      case 'modified':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
+  };
+
+  const getItemName = (itemId: string) => {
+    const item = items.find((item: any) => item.id === itemId);
+    return item ? item.name : 'Unknown Item';
+  };
 
   const { data: services = [] } = useQuery({
     queryKey: ['/api/services'],
@@ -56,6 +98,11 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
 
   const { data: units = [] } = useQuery({
     queryKey: ['/api/units'],
+  });
+
+  // Timeline data for the customer
+  const { data: timeline = [] } = useQuery({
+    queryKey: ['/api/customers', customerId, 'timeline'],
   });
 
   // Get customer services
@@ -305,29 +352,72 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {activeRentals.map((rental: any) => (
-              <div key={rental.id} className="border-l-4 border-blue-500 pl-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Rental Started</p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(rental.startDate).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="default">Active</Badge>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Payment: {rental.paymentFrequency}
-                    </p>
-                  </div>
-                </div>
-                {rental.notes && (
-                  <p className="text-sm text-gray-500 mt-2">Notes: {rental.notes}</p>
-                )}
+          <ScrollArea className="h-96">
+            {timeline.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No timeline entries yet</p>
+                <p className="text-sm text-gray-500 mt-1">Timeline will appear here as rental modifications are made</p>
               </div>
-            ))}
-          </div>
+            ) : (
+              <div className="space-y-4">
+                {timeline.map((entry: any, index: number) => (
+                  <div key={entry.id} className="flex items-start space-x-3">
+                    {/* Timeline Icon */}
+                    <div className="flex-shrink-0 mt-1">
+                      {getTimelineIcon(entry.changeType)}
+                    </div>
+                    
+                    {/* Timeline Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-black">{entry.title}</p>
+                          <p className="text-sm text-gray-600">{entry.description}</p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={getChangeTypeBadgeVariant(entry.changeType)}>
+                            {entry.changeType}
+                          </Badge>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(entry.createdAt).toLocaleDateString()} {new Date(entry.createdAt).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Items Snapshot */}
+                      {entry.itemsSnapshot && (
+                        <div className="mt-2 p-2 bg-gray-50 rounded border">
+                          <p className="text-xs text-gray-600 mb-1">Items Affected:</p>
+                          <div className="space-y-1">
+                            {JSON.parse(entry.itemsSnapshot).map((item: any) => (
+                              <div key={item.id} className="flex justify-between text-xs">
+                                <span>{getItemName(item.itemId)} (x{item.quantity})</span>
+                                <span>₹{item.totalPrice}</span>
+                              </div>
+                            ))}
+                          </div>
+                          {entry.totalValue && (
+                            <div className="border-t pt-1 mt-1">
+                              <div className="flex justify-between text-xs font-medium">
+                                <span>Total Value:</span>
+                                <span>₹{entry.totalValue}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Timeline Line */}
+                    {index < timeline.length - 1 && (
+                      <div className="absolute left-4 top-8 w-0.5 h-16 bg-gray-200" style={{ marginLeft: '10px' }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </CardContent>
       </Card>
 

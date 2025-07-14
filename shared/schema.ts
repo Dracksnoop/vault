@@ -157,6 +157,18 @@ export const rentals = pgTable("rentals", {
   updatedAt: text("updated_at").default("now()"),
 });
 
+export const rentalTimeline = pgTable("rental_timeline", {
+  id: text("id").primaryKey(),
+  customerId: integer("customer_id").notNull(),
+  serviceId: text("service_id").notNull(),
+  changeType: text("change_type").notNull(), // "created", "added", "removed", "modified"
+  title: text("title").notNull(),
+  description: text("description"),
+  itemsSnapshot: text("items_snapshot").notNull(), // JSON string of rented items at this point
+  totalValue: decimal("total_value", { precision: 10, scale: 2 }),
+  createdAt: text("created_at").default("now()"),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -285,6 +297,17 @@ export const insertRentalSchema = createInsertSchema(rentals).pick({
   notes: true,
 });
 
+export const insertRentalTimelineSchema = createInsertSchema(rentalTimeline).pick({
+  id: true,
+  customerId: true,
+  serviceId: true,
+  changeType: true,
+  title: true,
+  description: true,
+  itemsSnapshot: true,
+  totalValue: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -311,3 +334,6 @@ export type ServiceItem = typeof serviceItems.$inferSelect;
 
 export type InsertRental = z.infer<typeof insertRentalSchema>;
 export type Rental = typeof rentals.$inferSelect;
+
+export type InsertRentalTimeline = z.infer<typeof insertRentalTimelineSchema>;
+export type RentalTimeline = typeof rentalTimeline.$inferSelect;

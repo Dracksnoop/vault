@@ -17,7 +17,9 @@ import {
   type ServiceItem,
   type InsertServiceItem,
   type Rental,
-  type InsertRental
+  type InsertRental,
+  type RentalTimeline,
+  type InsertRentalTimeline
 } from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -94,6 +96,10 @@ export interface IStorage {
   updateRental(id: string, rental: Partial<InsertRental>): Promise<Rental | undefined>;
   deleteRental(id: string): Promise<boolean>;
   
+  // Rental Timeline methods
+  getRentalTimeline(customerId: number): Promise<RentalTimeline[]>;
+  createRentalTimelineEntry(entry: InsertRentalTimeline): Promise<RentalTimeline>;
+  
   initialize(): Promise<void>;
 }
 
@@ -109,6 +115,7 @@ export class MongoStorage implements IStorage {
   private services: Collection<Service>;
   private serviceItems: Collection<ServiceItem>;
   private rentals: Collection<Rental>;
+  private rentalTimeline: Collection<RentalTimeline>;
   private isInitialized = false;
 
   constructor() {
@@ -134,6 +141,7 @@ export class MongoStorage implements IStorage {
       this.services = this.db.collection<Service>('services');
       this.serviceItems = this.db.collection<ServiceItem>('serviceItems');
       this.rentals = this.db.collection<Rental>('rentals');
+      this.rentalTimeline = this.db.collection<RentalTimeline>('rentalTimeline');
       
       // Initialize default categories if they don't exist
       const categoryCount = await this.categories.countDocuments();
@@ -536,6 +544,23 @@ export class MongoStorage implements IStorage {
     const result = await this.rentals.deleteOne({ id });
     return result.deletedCount === 1;
   }
+
+  // Rental Timeline methods
+  async getRentalTimeline(customerId: number): Promise<RentalTimeline[]> {
+    await this.initialize();
+    return await this.rentalTimeline.find({ customerId }).sort({ createdAt: -1 }).toArray();
+  }
+
+  async createRentalTimelineEntry(insertEntry: InsertRentalTimeline): Promise<RentalTimeline> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const entry: RentalTimeline = { 
+      ...insertEntry,
+      createdAt: now
+    };
+    await this.rentalTimeline.insertOne(entry);
+    return entry;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -548,6 +573,7 @@ export class MemStorage implements IStorage {
   private services: Map<string, Service>;
   private serviceItems: Map<string, ServiceItem>;
   private rentals: Map<string, Rental>;
+  private rentalTimeline: Map<string, RentalTimeline>;
   private currentUserId: number;
   private currentInventoryId: number;
   private currentCustomerId: number;
@@ -562,6 +588,7 @@ export class MemStorage implements IStorage {
     this.services = new Map();
     this.serviceItems = new Map();
     this.rentals = new Map();
+    this.rentalTimeline = new Map();
     this.currentUserId = 1;
     this.currentInventoryId = 1;
     this.currentCustomerId = 1;
@@ -849,6 +876,22 @@ export class MemStorage implements IStorage {
 
   async deleteRental(id: string): Promise<boolean> {
     return this.rentals.delete(id);
+  }
+
+  // Rental Timeline methods
+  async getRentalTimeline(customerId: number): Promise<RentalTimeline[]> {
+    return Array.from(this.rentalTimeline.values())
+      .filter(entry => entry.customerId === customerId)
+      .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime());
+  }
+
+  async createRentalTimelineEntry(insertEntry: InsertRentalTimeline): Promise<RentalTimeline> {
+    const entry: RentalTimeline = { 
+      ...insertEntry,
+      createdAt: new Date().toISOString()
+    };
+    this.rentalTimeline.set(entry.id, entry);
+    return entry;
   }
 }
 

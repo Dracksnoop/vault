@@ -10,7 +10,8 @@ import {
   insertUnitSchema,
   insertServiceSchema,
   insertServiceItemSchema,
-  insertRentalSchema
+  insertRentalSchema,
+  insertRentalTimelineSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -796,6 +797,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           serviceId: service.id,
           customerId: customer.id
         });
+
+        // Create timeline entry for rental creation
+        const timelineId = `timeline-${Date.now()}`;
+        await storage.createRentalTimelineEntry({
+          id: timelineId,
+          customerId: customer.id,
+          serviceId: service.id,
+          changeType: 'created',
+          title: 'Customer Rental Created',
+          description: `New rental started for ${customer.name}`,
+          itemsSnapshot: JSON.stringify(serviceItems),
+          totalValue: rentalData.totalValue || "0"
+        });
       }
 
       res.json({
@@ -946,6 +960,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching unit by serial number:", error);
       res.status(500).json({ error: "Failed to fetch unit details" });
+    }
+  });
+
+  // Rental Timeline routes
+  app.get("/api/customers/:customerId/timeline", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      const timeline = await storage.getRentalTimeline(customerId);
+      res.json(timeline);
+    } catch (error) {
+      console.error("Error fetching rental timeline:", error);
+      res.status(500).json({ error: "Failed to fetch rental timeline" });
+    }
+  });
+
+  app.post("/api/customers/:customerId/timeline", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      const timelineData = insertRentalTimelineSchema.parse({
+        ...req.body,
+        customerId
+      });
+      
+      const timelineEntry = await storage.createRentalTimelineEntry(timelineData);
+      res.json(timelineEntry);
+    } catch (error) {
+      console.error("Error creating timeline entry:", error);
+      res.status(400).json({ error: "Failed to create timeline entry" });
     }
   });
 
