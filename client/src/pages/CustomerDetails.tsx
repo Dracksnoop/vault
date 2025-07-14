@@ -77,7 +77,7 @@ export default function CustomerDetails() {
     mutationFn: (customerData: any) =>
       apiRequest(`/api/customers/${customerId}`, {
         method: 'PUT',
-        body: JSON.stringify(customerData),
+        body: customerData,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });

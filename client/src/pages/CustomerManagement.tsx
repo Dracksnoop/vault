@@ -904,7 +904,7 @@ export default function CustomerManagement() {
       return await apiRequest('/api/customers/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: data,
       });
     },
     onSuccess: () => {

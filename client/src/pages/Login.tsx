@@ -20,7 +20,7 @@ export default function Login({ onLogin }: LoginProps) {
     mutationFn: async (creds: { username: string; password: string }) => {
       return await apiRequest("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify(creds),
+        body: creds,
       });
     },
     onSuccess: (data) => {

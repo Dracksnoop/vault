@@ -196,7 +196,7 @@ export default function Inventory() {
     mutationFn: (category: { id: string; name: string; itemCount: number }) =>
       apiRequest("/api/categories", {
         method: "POST",
-        body: JSON.stringify(category),
+        body: category,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
@@ -209,7 +209,7 @@ export default function Inventory() {
     mutationFn: (item: any) =>
       apiRequest("/api/items", {
         method: "POST",
-        body: JSON.stringify(item),
+        body: item,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
@@ -228,7 +228,7 @@ export default function Inventory() {
     mutationFn: (unit: any) =>
       apiRequest("/api/units", {
         method: "POST",
-        body: JSON.stringify(unit),
+        body: unit,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
@@ -281,7 +281,7 @@ export default function Inventory() {
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       apiRequest(`/api/items/${id}`, {
         method: "PUT",
-        body: JSON.stringify(data),
+        body: data,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
@@ -294,7 +294,7 @@ export default function Inventory() {
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       apiRequest(`/api/units/${id}`, {
         method: "PUT",
-        body: JSON.stringify(data),
+        body: data,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
