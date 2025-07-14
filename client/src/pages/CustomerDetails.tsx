@@ -76,6 +76,14 @@ export default function CustomerDetails() {
     queryKey: ['/api/items'],
   });
 
+  const { data: units = [] } = useQuery({
+    queryKey: ['/api/units'],
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['/api/categories'],
+  });
+
   const updateCustomerMutation = useMutation({
     mutationFn: (customerData: any) =>
       apiRequest(`/api/customers/${customerId}`, {
@@ -158,6 +166,22 @@ export default function CustomerDetails() {
   const nextRentDate = activeRentals.length > 0 
     ? new Date(Math.min(...activeRentals.map((rental: any) => new Date(rental.endDate).getTime())))
     : null;
+
+  // Calculate CPU units on rent
+  const cpuUnitsOnRent = units.filter((unit: any) => {
+    // Check if unit is rented by this customer
+    if (unit.status === 'Rented' && unit.currentCustomerId === customerId) {
+      // Find the item this unit belongs to
+      const unitItem = items.find((item: any) => item.id === unit.itemId);
+      if (unitItem) {
+        // Find the category for this item
+        const itemCategory = categories.find((cat: any) => cat.id === unitItem.categoryId);
+        // Check if it's a CPU category
+        return itemCategory && itemCategory.name.toLowerCase() === 'cpu';
+      }
+    }
+    return false;
+  }).length;
 
   // If showing rental items panel, render it instead
   if (showRentalItems) {
@@ -322,7 +346,7 @@ export default function CustomerDetails() {
 
         <TabsContent value="overview" className="space-y-6">
           {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card 
               className="border-black cursor-pointer hover:shadow-lg transition-shadow" 
               onClick={() => setShowRentalItems(true)}
@@ -372,6 +396,18 @@ export default function CustomerDetails() {
                     </p>
                   </div>
                   <Clock className="w-8 h-8 text-orange-500" />
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-black">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">CPU Units on Rent</p>
+                    <p className="text-2xl font-bold text-purple-600">{cpuUnitsOnRent}</p>
+                  </div>
+                  <Package className="w-8 h-8 text-purple-500" />
                 </div>
               </CardContent>
             </Card>
