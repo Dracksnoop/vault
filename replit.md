@@ -197,3 +197,20 @@ The application follows a clean architecture pattern with clear separation betwe
   - Added orphaned rental detection and correction for units with invalid customer assignments
   - Fixed dashboard statistics to use correct "Available" and "Rented" status values
   - Ensured complete data consistency across all inventory management operations
+
+- **July 14, 2025**: Implemented customer authentication system for QR scan dashboard
+  - Extended authentication to support both system users and customers
+  - Customers can now login using their name/email as username and phone as password
+  - Added helpful login instructions and improved user interface
+  - Created test customers "John Doe" and "Sarah Wilson" for demonstration
+  - Fixed JSON parsing errors in authentication API requests
+  - Added proper token storage and management for secure sessions
+  - Updated user interface to distinguish between customer and system user access levels
+
+- **July 14, 2025**: Fixed real-time inventory updates in customer management system
+  - Resolved issue where rented units remained visible for selection after customer creation
+  - Added comprehensive cache invalidation for all relevant data (units, items, services, rentals)
+  - Implemented immediate UI refresh after successful customer creation
+  - Units now correctly show as "Rented" in real-time without requiring page refresh
+  - Enhanced inventory synchronization across all customer management workflows
+  - Improved user experience with instant feedback on unit availability changes

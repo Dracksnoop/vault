@@ -912,7 +912,16 @@ export default function CustomerManagement() {
         title: "Success!",
         description: "Customer created successfully",
       });
+      
+      // Invalidate all relevant caches to refresh UI with updated unit statuses
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/services'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      
       // Reset form
       setCurrentStep(1);
       setCustomerData({
