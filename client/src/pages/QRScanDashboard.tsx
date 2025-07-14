@@ -69,14 +69,16 @@ export default function QRScanDashboard() {
       // Authenticate user with real API
       const response = await apiRequest('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           username: loginForm.userId,
           password: loginForm.password
-        })
+        }
       });
 
-      if (response.user) {
+      if (response.user && response.token) {
+        // Store the authentication token
+        localStorage.setItem("authToken", response.token);
+        
         setIsAuthenticated(true);
         setAuthenticatedUser(response.user);
         
@@ -111,6 +113,9 @@ export default function QRScanDashboard() {
   };
 
   const handleLogout = () => {
+    // Clear authentication token
+    localStorage.removeItem("authToken");
+    
     setIsAuthenticated(false);
     setUnitDetails(null);
     setLoginForm({ userId: "", password: "" });

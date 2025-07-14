@@ -22,8 +22,10 @@ export async function apiRequest(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  // Properly serialize the body if it exists
-  const body = options?.body ? JSON.stringify(options.body) : undefined;
+  // Properly serialize the body if it exists and isn't already a string
+  const body = options?.body ? 
+    (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : 
+    undefined;
 
   const res = await fetch(url, {
     method: "GET",
