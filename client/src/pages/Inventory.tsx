@@ -458,10 +458,16 @@ export default function Inventory() {
       
       setCurrentUnitCreation("Finalizing...");
       
+      // Wait for all data to be properly saved before proceeding
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Invalidate all queries to ensure UI updates
-      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/units"] });
+      
+      // Wait for UI to refresh with new data
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       console.log("Item and units created successfully");
       
