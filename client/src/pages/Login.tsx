@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import logoPath from "@assets/WhatsApp_Image_2025-07-13_at_1.27.05_AM-removebg-preview_1752387426033.png";
+import VaultLoader from "@/components/VaultLoader";
 
 interface LoginProps {
   onLogin: (user: any) => void;
@@ -14,7 +15,26 @@ interface LoginProps {
 
 export default function Login({ onLogin }: LoginProps) {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
+  const [isPreloading, setIsPreloading] = useState(false);
   const { toast } = useToast();
+
+  const preloadAllData = async () => {
+    try {
+      // Preload all critical data that will be needed across the app
+      await Promise.all([
+        queryClient.prefetchQuery({ queryKey: ["/api/dashboard/stats"] }),
+        queryClient.prefetchQuery({ queryKey: ["/api/categories"] }),
+        queryClient.prefetchQuery({ queryKey: ["/api/items"] }),
+        queryClient.prefetchQuery({ queryKey: ["/api/units"] }),
+        queryClient.prefetchQuery({ queryKey: ["/api/customers"] }),
+        queryClient.prefetchQuery({ queryKey: ["/api/services"] }),
+        queryClient.prefetchQuery({ queryKey: ["/api/service-items"] }),
+        queryClient.prefetchQuery({ queryKey: ["/api/rentals"] }),
+      ]);
+    } catch (error) {
+      console.error("Error preloading data:", error);
+    }
+  };
 
   const loginMutation = useMutation({
     mutationFn: async (creds: { username: string; password: string }) => {
@@ -23,9 +43,18 @@ export default function Login({ onLogin }: LoginProps) {
         body: creds,
       });
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       // Store the token in localStorage
       localStorage.setItem("authToken", data.token);
+      
+      // Show preloader and load all data
+      setIsPreloading(true);
+      await preloadAllData();
+      
+      // Wait a moment to ensure all data is ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setIsPreloading(false);
       onLogin(data.user);
       toast({
         title: "Success",
@@ -53,6 +82,16 @@ export default function Login({ onLogin }: LoginProps) {
     }
     loginMutation.mutate(credentials);
   };
+
+  if (isPreloading) {
+    return (
+      <VaultLoader 
+        isVisible={true}
+        message="Loading complete web application..."
+        description="Preparing dashboard, inventory, customers, and all system data for optimal performance"
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
