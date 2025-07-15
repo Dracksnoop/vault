@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Package, Plus, Building, ShoppingCart, CheckCircle, Upload, X, Edit2, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Package, Plus, Building, ShoppingCart, CheckCircle, Upload, X, Edit2, Trash2, Eye } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -78,6 +78,8 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [isViewingOrder, setIsViewingOrder] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -98,6 +100,14 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
   // Fetch purchase history
   const { data: purchaseHistory = [] } = useQuery({
     queryKey: ['/api/purchase-orders'],
+    staleTime: 0,
+    cacheTime: 0,
+  });
+
+  // Fetch specific purchase order details
+  const { data: orderDetails } = useQuery({
+    queryKey: ['/api/purchase-orders', selectedOrderId],
+    enabled: !!selectedOrderId,
     staleTime: 0,
     cacheTime: 0,
   });
@@ -1008,23 +1018,137 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
             <div className="space-y-3">
               {purchaseHistory.map((order: any) => (
                 <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium text-black">{order.vendorName}</p>
                     <p className="text-sm text-gray-600">{order.orderDate}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right flex-1">
                     <p className="font-medium text-black">{order.totalItems} items</p>
                     <p className="text-sm text-gray-600">₹{parseFloat(order.totalValue).toLocaleString()}</p>
                   </div>
-                  <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
-                    {order.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                      {order.status}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedOrderId(order.id);
+                        setIsViewingOrder(true);
+                      }}
+                      className="border-black text-black hover:bg-gray-100"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Purchase Order Details Dialog */}
+      <Dialog open={isViewingOrder} onOpenChange={setIsViewingOrder}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Purchase Order Details</DialogTitle>
+          </DialogHeader>
+          {orderDetails && (
+            <div className="space-y-6">
+              {/* Order Summary */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-medium text-black mb-3">Order Summary</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Order ID</p>
+                    <p className="font-medium text-black">{orderDetails.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Order Date</p>
+                    <p className="font-medium text-black">{orderDetails.orderDate}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Status</p>
+                    <Badge variant={orderDetails.status === 'completed' ? 'default' : 'secondary'}>
+                      {orderDetails.status}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Total Value</p>
+                    <p className="font-medium text-black">₹{parseFloat(orderDetails.totalValue).toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vendor Details */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-medium text-black mb-3">Vendor Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Vendor Name</p>
+                    <p className="font-medium text-black">{orderDetails.vendorData?.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Organization</p>
+                    <p className="font-medium text-black">{orderDetails.vendorData?.organization || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Contact Person</p>
+                    <p className="font-medium text-black">{orderDetails.vendorData?.contactPerson || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Phone</p>
+                    <p className="font-medium text-black">{orderDetails.vendorData?.phone || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium text-black">{orderDetails.vendorData?.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Address</p>
+                    <p className="font-medium text-black">{orderDetails.vendorData?.address || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Purchase Items */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-medium text-black mb-3">Purchase Items</h3>
+                <div className="space-y-3">
+                  {orderDetails.items?.map((item: any) => (
+                    <div key={item.id} className="bg-white rounded-lg p-3 border">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-black">{item.name}</p>
+                          <p className="text-sm text-gray-600">{item.model}</p>
+                          <p className="text-sm text-gray-600">Category: {item.categoryName}</p>
+                          <p className="text-sm text-gray-600">Location: {item.location}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-black">Qty: {item.quantity}</p>
+                          <p className="text-sm text-gray-600">₹{parseFloat(item.unitPrice).toLocaleString()} each</p>
+                          <p className="text-sm font-medium text-black">₹{parseFloat(item.totalPrice).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Order Notes */}
+              {orderDetails.notes && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-medium text-black mb-3">Order Notes</h3>
+                  <p className="text-gray-700">{orderDetails.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
