@@ -384,20 +384,10 @@ export type Rental = typeof rentals.$inferSelect;
 export type InsertRentalTimeline = z.infer<typeof insertRentalTimelineSchema>;
 export type RentalTimeline = typeof rentalTimeline.$inferSelect;
 
-export const insertVendorSchema = createInsertSchema(vendors).pick({
+export const insertVendorSchema = createInsertSchema(vendors).omit({
   id: true,
-  name: true,
-  organization: true,
-  country: true,
-  city: true,
-  state: true,
-  pincode: true,
-  address: true,
-  gstTaxId: true,
-  contactPerson: true,
-  phone: true,
-  email: true,
-  legalDocuments: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).pick({

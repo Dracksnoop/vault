@@ -1385,11 +1385,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/vendors", requireAuth, async (req, res) => {
     try {
+      console.log("Creating vendor with data:", req.body);
       const validatedData = insertVendorSchema.parse(req.body);
+      console.log("Validated data:", validatedData);
       const vendor = await storage.createVendor(validatedData);
       res.status(201).json(vendor);
     } catch (error) {
-      res.status(400).json({ error: "Invalid vendor data" });
+      console.error("Vendor creation error:", error);
+      res.status(400).json({ error: "Invalid vendor data", details: error.message });
     }
   });
 
