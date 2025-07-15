@@ -19,7 +19,13 @@ import {
   type Rental,
   type InsertRental,
   type RentalTimeline,
-  type InsertRentalTimeline
+  type InsertRentalTimeline,
+  type Vendor,
+  type InsertVendor,
+  type PurchaseOrder,
+  type InsertPurchaseOrder,
+  type PurchaseOrderItem,
+  type InsertPurchaseOrderItem
 } from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -100,6 +106,28 @@ export interface IStorage {
   getRentalTimeline(customerId: number): Promise<RentalTimeline[]>;
   createRentalTimelineEntry(entry: InsertRentalTimeline): Promise<RentalTimeline>;
   
+  // Vendor methods
+  getVendors(): Promise<Vendor[]>;
+  getVendor(id: string): Promise<Vendor | undefined>;
+  createVendor(vendor: InsertVendor): Promise<Vendor>;
+  updateVendor(id: string, vendor: Partial<InsertVendor>): Promise<Vendor | undefined>;
+  deleteVendor(id: string): Promise<boolean>;
+  
+  // Purchase Order methods
+  getPurchaseOrders(): Promise<PurchaseOrder[]>;
+  getPurchaseOrder(id: string): Promise<PurchaseOrder | undefined>;
+  createPurchaseOrder(order: InsertPurchaseOrder): Promise<PurchaseOrder>;
+  updatePurchaseOrder(id: string, order: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder | undefined>;
+  deletePurchaseOrder(id: string): Promise<boolean>;
+  
+  // Purchase Order Item methods
+  getPurchaseOrderItems(): Promise<PurchaseOrderItem[]>;
+  getPurchaseOrderItem(id: string): Promise<PurchaseOrderItem | undefined>;
+  getPurchaseOrderItemsByOrder(orderId: string): Promise<PurchaseOrderItem[]>;
+  createPurchaseOrderItem(item: InsertPurchaseOrderItem): Promise<PurchaseOrderItem>;
+  updatePurchaseOrderItem(id: string, item: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem | undefined>;
+  deletePurchaseOrderItem(id: string): Promise<boolean>;
+  
   initialize(): Promise<void>;
 }
 
@@ -116,6 +144,9 @@ export class MongoStorage implements IStorage {
   private serviceItems: Collection<ServiceItem>;
   private rentals: Collection<Rental>;
   private rentalTimeline: Collection<RentalTimeline>;
+  private vendors: Collection<Vendor>;
+  private purchaseOrders: Collection<PurchaseOrder>;
+  private purchaseOrderItems: Collection<PurchaseOrderItem>;
   private isInitialized = false;
 
   constructor() {
@@ -142,6 +173,9 @@ export class MongoStorage implements IStorage {
       this.serviceItems = this.db.collection<ServiceItem>('serviceItems');
       this.rentals = this.db.collection<Rental>('rentals');
       this.rentalTimeline = this.db.collection<RentalTimeline>('rentalTimeline');
+      this.vendors = this.db.collection<Vendor>('vendors');
+      this.purchaseOrders = this.db.collection<PurchaseOrder>('purchaseOrders');
+      this.purchaseOrderItems = this.db.collection<PurchaseOrderItem>('purchaseOrderItems');
       
       // Initialize default categories if they don't exist
       const categoryCount = await this.categories.countDocuments();
@@ -582,6 +616,130 @@ export class MongoStorage implements IStorage {
     await this.rentalTimeline.insertOne(entry);
     return entry;
   }
+
+  // Vendor methods
+  async getVendors(): Promise<Vendor[]> {
+    await this.initialize();
+    return await this.vendors.find({}).toArray();
+  }
+
+  async getVendor(id: string): Promise<Vendor | undefined> {
+    await this.initialize();
+    const vendor = await this.vendors.findOne({ id });
+    return vendor || undefined;
+  }
+
+  async createVendor(insertVendor: InsertVendor): Promise<Vendor> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const vendor: Vendor = { 
+      ...insertVendor,
+      createdAt: now,
+      updatedAt: now
+    };
+    await this.vendors.insertOne(vendor);
+    return vendor;
+  }
+
+  async updateVendor(id: string, updateData: Partial<InsertVendor>): Promise<Vendor | undefined> {
+    await this.initialize();
+    const result = await this.vendors.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteVendor(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.vendors.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Purchase Order methods
+  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+    await this.initialize();
+    return await this.purchaseOrders.find({}).toArray();
+  }
+
+  async getPurchaseOrder(id: string): Promise<PurchaseOrder | undefined> {
+    await this.initialize();
+    const order = await this.purchaseOrders.findOne({ id });
+    return order || undefined;
+  }
+
+  async createPurchaseOrder(insertOrder: InsertPurchaseOrder): Promise<PurchaseOrder> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const order: PurchaseOrder = { 
+      ...insertOrder,
+      createdAt: now,
+      updatedAt: now
+    };
+    await this.purchaseOrders.insertOne(order);
+    return order;
+  }
+
+  async updatePurchaseOrder(id: string, updateData: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder | undefined> {
+    await this.initialize();
+    const result = await this.purchaseOrders.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deletePurchaseOrder(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.purchaseOrders.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Purchase Order Item methods
+  async getPurchaseOrderItems(): Promise<PurchaseOrderItem[]> {
+    await this.initialize();
+    return await this.purchaseOrderItems.find({}).toArray();
+  }
+
+  async getPurchaseOrderItem(id: string): Promise<PurchaseOrderItem | undefined> {
+    await this.initialize();
+    const item = await this.purchaseOrderItems.findOne({ id });
+    return item || undefined;
+  }
+
+  async getPurchaseOrderItemsByOrder(orderId: string): Promise<PurchaseOrderItem[]> {
+    await this.initialize();
+    return await this.purchaseOrderItems.find({ purchaseOrderId: orderId }).toArray();
+  }
+
+  async createPurchaseOrderItem(insertItem: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const item: PurchaseOrderItem = { 
+      ...insertItem,
+      createdAt: now
+    };
+    await this.purchaseOrderItems.insertOne(item);
+    return item;
+  }
+
+  async updatePurchaseOrderItem(id: string, updateData: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem | undefined> {
+    await this.initialize();
+    const result = await this.purchaseOrderItems.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deletePurchaseOrderItem(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.purchaseOrderItems.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -595,6 +753,9 @@ export class MemStorage implements IStorage {
   private serviceItems: Map<string, ServiceItem>;
   private rentals: Map<string, Rental>;
   private rentalTimeline: Map<string, RentalTimeline>;
+  private vendors: Map<string, Vendor>;
+  private purchaseOrders: Map<string, PurchaseOrder>;
+  private purchaseOrderItems: Map<string, PurchaseOrderItem>;
   private currentUserId: number;
   private currentInventoryId: number;
   private currentCustomerId: number;
@@ -610,6 +771,9 @@ export class MemStorage implements IStorage {
     this.serviceItems = new Map();
     this.rentals = new Map();
     this.rentalTimeline = new Map();
+    this.vendors = new Map();
+    this.purchaseOrders = new Map();
+    this.purchaseOrderItems = new Map();
     this.currentUserId = 1;
     this.currentInventoryId = 1;
     this.currentCustomerId = 1;
@@ -935,6 +1099,110 @@ export class MemStorage implements IStorage {
     };
     this.rentalTimeline.set(entry.id, entry);
     return entry;
+  }
+
+  // Vendor methods
+  async getVendors(): Promise<Vendor[]> {
+    return Array.from(this.vendors.values());
+  }
+
+  async getVendor(id: string): Promise<Vendor | undefined> {
+    return this.vendors.get(id);
+  }
+
+  async createVendor(insertVendor: InsertVendor): Promise<Vendor> {
+    const now = new Date().toISOString();
+    const vendor: Vendor = { 
+      ...insertVendor,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.vendors.set(vendor.id, vendor);
+    return vendor;
+  }
+
+  async updateVendor(id: string, updateData: Partial<InsertVendor>): Promise<Vendor | undefined> {
+    const existing = this.vendors.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Vendor = { ...existing, ...updateData, updatedAt: new Date().toISOString() };
+    this.vendors.set(id, updated);
+    return updated;
+  }
+
+  async deleteVendor(id: string): Promise<boolean> {
+    return this.vendors.delete(id);
+  }
+
+  // Purchase Order methods
+  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+    return Array.from(this.purchaseOrders.values());
+  }
+
+  async getPurchaseOrder(id: string): Promise<PurchaseOrder | undefined> {
+    return this.purchaseOrders.get(id);
+  }
+
+  async createPurchaseOrder(insertOrder: InsertPurchaseOrder): Promise<PurchaseOrder> {
+    const now = new Date().toISOString();
+    const order: PurchaseOrder = { 
+      ...insertOrder,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.purchaseOrders.set(order.id, order);
+    return order;
+  }
+
+  async updatePurchaseOrder(id: string, updateData: Partial<InsertPurchaseOrder>): Promise<PurchaseOrder | undefined> {
+    const existing = this.purchaseOrders.get(id);
+    if (!existing) return undefined;
+    
+    const updated: PurchaseOrder = { ...existing, ...updateData, updatedAt: new Date().toISOString() };
+    this.purchaseOrders.set(id, updated);
+    return updated;
+  }
+
+  async deletePurchaseOrder(id: string): Promise<boolean> {
+    return this.purchaseOrders.delete(id);
+  }
+
+  // Purchase Order Item methods
+  async getPurchaseOrderItems(): Promise<PurchaseOrderItem[]> {
+    return Array.from(this.purchaseOrderItems.values());
+  }
+
+  async getPurchaseOrderItem(id: string): Promise<PurchaseOrderItem | undefined> {
+    return this.purchaseOrderItems.get(id);
+  }
+
+  async getPurchaseOrderItemsByOrder(orderId: string): Promise<PurchaseOrderItem[]> {
+    return Array.from(this.purchaseOrderItems.values()).filter(
+      item => item.purchaseOrderId === orderId
+    );
+  }
+
+  async createPurchaseOrderItem(insertItem: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
+    const now = new Date().toISOString();
+    const item: PurchaseOrderItem = { 
+      ...insertItem,
+      createdAt: now
+    };
+    this.purchaseOrderItems.set(item.id, item);
+    return item;
+  }
+
+  async updatePurchaseOrderItem(id: string, updateData: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem | undefined> {
+    const existing = this.purchaseOrderItems.get(id);
+    if (!existing) return undefined;
+    
+    const updated: PurchaseOrderItem = { ...existing, ...updateData };
+    this.purchaseOrderItems.set(id, updated);
+    return updated;
+  }
+
+  async deletePurchaseOrderItem(id: string): Promise<boolean> {
+    return this.purchaseOrderItems.delete(id);
   }
 }
 

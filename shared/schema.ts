@@ -172,6 +172,46 @@ export const rentalTimeline = pgTable("rental_timeline", {
   createdAt: text("created_at").default("now()"),
 });
 
+export const vendors = pgTable("vendors", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  organization: text("organization"),
+  country: text("country"),
+  city: text("city"),
+  state: text("state"),
+  pincode: text("pincode"),
+  address: text("address"),
+  gstTaxId: text("gst_tax_id"),
+  contactPerson: text("contact_person"),
+  phone: text("phone"),
+  email: text("email"),
+  legalDocuments: text("legal_documents"), // JSON string of uploaded document URLs
+  createdAt: text("created_at").default("now()"),
+  updatedAt: text("updated_at").default("now()"),
+});
+
+export const purchaseOrders = pgTable("purchase_orders", {
+  id: text("id").primaryKey(),
+  vendorId: text("vendor_id").notNull(),
+  orderDate: text("order_date").notNull(),
+  status: text("status").notNull().default("pending"), // "pending", "processing", "completed", "cancelled"
+  totalItems: integer("total_items").default(0),
+  totalValue: decimal("total_value", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  createdAt: text("created_at").default("now()"),
+  updatedAt: text("updated_at").default("now()"),
+});
+
+export const purchaseOrderItems = pgTable("purchase_order_items", {
+  id: text("id").primaryKey(),
+  purchaseOrderId: text("purchase_order_id").notNull(),
+  itemId: text("item_id").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  createdAt: text("created_at").default("now()"),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -343,3 +383,47 @@ export type Rental = typeof rentals.$inferSelect;
 
 export type InsertRentalTimeline = z.infer<typeof insertRentalTimelineSchema>;
 export type RentalTimeline = typeof rentalTimeline.$inferSelect;
+
+export const insertVendorSchema = createInsertSchema(vendors).pick({
+  id: true,
+  name: true,
+  organization: true,
+  country: true,
+  city: true,
+  state: true,
+  pincode: true,
+  address: true,
+  gstTaxId: true,
+  contactPerson: true,
+  phone: true,
+  email: true,
+  legalDocuments: true,
+});
+
+export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).pick({
+  id: true,
+  vendorId: true,
+  orderDate: true,
+  status: true,
+  totalItems: true,
+  totalValue: true,
+  notes: true,
+});
+
+export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderItems).pick({
+  id: true,
+  purchaseOrderId: true,
+  itemId: true,
+  quantity: true,
+  unitPrice: true,
+  totalPrice: true,
+});
+
+export type InsertVendor = z.infer<typeof insertVendorSchema>;
+export type Vendor = typeof vendors.$inferSelect;
+
+export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+
+export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSchema>;
+export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;

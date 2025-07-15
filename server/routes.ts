@@ -11,7 +11,10 @@ import {
   insertServiceSchema,
   insertServiceItemSchema,
   insertRentalSchema,
-  insertRentalTimelineSchema
+  insertRentalTimelineSchema,
+  insertVendorSchema,
+  insertPurchaseOrderSchema,
+  insertPurchaseOrderItemSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1355,6 +1358,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Deep cleanup error:", error);
       res.status(500).json({ error: "Failed to deep cleanup timeline entries" });
+    }
+  });
+
+  // Vendor routes
+  app.get("/api/vendors", requireAuth, async (req, res) => {
+    try {
+      const vendors = await storage.getVendors();
+      res.json(vendors);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vendors" });
+    }
+  });
+
+  app.get("/api/vendors/:id", requireAuth, async (req, res) => {
+    try {
+      const vendor = await storage.getVendor(req.params.id);
+      if (!vendor) {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+      res.json(vendor);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vendor" });
+    }
+  });
+
+  app.post("/api/vendors", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertVendorSchema.parse(req.body);
+      const vendor = await storage.createVendor(validatedData);
+      res.status(201).json(vendor);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid vendor data" });
+    }
+  });
+
+  app.put("/api/vendors/:id", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertVendorSchema.parse(req.body);
+      const vendor = await storage.updateVendor(req.params.id, validatedData);
+      if (!vendor) {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+      res.json(vendor);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid vendor data" });
+    }
+  });
+
+  app.delete("/api/vendors/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteVendor(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete vendor" });
+    }
+  });
+
+  // Purchase Order routes
+  app.get("/api/purchase-orders", requireAuth, async (req, res) => {
+    try {
+      const orders = await storage.getPurchaseOrders();
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch purchase orders" });
+    }
+  });
+
+  app.get("/api/purchase-orders/:id", requireAuth, async (req, res) => {
+    try {
+      const order = await storage.getPurchaseOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch purchase order" });
+    }
+  });
+
+  app.post("/api/purchase-orders", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertPurchaseOrderSchema.parse(req.body);
+      const order = await storage.createPurchaseOrder(validatedData);
+      res.status(201).json(order);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid purchase order data" });
+    }
+  });
+
+  app.put("/api/purchase-orders/:id", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertPurchaseOrderSchema.parse(req.body);
+      const order = await storage.updatePurchaseOrder(req.params.id, validatedData);
+      if (!order) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid purchase order data" });
+    }
+  });
+
+  app.delete("/api/purchase-orders/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deletePurchaseOrder(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete purchase order" });
+    }
+  });
+
+  // Purchase Order Items routes
+  app.get("/api/purchase-order-items", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getPurchaseOrderItems();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch purchase order items" });
+    }
+  });
+
+  app.get("/api/purchase-order-items/order/:orderId", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getPurchaseOrderItemsByOrder(req.params.orderId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch purchase order items" });
+    }
+  });
+
+  app.post("/api/purchase-order-items", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertPurchaseOrderItemSchema.parse(req.body);
+      const item = await storage.createPurchaseOrderItem(validatedData);
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid purchase order item data" });
+    }
+  });
+
+  app.put("/api/purchase-order-items/:id", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertPurchaseOrderItemSchema.parse(req.body);
+      const item = await storage.updatePurchaseOrderItem(req.params.id, validatedData);
+      if (!item) {
+        return res.status(404).json({ error: "Purchase order item not found" });
+      }
+      res.json(item);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid purchase order item data" });
+    }
+  });
+
+  app.delete("/api/purchase-order-items/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deletePurchaseOrderItem(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Purchase order item not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete purchase order item" });
     }
   });
 
