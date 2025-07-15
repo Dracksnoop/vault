@@ -1437,8 +1437,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!order) {
         return res.status(404).json({ error: "Purchase order not found" });
       }
-      res.json(order);
+
+      // Fetch vendor data
+      const vendor = await storage.getVendor(order.vendorId);
+      
+      // Fetch purchase order items
+      const orderItems = await storage.getPurchaseOrderItemsByOrder(req.params.id);
+      
+      // Fetch item details for each purchase order item
+      const itemsWithDetails = await Promise.all(
+        orderItems.map(async (orderItem) => {
+          const item = await storage.getItem(orderItem.itemId);
+          const category = item ? await storage.getCategory(item.categoryId) : null;
+          
+          return {
+            ...orderItem,
+            name: item?.name || 'Unknown Item',
+            model: item?.model || 'N/A',
+            categoryName: category?.name || 'Unknown Category',
+            location: item?.location || 'N/A'
+          };
+        })
+      );
+
+      // Return enhanced order data
+      res.json({
+        ...order,
+        vendorData: vendor ? {
+          name: vendor.name,
+          organization: vendor.organization,
+          contactPerson: vendor.contactPerson,
+          phone: vendor.phone,
+          email: vendor.email,
+          address: vendor.address,
+          country: vendor.country,
+          state: vendor.state,
+          city: vendor.city,
+          pincode: vendor.pincode,
+          gstTaxId: vendor.gstTaxId,
+          legalDocuments: vendor.legalDocuments
+        } : null,
+        items: itemsWithDetails
+      });
     } catch (error) {
+      console.error("Error fetching purchase order details:", error);
       res.status(500).json({ error: "Failed to fetch purchase order" });
     }
   });
