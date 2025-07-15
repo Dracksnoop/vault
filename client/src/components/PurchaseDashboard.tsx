@@ -367,42 +367,8 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
         </div>
       </div>
 
-      {/* Purchase History Section */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-black mb-4">Purchase History</h2>
-        <div className="bg-white border border-black rounded-lg p-4">
-          {purchaseHistory.length === 0 ? (
-            <div className="text-center py-8">
-              <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No purchase orders yet</p>
-              <p className="text-sm text-gray-500 mt-2">
-                Create your first purchase order below
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {purchaseHistory.map((order: any) => (
-                <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-black">{order.vendorName}</p>
-                    <p className="text-sm text-gray-600">{order.orderDate}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-black">{order.totalItems} items</p>
-                    <p className="text-sm text-gray-600">₹{parseFloat(order.totalValue).toLocaleString()}</p>
-                  </div>
-                  <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
-                    {order.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* New Purchase Creation Wizard */}
-      <div>
+      <div className="mb-8">
         <h2 className="text-lg font-semibold text-black mb-4">Create New Purchase Order</h2>
         
         {/* Progress Indicator */}
@@ -1025,6 +991,40 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Purchase History Section */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-black mb-4">Purchase History</h2>
+        <div className="bg-white border border-black rounded-lg p-4">
+          {purchaseHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No purchase orders yet</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Create your first purchase order above
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {purchaseHistory.map((order: any) => (
+                <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-black">{order.vendorName}</p>
+                    <p className="text-sm text-gray-600">{order.orderDate}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-black">{order.totalItems} items</p>
+                    <p className="text-sm text-gray-600">₹{parseFloat(order.totalValue).toLocaleString()}</p>
+                  </div>
+                  <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                    {order.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
