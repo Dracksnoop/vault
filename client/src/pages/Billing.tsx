@@ -458,6 +458,20 @@ export default function Billing() {
                               >
                                 <Download className="w-4 h-4" />
                               </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                                onClick={() => {
+                                  setShowCreateRecurringModal(true);
+                                  toast({
+                                    title: "Schedule Recurring Invoice",
+                                    description: `Setting up recurring billing for ${invoice.customerName}`,
+                                  });
+                                }}
+                              >
+                                <Calendar className="w-4 h-4" />
+                              </Button>
                               {invoice.status === 'pending' && (
                                 <Button 
                                   variant="outline" 
