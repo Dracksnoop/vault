@@ -324,9 +324,9 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     
-    // Draw main page border
+    // Draw main page border with thinner lines
     doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.5);
+    doc.setLineWidth(0.2);
     doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
     
     // Company logo area with light gray background
@@ -406,12 +406,12 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     doc.setFont('helvetica', 'bold');
     doc.text('Invoice', 160, 40);
     
-    // Invoice details section with border
+    // Invoice details section with thinner border
     doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.5);
+    doc.setLineWidth(0.2);
     doc.rect(15, 65, 180, 25);
     
-    // Invoice details content
+    // Invoice details content - better aligned
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text('#', 20, 75);
@@ -419,7 +419,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     doc.text('Terms', 20, 85);
     doc.text('Due Date', 20, 90);
     
-    // Invoice details values
+    // Invoice details values - properly aligned
     doc.text(`: ${invoiceData.invoiceNumber}`, 80, 75);
     doc.text(`: ${new Date(invoiceData.invoiceDate).toLocaleDateString('en-GB')}`, 80, 80);
     doc.text(': Due on Receipt', 80, 85);
@@ -433,13 +433,14 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     // Items table
     let yPos = 120;
     
-    // Table header with borders
+    // Table header with thinner borders
     doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.5);
+    doc.setLineWidth(0.2);
     doc.rect(15, yPos, 180, 12);
     doc.line(25, yPos, 25, yPos + 12); // # column separator
     doc.line(130, yPos, 130, yPos + 12); // Qty column separator
     doc.line(155, yPos, 155, yPos + 12); // Rate column separator
+    doc.line(170, yPos, 170, yPos + 12); // Rate-Amount separator line
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
@@ -458,13 +459,15 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
       const itemTotal = item.quantity * item.unitPrice;
       calculatedSubtotal += itemTotal;
       
-      // Draw row borders
+      // Draw row borders with thinner lines
+      doc.setLineWidth(0.2);
       doc.rect(15, yPos, 180, 10);
       doc.line(25, yPos, 25, yPos + 10);
       doc.line(130, yPos, 130, yPos + 10);
       doc.line(155, yPos, 155, yPos + 10);
+      doc.line(170, yPos, 170, yPos + 10); // Rate-Amount separator line
       
-      // Row content
+      // Row content with proper formatting
       doc.text((index + 1).toString(), 18, yPos + 6);
       doc.text(item.itemName, 30, yPos + 6);
       doc.text(`${item.quantity.toFixed(2)}`, 132, yPos + 6);
@@ -486,7 +489,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     doc.setFont('helvetica', 'normal');
     doc.text(`Indian Rupee ${numberToWords(Math.floor(calculatedTotal))}`, 20, yPos + 6);
     
-    // Right side totals
+    // Right side totals with proper formatting
     doc.text('Sub Total', 145, yPos);
     doc.text(`${calculatedSubtotal.toFixed(2)}`, 175, yPos);
     
@@ -495,7 +498,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     doc.text(`₹${calculatedTotal.toFixed(2)}`, 175, yPos + 6);
     
     doc.text('Payment Made', 145, yPos + 12);
-    doc.text('(-) 180.00', 175, yPos + 12);
+    doc.text('(-) ₹180.00', 175, yPos + 12);
     
     doc.text('Balance Due', 145, yPos + 18);
     doc.text('₹0.00', 175, yPos + 18);
