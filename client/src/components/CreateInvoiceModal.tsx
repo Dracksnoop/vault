@@ -73,6 +73,12 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
   const [editableSubtotal, setEditableSubtotal] = useState(0);
   const [editableTotalAmount, setEditableTotalAmount] = useState(0);
   
+  // Bank details state
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('50200042158914');
+  const [ifscCode, setIfscCode] = useState('HDFC0000192');
+  const [bankAddress, setBankAddress] = useState('');
+  
   // Item selection state
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [itemQuantity, setItemQuantity] = useState(1);
@@ -144,6 +150,15 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     setEditableSubtotal(subtotal);
     setEditableTotalAmount(totalAmount);
   }, [subtotal, totalAmount]);
+
+  // Initialize bank details with company profile data
+  useEffect(() => {
+    if (companyProfile && !bankName) {
+      setBankName(companyProfile.companyName || '');
+      setBankAddress(companyProfile.city && companyProfile.stateProvince ? 
+        `${companyProfile.city}, ${companyProfile.stateProvince}` : '');
+    }
+  }, [companyProfile, bankName]);
 
   // Add item to invoice
   const addItemToInvoice = () => {
@@ -410,12 +425,12 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     doc.setFont('helvetica', 'normal');
     doc.text('Thanks for your business.', 20, yPos);
     
-    // Bank details (using company profile info)
+    // Bank details (using editable bank details)
     yPos += 10;
-    doc.text(`Name - ${companyProfile?.companyName || 'Company Name'}`, 20, yPos);
-    doc.text('Account - 50200042158914', 20, yPos + 5); // TODO: Add bank details to profile
-    doc.text('Ifsc code - HDFC0000192', 20, yPos + 10); // TODO: Add bank details to profile
-    const addressLine = companyProfile ? `${companyProfile.city}, ${companyProfile.stateProvince}` : 'City, State';
+    doc.text(`Name - ${bankName || companyProfile?.companyName || 'Company Name'}`, 20, yPos);
+    doc.text(`Account - ${accountNumber}`, 20, yPos + 5);
+    doc.text(`Ifsc code - ${ifscCode}`, 20, yPos + 10);
+    const addressLine = bankAddress || (companyProfile ? `${companyProfile.city}, ${companyProfile.stateProvince}` : 'City, State');
     doc.text(`Address - ${addressLine}`, 20, yPos + 15);
     
     // Terms and conditions
@@ -507,6 +522,12 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     setEditableInvoiceNumber('');
     setEditableSubtotal(0);
     setEditableTotalAmount(0);
+    // Reset bank details to default values
+    setBankName(companyProfile?.companyName || '');
+    setAccountNumber('50200042158914');
+    setIfscCode('HDFC0000192');
+    setBankAddress(companyProfile && companyProfile.city && companyProfile.stateProvince ? 
+      `${companyProfile.city}, ${companyProfile.stateProvince}` : '');
   };
 
   // Handle form submission
@@ -987,6 +1008,53 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
             />
           </div>
 
+          {/* Bank Details Section */}
+          <div className="border-t border-gray-200 pt-6">
+            <h3 className="text-lg font-semibold mb-4">Bank Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="bankName">Bank Account Name</Label>
+                <Input
+                  id="bankName"
+                  placeholder="Account holder name"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className="border-black"
+                />
+              </div>
+              <div>
+                <Label htmlFor="accountNumber">Account Number</Label>
+                <Input
+                  id="accountNumber"
+                  placeholder="Account number"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  className="border-black"
+                />
+              </div>
+              <div>
+                <Label htmlFor="ifscCode">IFSC Code</Label>
+                <Input
+                  id="ifscCode"
+                  placeholder="IFSC code"
+                  value={ifscCode}
+                  onChange={(e) => setIfscCode(e.target.value)}
+                  className="border-black"
+                />
+              </div>
+              <div>
+                <Label htmlFor="bankAddress">Bank Address</Label>
+                <Input
+                  id="bankAddress"
+                  placeholder="Bank address"
+                  value={bankAddress}
+                  onChange={(e) => setBankAddress(e.target.value)}
+                  className="border-black"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Actions */}
           <div className="flex justify-end space-x-2">
             <Button
@@ -1236,10 +1304,10 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
                 <div className="text-sm space-y-2 border-t border-gray-200 pt-4">
                   <div className="font-medium">Thanks for your business!</div>
                   <div className="space-y-1">
-                    <div><strong>Name:</strong> {companyProfile?.companyName || 'Company Name'}</div>
-                    <div><strong>Account:</strong> 50200042158914</div>
-                    <div><strong>IFSC Code:</strong> HDFC0000192</div>
-                    <div><strong>Address:</strong> {companyProfile ? `${companyProfile.city}, ${companyProfile.stateProvince}` : 'City, State'}</div>
+                    <div><strong>Name:</strong> {bankName || companyProfile?.companyName || 'Company Name'}</div>
+                    <div><strong>Account:</strong> {accountNumber}</div>
+                    <div><strong>IFSC Code:</strong> {ifscCode}</div>
+                    <div><strong>Address:</strong> {bankAddress || (companyProfile ? `${companyProfile.city}, ${companyProfile.stateProvince}` : 'City, State')}</div>
                   </div>
                 </div>
               </div>
