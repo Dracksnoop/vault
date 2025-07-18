@@ -1804,10 +1804,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/invoices/:id", async (req, res) => {
     try {
+      console.log(`PUT /api/invoices/${req.params.id} - Body:`, req.body);
+      
       const validated = insertInvoiceSchema.partial().parse(req.body);
       const currentInvoice = await storage.getInvoice(req.params.id);
       
       if (!currentInvoice) {
+        console.log(`Invoice not found: ${req.params.id}`);
         return res.status(404).json({ error: "Invoice not found" });
       }
       
@@ -1815,6 +1818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If invoice is being marked as paid, create a payment record automatically
       if (validated.status === 'paid' && currentInvoice.status !== 'paid') {
+        console.log(`Creating payment for invoice: ${invoice.id}`);
         const paymentData = {
           invoiceId: invoice.id,
           customerId: invoice.customerId,
@@ -1828,11 +1832,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         await storage.createPayment(paymentData);
+        console.log(`Payment created successfully for invoice: ${invoice.id}`);
       }
       
       res.json(invoice);
     } catch (error) {
-      res.status(400).json({ error: "Invalid invoice data" });
+      console.error("Error updating invoice:", error);
+      res.status(400).json({ error: "Invalid invoice data", details: error.message });
     }
   });
 

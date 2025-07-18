@@ -8,7 +8,9 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
+  method: string,
   url: string,
+  data?: any,
   options?: RequestInit,
 ): Promise<any> {
   const headers: Record<string, string> = {
@@ -22,13 +24,11 @@ export async function apiRequest(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  // Properly serialize the body if it exists and isn't already a string
-  const body = options?.body ? 
-    (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : 
-    undefined;
+  // Properly serialize the body if it exists
+  const body = data ? JSON.stringify(data) : undefined;
 
   const res = await fetch(url, {
-    method: "GET",
+    method,
     ...options,
     headers,
     body,
