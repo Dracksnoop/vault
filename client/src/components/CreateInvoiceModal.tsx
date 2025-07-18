@@ -425,12 +425,22 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     },
     onSuccess: (data) => {
       // Create invoice items
-      const itemPromises = invoiceItems.map(item => 
+      const itemPromises = invoiceItems.map((item, index) => 
         apiRequest('/api/invoice-items', {
           method: 'POST',
           body: JSON.stringify({
-            ...item,
+            id: `${data.id}-item-${index + 1}`,
             invoiceId: data.id,
+            itemId: item.itemId || null,
+            itemName: item.itemName,
+            itemDescription: item.itemDescription || '',
+            quantity: item.quantity,
+            unitPrice: item.unitPrice.toString(),
+            totalPrice: item.totalPrice.toString(),
+            taxRate: item.taxRate ? item.taxRate.toString() : '0',
+            discountRate: item.discountRate ? item.discountRate.toString() : '0',
+            serialNumbers: item.serialNumbers ? JSON.stringify(item.serialNumbers) : null,
+            rentalPeriod: item.rentalPeriod || null,
           }),
         })
       );

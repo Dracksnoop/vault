@@ -1848,11 +1848,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/invoice-items", async (req, res) => {
     try {
+      console.log("Creating invoice item with data:", req.body);
       const validated = insertInvoiceItemSchema.parse(req.body);
+      console.log("Validated invoice item data:", validated);
       const item = await storage.createInvoiceItem(validated);
       res.status(201).json(item);
     } catch (error) {
-      res.status(400).json({ error: "Invalid invoice item data" });
+      console.error("Invoice item creation error:", error);
+      if (error.issues) {
+        console.error("Validation issues:", error.issues);
+        res.status(400).json({ 
+          error: "Invalid invoice item data", 
+          details: error.issues.map(issue => ({
+            field: issue.path.join('.'),
+            message: issue.message
+          }))
+        });
+      } else {
+        res.status(400).json({ error: "Invalid invoice item data", details: error.message });
+      }
     }
   });
 
