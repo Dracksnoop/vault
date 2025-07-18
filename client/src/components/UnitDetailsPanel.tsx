@@ -34,7 +34,9 @@ import {
   Cable,
   HardDrive,
   Microchip,
-  Settings
+  Settings,
+  AlertTriangle,
+  RotateCcw
 } from 'lucide-react';
 
 interface Unit {
@@ -277,40 +279,44 @@ export default function UnitDetailsPanel({ unit, item, category, isOpen, onClose
       )}
       
       {/* Replacement Information */}
-      {unit.isReplacement && (
+      {unit.isUnderReplacement && (
         <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="w-4 h-4 text-orange-600" />
-            <Label className="text-sm font-medium text-orange-800">Replacement Unit</Label>
+            <AlertTriangle className="w-4 h-4 text-orange-600" />
+            <Label className="text-sm font-medium text-orange-800">Under Replacement</Label>
           </div>
           <div className="space-y-2 text-sm">
             <div>
-              <span className="font-medium text-orange-700">Reason:</span> 
-              <span className="ml-2 text-orange-600 capitalize">{unit.replacementReason}</span>
+              <span className="font-medium text-orange-700">Status:</span> 
+              <span className="ml-2 text-orange-600">This unit is currently under replacement process</span>
             </div>
-            <div>
-              <span className="font-medium text-orange-700">Replacement Date:</span> 
-              <span className="ml-2 text-orange-600">{unit.replacementDate}</span>
-            </div>
-            {unit.originalUnitId && (
+            {unit.replacementRequestId && (
               <div>
-                <span className="font-medium text-orange-700">Original Unit ID:</span> 
-                <span className="ml-2 text-orange-600">{unit.originalUnitId}</span>
+                <span className="font-medium text-orange-700">Request ID:</span> 
+                <span className="ml-2 text-orange-600">{unit.replacementRequestId}</span>
               </div>
             )}
           </div>
         </div>
       )}
       
-      {unit.replacedUnitId && (
-        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+      {unit.replacedDate && (
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
-            <Info className="w-4 h-4 text-yellow-600" />
-            <Label className="text-sm font-medium text-yellow-800">Unit Status</Label>
+            <RotateCcw className="w-4 h-4 text-red-600" />
+            <Label className="text-sm font-medium text-red-800">Unit Replaced</Label>
           </div>
-          <div className="text-sm">
-            <span className="font-medium text-yellow-700">This unit has been replaced by:</span> 
-            <span className="ml-2 text-yellow-600">{unit.replacedUnitId}</span>
+          <div className="space-y-2 text-sm">
+            <div>
+              <span className="font-medium text-red-700">Replaced Date:</span> 
+              <span className="ml-2 text-red-600">{unit.replacedDate}</span>
+            </div>
+            {unit.replacedReason && (
+              <div>
+                <span className="font-medium text-red-700">Reason:</span> 
+                <span className="ml-2 text-red-600 capitalize">{unit.replacedReason}</span>
+              </div>
+            )}
           </div>
         </div>
       )}

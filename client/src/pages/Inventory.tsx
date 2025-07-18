@@ -28,7 +28,9 @@ import {
   XCircle,
   QrCode,
   Download,
-  X
+  X,
+  AlertTriangle,
+  RotateCcw
 } from "lucide-react";
 
 interface Category {
@@ -324,28 +326,7 @@ export default function Inventory() {
   const selectedItemData = items.find(item => item.id === selectedItem);
   const itemUnits = units.filter(unit => unit.itemId === selectedItem);
   
-  // Get replacement units from localStorage
-  const replacementUnits = (() => {
-    const stored = localStorage.getItem('replacementUnits');
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch (error) {
-        console.error('Error parsing replacement units:', error);
-        return [];
-      }
-    }
-    return [];
-  })();
-
-  // Add replacement units that match the selected item
-  const replacementUnitsForItem = replacementUnits.filter((unit: any) => 
-    unit.itemId === selectedItem
-  );
-
-  const allUnits = [...itemUnits, ...replacementUnitsForItem];
-  
-  const filteredUnits = allUnits.filter(unit =>
+  const filteredUnits = itemUnits.filter(unit =>
     unit.serialNumber.toLowerCase().includes(unitSearchTerm.toLowerCase()) ||
     unit.barcode.toLowerCase().includes(unitSearchTerm.toLowerCase())
   ).sort((a, b) => {
@@ -370,7 +351,15 @@ export default function Inventory() {
     return a.serialNumber.localeCompare(b.serialNumber);
   });
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, unit?: any) => {
+    // Check for replacement status first
+    if (unit?.isUnderReplacement) {
+      return "bg-orange-100 text-orange-800 border-orange-300";
+    }
+    if (unit?.replacedDate) {
+      return "bg-red-100 text-red-800 border-red-300";
+    }
+    
     switch (status) {
       case "Available":
       case "In Stock": return "bg-green-100 text-green-800 border-green-300";
@@ -382,7 +371,15 @@ export default function Inventory() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: string, unit?: any) => {
+    // Check for replacement status first
+    if (unit?.isUnderReplacement) {
+      return <AlertTriangle className="w-4 h-4" />;
+    }
+    if (unit?.replacedDate) {
+      return <RotateCcw className="w-4 h-4" />;
+    }
+    
     switch (status) {
       case "Available":
       case "In Stock": return <CheckCircle className="w-4 h-4" />;
@@ -1200,16 +1197,14 @@ export default function Inventory() {
                               <div className="flex items-center gap-4 mb-3">
                                 <div className="font-medium text-black">{unit.serialNumber}</div>
                                 <div className="flex items-center gap-2">
-                                  <Badge className={`${getStatusColor(unit.status)} border`}>
-                                    {getStatusIcon(unit.status)}
-                                    <span className="ml-1">{unit.status}</span>
+                                  <Badge className={`${getStatusColor(unit.status, unit)} border`}>
+                                    {getStatusIcon(unit.status, unit)}
+                                    <span className="ml-1">
+                                      {unit.isUnderReplacement ? 'Under Replacement' : 
+                                       unit.replacedDate ? `Replaced ${unit.replacedDate}` : 
+                                       unit.status}
+                                    </span>
                                   </Badge>
-                                  {unit.isReplacement && (
-                                    <Badge className="bg-orange-100 text-orange-800 border-orange-300">
-                                      <AlertCircle className="w-3 h-3 mr-1" />
-                                      Replacement
-                                    </Badge>
-                                  )}
                                 </div>
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">

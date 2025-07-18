@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { 
   RotateCcw, 
   Package, 
@@ -56,6 +56,19 @@ export default function Replacements() {
       const storedReplacements = localStorage.getItem('replacementRequests');
       if (storedReplacements) {
         const replacements = JSON.parse(storedReplacements);
+        const replacementToApprove = replacements.find((r: any) => r.id === replacementId);
+        
+        if (replacementToApprove) {
+          // Mark the unit as under replacement
+          await apiRequest(`/api/units/${replacementToApprove.unitId}`, {
+            method: 'PUT',
+            body: {
+              isUnderReplacement: true,
+              replacementRequestId: replacementId
+            }
+          });
+        }
+        
         const updatedReplacements = replacements.map((replacement: any) => {
           if (replacement.id === replacementId) {
             return {
@@ -96,54 +109,24 @@ export default function Replacements() {
         const replacementToComplete = replacements.find((r: any) => r.id === replacementId);
         
         if (replacementToComplete) {
-          // Create a new replacement unit
-          const newUnitId = Date.now().toString();
-          const newSerialNumber = replacementToComplete.unitSerialNumber; // Keep same serial number
-          
-          const replacementUnit = {
-            id: newUnitId,
-            itemId: replacementToComplete.itemId,
-            serialNumber: newSerialNumber,
-            barcode: replacementToComplete.unitSerialNumber?.replace(/[^0-9]/g, '') || newUnitId,
-            status: 'Available',
-            location: 'Warehouse',
-            warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year warranty
-            notes: `Replacement unit for ${replacementToComplete.replacementReason} issue`,
-            isReplacement: true,
-            originalUnitId: replacementToComplete.unitId,
-            replacementReason: replacementToComplete.replacementReason,
-            replacementDate: new Date().toISOString().split('T')[0]
-          };
-          
-          // Store replacement unit for demo purposes
-          const existingReplacementUnits = localStorage.getItem('replacementUnits');
-          let replacementUnits = [];
-          if (existingReplacementUnits) {
-            try {
-              replacementUnits = JSON.parse(existingReplacementUnits);
-            } catch (error) {
-              console.error('Error parsing replacement units:', error);
+          // Mark the original unit as replaced
+          await apiRequest(`/api/units/${replacementToComplete.unitId}`, {
+            method: 'PUT',
+            body: {
+              isUnderReplacement: false,
+              replacementRequestId: null,
+              replacedDate: new Date().toISOString().split('T')[0],
+              replacedReason: replacementToComplete.reason
             }
-          }
+          });
           
-          replacementUnits.push(replacementUnit);
-          localStorage.setItem('replacementUnits', JSON.stringify(replacementUnits));
-          
-          // In a real implementation, this would:
-          // 1. Create the new replacement unit in the database
-          // 2. Update the original unit to mark it as replaced
-          // 3. Update item details if it's a different item replacement
-          console.log('Creating replacement unit:', replacementUnit);
-          
-          // For now, we'll just update the replacement record
+          // Update the replacement record
           const updatedReplacements = replacements.map((replacement: any) => {
             if (replacement.id === replacementId) {
               return {
                 ...replacement,
                 status: 'completed',
-                completionDate: new Date().toISOString().split('T')[0],
-                replacementUnitId: newUnitId,
-                replacementSerialNumber: newSerialNumber
+                completionDate: new Date().toISOString().split('T')[0]
               };
             }
             return replacement;

@@ -319,7 +319,12 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
     
     // Calculate real-time available quantity based on units
     const itemUnits = units.filter((unit: any) => unit.itemId === item.id);
-    const availableQuantity = itemUnits.filter((unit: any) => unit.status === "Available" && !unit.currentCustomerId).length;
+    const availableQuantity = itemUnits.filter((unit: any) => 
+      unit.status === "Available" && 
+      !unit.currentCustomerId && 
+      !unit.isUnderReplacement && 
+      !unit.replacedDate
+    ).length;
     
     // Filter items based on search term
     const matchesSearch = searchTerm === '' || 
@@ -391,7 +396,12 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
       const currentItem = items.find(item => item.id === selectedItem.itemId);
       if (currentItem) {
         const itemUnits = units.filter((unit: any) => unit.itemId === currentItem.id);
-        const realTimeAvailable = itemUnits.filter((unit: any) => unit.status === "Available" && !unit.currentCustomerId).length;
+        const realTimeAvailable = itemUnits.filter((unit: any) => 
+          unit.status === "Available" && 
+          !unit.currentCustomerId && 
+          !unit.isUnderReplacement && 
+          !unit.replacedDate
+        ).length;
         return {
           ...selectedItem,
           availableQuantity: realTimeAvailable,
