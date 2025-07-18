@@ -69,10 +69,28 @@ const replacementSchema = z.object({
   reason: z.enum(['warranty', 'damage', 'expired', 'defective', 'other']),
   notes: z.string().min(1, 'Notes are required'),
   replacementType: z.enum(['same', 'different']),
-  newItemId: z.string().optional(),
+  newItemName: z.string().optional(),
+  newItemModel: z.string().optional(),
   cost: z.number().min(0, 'Cost must be positive').optional(),
   vendorName: z.string().optional(),
   warrantyExpiryDate: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.replacementType === 'different') {
+    if (!data.newItemName || data.newItemName.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'New item name is required when replacing with different item',
+        path: ['newItemName'],
+      });
+    }
+    if (!data.newItemModel || data.newItemModel.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'New item model is required when replacing with different item',
+        path: ['newItemModel'],
+      });
+    }
+  }
 });
 
 type ReplacementFormData = z.infer<typeof replacementSchema>;
@@ -113,6 +131,8 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
       reason: 'warranty',
       notes: '',
       replacementType: 'same',
+      newItemName: '',
+      newItemModel: '',
       cost: 0,
       vendorName: '',
       warrantyExpiryDate: '',
@@ -158,7 +178,8 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
         requestDate: new Date().toISOString().split('T')[0],
         notes: data.notes,
         replacementType: data.replacementType,
-        newItemId: data.newItemId,
+        newItemName: data.newItemName || '',
+        newItemModel: data.newItemModel || '',
         cost: data.cost || 0,
         vendorName: data.vendorName || '',
         warrantyExpiryDate: data.warrantyExpiryDate || '',
@@ -167,8 +188,25 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
           customers.find(c => c.id === selectedUnit?.currentCustomerId)?.name : '',
       };
 
-      // For now, we'll use a mock API endpoint since we don't want to affect the database
-      // In a real implementation, this would create the replacement record
+      // Store replacement request in localStorage for real-time updates
+      const existingReplacements = localStorage.getItem('replacementRequests');
+      let replacements = [];
+      
+      if (existingReplacements) {
+        try {
+          replacements = JSON.parse(existingReplacements);
+        } catch (error) {
+          console.error('Error parsing existing replacements:', error);
+        }
+      }
+      
+      replacements.push(replacementData);
+      localStorage.setItem('replacementRequests', JSON.stringify(replacements));
+      
+      // In a real implementation, this would:
+      // 1. Create the replacement record in the database
+      // 2. If replacement type is 'different', update the item details everywhere while keeping the same serial number
+      // 3. Update inventory counts and unit assignments
       console.log('Creating replacement request:', replacementData);
       
       return replacementData;
@@ -178,6 +216,9 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
         title: "Success",
         description: "Replacement request created successfully",
       });
+      
+      // Invalidate replacement cache to update dashboard
+      queryClient.invalidateQueries({ queryKey: ['/api/replacements'] });
       
       // Reset form and close modal
       form.reset();
@@ -350,37 +391,66 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
                 <div className="mt-6">
                   <h4 className="text-md font-semibold text-black mb-3">Select Unit for Replacement</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto">
-                    {itemUnits.map((unit) => (
-                      <Card
-                        key={unit.id}
-                        className={`cursor-pointer transition-colors ${
-                          selectedUnit?.id === unit.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                        onClick={() => setSelectedUnit(unit)}
-                      >
-                        <CardContent className="p-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-sm font-medium text-black">{unit.serialNumber}</p>
-                              <p className="text-xs text-gray-600">{unit.barcode}</p>
-                              <p className="text-xs text-gray-500">{getUnitCustomer(unit)}</p>
+                    {itemUnits.map((unit) => {
+                      const isSelectable = unit.status === 'Available' || unit.status === 'Rented';
+                      const isSold = unit.status === 'Sold';
+                      
+                      return (
+                        <Card
+                          key={unit.id}
+                          className={`transition-colors ${
+                            isSold 
+                              ? 'border-gray-200 opacity-50 cursor-not-allowed bg-gray-50' 
+                              : isSelectable 
+                                ? selectedUnit?.id === unit.id 
+                                  ? 'border-blue-500 bg-blue-50 cursor-pointer' 
+                                  : 'border-gray-200 hover:border-gray-300 cursor-pointer'
+                                : 'border-gray-200 opacity-75 cursor-not-allowed'
+                          }`}
+                          onClick={() => {
+                            if (isSelectable) {
+                              setSelectedUnit(unit);
+                            }
+                          }}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className={`text-sm font-medium ${isSold ? 'text-gray-400' : 'text-black'}`}>
+                                  {unit.serialNumber}
+                                </p>
+                                <p className={`text-xs ${isSold ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {unit.barcode}
+                                </p>
+                                <p className={`text-xs ${isSold ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  {getUnitCustomer(unit)}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end">
+                                <Badge 
+                                  className={`text-xs ${
+                                    unit.status === 'Available' ? 'bg-green-100 text-green-800' : 
+                                    unit.status === 'Rented' ? 'bg-orange-100 text-orange-800' : 
+                                    unit.status === 'Sold' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}
+                                >
+                                  {unit.status}
+                                </Badge>
+                                <p className={`text-xs mt-1 ${isSold ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  {unit.location}
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex flex-col items-end">
-                              <Badge 
-                                className={`text-xs ${
-                                  unit.status === 'Available' ? 'bg-green-100 text-green-800' : 
-                                  unit.status === 'Rented' ? 'bg-orange-100 text-orange-800' : 
-                                  'bg-gray-100 text-gray-800'
-                                }`}
-                              >
-                                {unit.status}
-                              </Badge>
-                              <p className="text-xs text-gray-500 mt-1">{unit.location}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            {isSold && (
+                              <div className="mt-2 text-xs text-red-600 font-medium">
+                                Cannot be replaced (Already Sold)
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -459,32 +529,46 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
                     />
                   </div>
 
-                  {/* Different Item Selection */}
+                  {/* Different Item Details */}
                   {watchReplacementType === 'different' && (
-                    <FormField
-                      control={form.control}
-                      name="newItemId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Replacement Item *</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select replacement item" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {availableReplacementItems.map((item) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.name} - {item.model}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="space-y-4">
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p className="text-sm text-yellow-800">
+                          <strong>Note:</strong> When replacing with a different item, the original item will be updated everywhere 
+                          while keeping the same serial number. This ensures continuity in your inventory system.
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="newItemName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>New Item Name *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter new item name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="newItemModel"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>New Item Model *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter new item model" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -589,6 +673,14 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
                       <p className="text-sm text-gray-600">Replacement Type</p>
                       <p className="font-medium text-black">{form.getValues('replacementType')}</p>
                     </div>
+                    {form.getValues('replacementType') === 'different' && form.getValues('newItemName') && (
+                      <div className="md:col-span-2">
+                        <p className="text-sm text-gray-600">New Item Details</p>
+                        <p className="font-medium text-black">
+                          {form.getValues('newItemName')} - {form.getValues('newItemModel')}
+                        </p>
+                      </div>
+                    )}
                     {form.getValues('cost') > 0 && (
                       <div>
                         <p className="text-sm text-gray-600">Cost</p>

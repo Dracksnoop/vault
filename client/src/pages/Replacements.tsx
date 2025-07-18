@@ -47,64 +47,65 @@ export default function Replacements() {
   const [reasonFilter, setReasonFilter] = useState('all');
   const [showReplacementModal, setShowReplacementModal] = useState(false);
 
-  // Fetch replacement data (mock data for now - would be replaced with real API)
+  // Fetch replacement data from localStorage (where replacement requests are stored)
   const { data: replacements = [], isLoading } = useQuery({
     queryKey: ['/api/replacements'],
     queryFn: async () => {
-      // Mock data for demonstration
-      return [
-        {
-          id: '1',
-          unitId: 'unit-001',
-          unitSerialNumber: 'LED-1752400001-1',
-          itemName: 'LED Display 55"',
-          itemModel: 'Samsung QN55Q70A',
-          reason: 'warranty',
-          status: 'completed',
-          requestDate: '2025-01-15',
-          completionDate: '2025-01-20',
-          replacementUnitId: 'unit-150',
-          replacementSerialNumber: 'LED-1752400150-1',
-          notes: 'Screen flickering issue reported by customer',
-          vendorName: 'Samsung India',
-          warrantyExpiryDate: '2025-12-31',
-          cost: 0,
-          customerId: '1',
-          customerName: 'Krishna Gurjar'
-        },
-        {
-          id: '2',
-          unitId: 'unit-045',
-          unitSerialNumber: 'CAM-1752400045-1',
-          itemName: 'Professional Camera',
-          itemModel: 'Canon EOS R5',
-          reason: 'damage',
-          status: 'pending',
-          requestDate: '2025-01-18',
-          notes: 'Water damage during outdoor shoot',
-          vendorName: 'Canon Service Center',
-          cost: 15000,
-          customerId: '2',
-          customerName: 'John Doe'
-        },
-        {
-          id: '3',
-          unitId: 'unit-078',
-          unitSerialNumber: 'MIC-1752400078-1',
-          itemName: 'Wireless Microphone',
-          itemModel: 'Shure SM58',
-          reason: 'defective',
-          status: 'approved',
-          requestDate: '2025-01-16',
-          notes: 'Audio quality degradation, intermittent signal',
-          vendorName: 'Shure India',
-          warrantyExpiryDate: '2025-06-30',
-          cost: 2500,
-          customerId: '1',
-          customerName: 'Krishna Gurjar'
+      // Get replacement requests from localStorage
+      const storedReplacements = localStorage.getItem('replacementRequests');
+      let replacementData: ReplacementRecord[] = [];
+      
+      if (storedReplacements) {
+        try {
+          replacementData = JSON.parse(storedReplacements);
+        } catch (error) {
+          console.error('Error parsing replacement data:', error);
         }
-      ] as ReplacementRecord[];
-    }
+      }
+      
+      // If no data, show some sample data for demonstration
+      if (replacementData.length === 0) {
+        replacementData = [
+          {
+            id: 'sample-1',
+            unitId: 'unit-001',
+            unitSerialNumber: 'LED-1752400001-1',
+            itemName: 'LED Display 55"',
+            itemModel: 'Samsung QN55Q70A',
+            reason: 'warranty',
+            status: 'completed',
+            requestDate: '2025-01-15',
+            completionDate: '2025-01-20',
+            replacementUnitId: 'unit-150',
+            replacementSerialNumber: 'LED-1752400150-1',
+            notes: 'Screen flickering issue reported by customer',
+            vendorName: 'Samsung India',
+            warrantyExpiryDate: '2025-12-31',
+            cost: 0,
+            customerId: '1',
+            customerName: 'Krishna Gurjar'
+          },
+          {
+            id: 'sample-2',
+            unitId: 'unit-045',
+            unitSerialNumber: 'CAM-1752400045-1',
+            itemName: 'Professional Camera',
+            itemModel: 'Canon EOS R5',
+            reason: 'damage',
+            status: 'pending',
+            requestDate: '2025-01-18',
+            notes: 'Water damage during outdoor shoot',
+            vendorName: 'Canon Service Center',
+            cost: 15000,
+            customerId: '2',
+            customerName: 'John Doe'
+          }
+        ];
+      }
+      
+      return replacementData as ReplacementRecord[];
+    },
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
 
   // Calculate statistics
