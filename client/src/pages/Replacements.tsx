@@ -86,9 +86,11 @@ export default function Replacements() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/replacements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
       toast({
         title: "Success",
-        description: "Replacement request approved successfully",
+        description: "Replacement request approved successfully. Unit is now under replacement.",
       });
     },
     onError: () => {
@@ -109,14 +111,15 @@ export default function Replacements() {
         const replacementToComplete = replacements.find((r: any) => r.id === replacementId);
         
         if (replacementToComplete) {
-          // Mark the original unit as replaced
+          // Mark the original unit as replaced and make it available again
           await apiRequest(`/api/units/${replacementToComplete.unitId}`, {
             method: 'PUT',
             body: {
               isUnderReplacement: false,
               replacementRequestId: null,
               replacedDate: new Date().toISOString().split('T')[0],
-              replacedReason: replacementToComplete.reason
+              replacedReason: replacementToComplete.reason,
+              status: 'Available'
             }
           });
           
@@ -140,9 +143,11 @@ export default function Replacements() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/replacements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/items'] });
       toast({
         title: "Success",
-        description: "Replacement request completed successfully",
+        description: "Replacement completed successfully. Unit is now available with replacement history.",
       });
     },
     onError: () => {
