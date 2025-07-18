@@ -319,12 +319,29 @@ const ItemSelectionStep: React.FC<StepProps> = ({ formData, updateFormData, onNe
     
     // Calculate real-time available quantity based on units
     const itemUnits = units.filter((unit: any) => unit.itemId === item.id);
-    const availableQuantity = itemUnits.filter((unit: any) => 
-      unit.status === "Available" && 
-      !unit.currentCustomerId && 
-      !unit.isUnderReplacement && 
-      !unit.replacedDate
-    ).length;
+    const availableQuantity = itemUnits.filter((unit: any) => {
+      const isAvailable = unit.status === "Available";
+      const hasNoCustomer = !unit.currentCustomerId;
+      const notUnderReplacement = !unit.isUnderReplacement;
+      const notReplaced = !unit.replacedDate;
+      
+      // Debug logging for specific item
+      if (item.name === "jio 2") {
+        console.log(`Unit ${unit.serialNumber}:`, {
+          status: unit.status,
+          currentCustomerId: unit.currentCustomerId,
+          isUnderReplacement: unit.isUnderReplacement,
+          replacedDate: unit.replacedDate,
+          isAvailable,
+          hasNoCustomer,
+          notUnderReplacement,
+          notReplaced,
+          finalResult: isAvailable && hasNoCustomer && notUnderReplacement && notReplaced
+        });
+      }
+      
+      return isAvailable && hasNoCustomer && notUnderReplacement && notReplaced;
+    }).length;
     
     // Filter items based on search term
     const matchesSearch = searchTerm === '' || 
