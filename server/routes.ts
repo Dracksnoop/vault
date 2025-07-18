@@ -1805,10 +1805,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/invoices/:id", async (req, res) => {
     try {
       const validated = insertInvoiceSchema.partial().parse(req.body);
-      const invoice = await storage.updateInvoice(req.params.id, validated);
-      if (!invoice) {
+      const currentInvoice = await storage.getInvoice(req.params.id);
+      
+      if (!currentInvoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
+      
+      const invoice = await storage.updateInvoice(req.params.id, validated);
+      
+      // If invoice is being marked as paid, create a payment record automatically
+      if (validated.status === 'paid' && currentInvoice.status !== 'paid') {
+        const paymentData = {
+          invoiceId: invoice.id,
+          customerId: invoice.customerId,
+          customerName: invoice.customerName,
+          amount: invoice.totalAmount,
+          paymentMethod: 'Manual Payment',
+          paymentDate: new Date().toISOString().split('T')[0],
+          status: 'completed' as const,
+          reference: `AUTO-${invoice.invoiceNumber}`,
+          notes: 'Payment automatically recorded when invoice marked as paid'
+        };
+        
+        await storage.createPayment(paymentData);
+      }
+      
       res.json(invoice);
     } catch (error) {
       res.status(400).json({ error: "Invalid invoice data" });

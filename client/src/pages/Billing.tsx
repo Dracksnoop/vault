@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import {
   Download
 } from 'lucide-react';
 import CreateInvoiceModal from '@/components/CreateInvoiceModal';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface BillingStats {
   totalInvoices: number;
@@ -77,6 +79,7 @@ interface RecurringSchedule {
 export default function Billing() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
+  const { toast } = useToast();
 
   const { data: stats, isLoading: statsLoading } = useQuery<BillingStats>({
     queryKey: ['/api/billing/stats'],
@@ -92,6 +95,29 @@ export default function Billing() {
 
   const { data: schedules, isLoading: schedulesLoading } = useQuery<RecurringSchedule[]>({
     queryKey: ['/api/recurring-schedules'],
+  });
+
+  const markAsPaidMutation = useMutation({
+    mutationFn: async (invoiceId: string) => {
+      return await apiRequest('PUT', `/api/invoices/${invoiceId}`, {
+        status: 'paid'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/billing/stats'] });
+      toast({
+        title: "Success",
+        description: "Invoice marked as paid successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to mark invoice as paid",
+        variant: "destructive",
+      });
+    }
   });
 
   const getStatusBadge = (status: string) => {
@@ -344,6 +370,17 @@ export default function Billing() {
                               <Button variant="outline" size="sm" className="border-black">
                                 <Download className="w-4 h-4" />
                               </Button>
+                              {invoice.status === 'pending' && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="border-green-600 text-green-600 hover:bg-green-50"
+                                  onClick={() => markAsPaidMutation.mutate(invoice.id)}
+                                  disabled={markAsPaidMutation.isPending}
+                                >
+                                  {markAsPaidMutation.isPending ? '...' : 'Paid'}
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>
