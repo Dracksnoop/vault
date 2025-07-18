@@ -625,18 +625,23 @@ export class MongoStorage implements IStorage {
 
   async getVendor(id: string): Promise<Vendor | undefined> {
     await this.initialize();
+    console.log("Looking for vendor with id:", id);
     const vendor = await this.vendors.findOne({ id });
+    console.log("Found vendor:", vendor);
     return vendor || undefined;
   }
 
   async createVendor(insertVendor: InsertVendor): Promise<Vendor> {
     await this.initialize();
     const now = new Date().toISOString();
+    const id = Date.now().toString();
     const vendor: Vendor = { 
       ...insertVendor,
+      id,
       createdAt: now,
       updatedAt: now
     };
+    console.log("Creating vendor with ID:", id);
     await this.vendors.insertOne(vendor);
     return vendor;
   }
@@ -672,11 +677,14 @@ export class MongoStorage implements IStorage {
   async createPurchaseOrder(insertOrder: InsertPurchaseOrder): Promise<PurchaseOrder> {
     await this.initialize();
     const now = new Date().toISOString();
+    const id = Date.now().toString();
     const order: PurchaseOrder = { 
       ...insertOrder,
+      id,
       createdAt: now,
       updatedAt: now
     };
+    console.log("Creating purchase order with ID:", id);
     await this.purchaseOrders.insertOne(order);
     return order;
   }
@@ -711,16 +719,22 @@ export class MongoStorage implements IStorage {
 
   async getPurchaseOrderItemsByOrder(orderId: string): Promise<PurchaseOrderItem[]> {
     await this.initialize();
-    return await this.purchaseOrderItems.find({ purchaseOrderId: orderId }).toArray();
+    console.log("Looking for purchase order items with orderId:", orderId);
+    const items = await this.purchaseOrderItems.find({ purchaseOrderId: orderId }).toArray();
+    console.log("Found purchase order items:", items);
+    return items;
   }
 
   async createPurchaseOrderItem(insertItem: InsertPurchaseOrderItem): Promise<PurchaseOrderItem> {
     await this.initialize();
     const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
     const item: PurchaseOrderItem = { 
       ...insertItem,
+      id,
       createdAt: now
     };
+    console.log("Creating purchase order item with ID:", id);
     await this.purchaseOrderItems.insertOne(item);
     return item;
   }
