@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
 import { 
   RotateCcw, 
   Package, 
@@ -41,11 +43,86 @@ interface ReplacementRecord {
 }
 
 export default function Replacements() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [reasonFilter, setReasonFilter] = useState('all');
   const [showReplacementModal, setShowReplacementModal] = useState(false);
+
+  // Approve replacement mutation
+  const approveReplacementMutation = useMutation({
+    mutationFn: async (replacementId: string) => {
+      const storedReplacements = localStorage.getItem('replacementRequests');
+      if (storedReplacements) {
+        const replacements = JSON.parse(storedReplacements);
+        const updatedReplacements = replacements.map((replacement: any) => {
+          if (replacement.id === replacementId) {
+            return {
+              ...replacement,
+              status: 'approved',
+              approvalDate: new Date().toISOString().split('T')[0]
+            };
+          }
+          return replacement;
+        });
+        localStorage.setItem('replacementRequests', JSON.stringify(updatedReplacements));
+        return updatedReplacements;
+      }
+      return [];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/replacements'] });
+      toast({
+        title: "Success",
+        description: "Replacement request approved successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to approve replacement request",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Complete replacement mutation
+  const completeReplacementMutation = useMutation({
+    mutationFn: async (replacementId: string) => {
+      const storedReplacements = localStorage.getItem('replacementRequests');
+      if (storedReplacements) {
+        const replacements = JSON.parse(storedReplacements);
+        const updatedReplacements = replacements.map((replacement: any) => {
+          if (replacement.id === replacementId) {
+            return {
+              ...replacement,
+              status: 'completed',
+              completionDate: new Date().toISOString().split('T')[0]
+            };
+          }
+          return replacement;
+        });
+        localStorage.setItem('replacementRequests', JSON.stringify(updatedReplacements));
+        return updatedReplacements;
+      }
+      return [];
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/replacements'] });
+      toast({
+        title: "Success",
+        description: "Replacement request completed successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to complete replacement request",
+        variant: "destructive",
+      });
+    }
+  });
 
   // Fetch replacement data from localStorage (where replacement requests are stored)
   const { data: replacements = [], isLoading } = useQuery({
@@ -440,8 +517,25 @@ export default function Replacements() {
                           View Details
                         </Button>
                         {replacement.status === 'pending' && (
-                          <Button variant="outline" size="sm" className="text-green-600 border-green-600">
-                            Approve
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-green-600 border-green-600 hover:bg-green-50"
+                            onClick={() => approveReplacementMutation.mutate(replacement.id)}
+                            disabled={approveReplacementMutation.isPending}
+                          >
+                            {approveReplacementMutation.isPending ? 'Approving...' : 'Approve'}
+                          </Button>
+                        )}
+                        {replacement.status === 'approved' && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                            onClick={() => completeReplacementMutation.mutate(replacement.id)}
+                            disabled={completeReplacementMutation.isPending}
+                          >
+                            {completeReplacementMutation.isPending ? 'Completing...' : 'Complete'}
                           </Button>
                         )}
                       </div>
