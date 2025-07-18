@@ -20,7 +20,8 @@ import {
   insertInvoiceSchema,
   insertInvoiceItemSchema,
   insertPaymentSchema,
-  insertRecurringInvoiceScheduleSchema
+  insertRecurringInvoiceScheduleSchema,
+  insertCompanyProfileSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1994,6 +1995,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch billing stats" });
+    }
+  });
+
+  // Company Profile routes
+  app.get("/api/company-profiles", async (req, res) => {
+    try {
+      const profiles = await storage.getCompanyProfiles();
+      res.json(profiles);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company profiles" });
+    }
+  });
+
+  app.get("/api/company-profiles/default", async (req, res) => {
+    try {
+      const profile = await storage.getDefaultCompanyProfile();
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch default company profile" });
+    }
+  });
+
+  app.get("/api/company-profiles/:id", async (req, res) => {
+    try {
+      const profile = await storage.getCompanyProfile(req.params.id);
+      if (!profile) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company profile" });
+    }
+  });
+
+  app.post("/api/company-profiles", async (req, res) => {
+    try {
+      const result = insertCompanyProfileSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid company profile data", details: result.error.issues });
+      }
+      
+      const profile = await storage.createCompanyProfile(result.data);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error creating company profile:", error);
+      res.status(500).json({ error: "Failed to create company profile" });
+    }
+  });
+
+  app.put("/api/company-profiles/:id", async (req, res) => {
+    try {
+      const result = insertCompanyProfileSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid company profile data", details: result.error.issues });
+      }
+      
+      const profile = await storage.updateCompanyProfile(req.params.id, result.data);
+      if (!profile) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating company profile:", error);
+      res.status(500).json({ error: "Failed to update company profile" });
+    }
+  });
+
+  app.delete("/api/company-profiles/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteCompanyProfile(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting company profile:", error);
+      res.status(500).json({ error: "Failed to delete company profile" });
+    }
+  });
+
+  app.post("/api/company-profiles/:id/set-default", async (req, res) => {
+    try {
+      const success = await storage.setDefaultCompanyProfile(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Company profile not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting default company profile:", error);
+      res.status(500).json({ error: "Failed to set default company profile" });
     }
   });
 

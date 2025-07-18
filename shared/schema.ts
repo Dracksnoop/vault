@@ -567,6 +567,33 @@ export const insertRecurringInvoiceScheduleSchema = createInsertSchema(recurring
   updatedAt: true,
 });
 
+// Company Profile Schema
+export const companyProfiles = pgTable("company_profiles", {
+  id: text("id").primaryKey(),
+  companyName: text("company_name").notNull(),
+  addressLine1: text("address_line1").notNull(),
+  addressLine2: text("address_line2"),
+  city: text("city").notNull(),
+  stateProvince: text("state_province").notNull(),
+  country: text("country").notNull(),
+  zipPostalCode: text("zip_postal_code").notNull(),
+  phoneNumber: text("phone_number").notNull(),
+  emailAddress: text("email_address").notNull(),
+  gstNumber: text("gst_number"), // Optional tax ID
+  websiteUrl: text("website_url"), // Optional website
+  logoUrl: text("logo_url"), // URL or path to uploaded logo
+  logoData: text("logo_data"), // Base64 encoded logo data
+  isDefault: boolean("is_default").default(false), // Mark as default profile
+  createdAt: text("created_at").default("now()"),
+  updatedAt: text("updated_at").default("now()"),
+});
+
+export const insertCompanyProfileSchema = createInsertSchema(companyProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Billing System Types
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type Invoice = typeof invoices.$inferSelect;
@@ -591,3 +618,6 @@ export type SellOrder = typeof sellOrders.$inferSelect;
 
 export type InsertSellOrderItem = z.infer<typeof insertSellOrderItemSchema>;
 export type SellOrderItem = typeof sellOrderItems.$inferSelect;
+
+export type InsertCompanyProfile = z.infer<typeof insertCompanyProfileSchema>;
+export type CompanyProfile = typeof companyProfiles.$inferSelect;

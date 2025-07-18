@@ -37,7 +37,9 @@ import {
   type Payment,
   type InsertPayment,
   type RecurringInvoiceSchedule,
-  type InsertRecurringInvoiceSchedule
+  type InsertRecurringInvoiceSchedule,
+  type CompanyProfile,
+  type InsertCompanyProfile
 } from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -191,6 +193,15 @@ export interface IStorage {
   updateRecurringInvoiceSchedule(id: string, schedule: Partial<InsertRecurringInvoiceSchedule>): Promise<RecurringInvoiceSchedule | undefined>;
   deleteRecurringInvoiceSchedule(id: string): Promise<boolean>;
   
+  // Company Profile methods
+  getCompanyProfiles(): Promise<CompanyProfile[]>;
+  getCompanyProfile(id: string): Promise<CompanyProfile | undefined>;
+  getDefaultCompanyProfile(): Promise<CompanyProfile | undefined>;
+  createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile>;
+  updateCompanyProfile(id: string, profile: Partial<InsertCompanyProfile>): Promise<CompanyProfile | undefined>;
+  deleteCompanyProfile(id: string): Promise<boolean>;
+  setDefaultCompanyProfile(id: string): Promise<boolean>;
+  
   initialize(): Promise<void>;
 }
 
@@ -217,6 +228,7 @@ export class MongoStorage implements IStorage {
   private invoiceItems: Collection<InvoiceItem>;
   private payments: Collection<Payment>;
   private recurringInvoiceSchedules: Collection<RecurringInvoiceSchedule>;
+  private companyProfiles: Collection<CompanyProfile>;
   private isInitialized = false;
 
   constructor() {
@@ -253,6 +265,7 @@ export class MongoStorage implements IStorage {
       this.invoiceItems = this.db.collection<InvoiceItem>('invoiceItems');
       this.payments = this.db.collection<Payment>('payments');
       this.recurringInvoiceSchedules = this.db.collection<RecurringInvoiceSchedule>('recurringInvoiceSchedules');
+      this.companyProfiles = this.db.collection<CompanyProfile>('companyProfiles');
       
       // Initialize default categories if they don't exist
       const categoryCount = await this.categories.countDocuments();
@@ -1127,6 +1140,69 @@ export class MongoStorage implements IStorage {
     const result = await this.recurringInvoiceSchedules.deleteOne({ id });
     return result.deletedCount === 1;
   }
+
+  // Company Profile methods
+  async getCompanyProfiles(): Promise<CompanyProfile[]> {
+    await this.initialize();
+    return await this.companyProfiles.find().toArray();
+  }
+
+  async getCompanyProfile(id: string): Promise<CompanyProfile | undefined> {
+    await this.initialize();
+    const profile = await this.companyProfiles.findOne({ id });
+    return profile || undefined;
+  }
+
+  async getDefaultCompanyProfile(): Promise<CompanyProfile | undefined> {
+    await this.initialize();
+    const profile = await this.companyProfiles.findOne({ isDefault: true });
+    return profile || undefined;
+  }
+
+  async createCompanyProfile(insertProfile: InsertCompanyProfile): Promise<CompanyProfile> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const profile: CompanyProfile = { 
+      ...insertProfile,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    await this.companyProfiles.insertOne(profile);
+    return profile;
+  }
+
+  async updateCompanyProfile(id: string, updateData: Partial<InsertCompanyProfile>): Promise<CompanyProfile | undefined> {
+    await this.initialize();
+    const result = await this.companyProfiles.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteCompanyProfile(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.companyProfiles.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  async setDefaultCompanyProfile(id: string): Promise<boolean> {
+    await this.initialize();
+    // First, unset all existing default profiles
+    await this.companyProfiles.updateMany(
+      { isDefault: true },
+      { $set: { isDefault: false, updatedAt: new Date().toISOString() } }
+    );
+    // Then set the specified profile as default
+    const result = await this.companyProfiles.updateOne(
+      { id },
+      { $set: { isDefault: true, updatedAt: new Date().toISOString() } }
+    );
+    return result.matchedCount === 1;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -1671,6 +1747,35 @@ export class MemStorage implements IStorage {
 
   async deleteSellOrderItem(id: string): Promise<boolean> {
     return this.sellOrderItems.delete(id);
+  }
+
+  // Company Profile methods - stubbed for MemStorage
+  async getCompanyProfiles(): Promise<CompanyProfile[]> {
+    return [];
+  }
+
+  async getCompanyProfile(id: string): Promise<CompanyProfile | undefined> {
+    return undefined;
+  }
+
+  async getDefaultCompanyProfile(): Promise<CompanyProfile | undefined> {
+    return undefined;
+  }
+
+  async createCompanyProfile(insertProfile: InsertCompanyProfile): Promise<CompanyProfile> {
+    throw new Error('Company profiles not supported in memory storage');
+  }
+
+  async updateCompanyProfile(id: string, updateData: Partial<InsertCompanyProfile>): Promise<CompanyProfile | undefined> {
+    return undefined;
+  }
+
+  async deleteCompanyProfile(id: string): Promise<boolean> {
+    return false;
+  }
+
+  async setDefaultCompanyProfile(id: string): Promise<boolean> {
+    return false;
   }
 }
 
