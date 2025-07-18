@@ -68,6 +68,11 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
   const [discountRate, setDiscountRate] = useState(0);
   const [currency, setCurrency] = useState('INR');
   
+  // Invoice editing state
+  const [editableInvoiceNumber, setEditableInvoiceNumber] = useState('');
+  const [editableSubtotal, setEditableSubtotal] = useState(0);
+  const [editableTotalAmount, setEditableTotalAmount] = useState(0);
+  
   // Item selection state
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [itemQuantity, setItemQuantity] = useState(1);
@@ -126,6 +131,19 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     return `INV-${year}${month}${day}-${random}`;
   };
+
+  // Initialize invoice number
+  useEffect(() => {
+    if (!editableInvoiceNumber) {
+      setEditableInvoiceNumber(generateInvoiceNumber());
+    }
+  }, []);
+
+  // Update calculated values when items change
+  useEffect(() => {
+    setEditableSubtotal(subtotal);
+    setEditableTotalAmount(totalAmount);
+  }, [subtotal, totalAmount]);
 
   // Add item to invoice
   const addItemToInvoice = () => {
@@ -486,6 +504,9 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     setItemQuantity(1);
     setItemUnitPrice(0);
     setItemRentalPeriod('');
+    setEditableInvoiceNumber('');
+    setEditableSubtotal(0);
+    setEditableTotalAmount(0);
   };
 
   // Handle form submission
@@ -509,7 +530,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     }
 
     const invoiceData = {
-      invoiceNumber: generateInvoiceNumber(),
+      invoiceNumber: editableInvoiceNumber,
       customerId: selectedCustomer.id,
       customerName: selectedCustomer.name,
       customerEmail: selectedCustomer.email,
@@ -518,10 +539,10 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
       invoiceDate,
       dueDate,
       status: 'pending',
-      subtotal: subtotal.toFixed(2),
+      subtotal: editableSubtotal.toFixed(2),
       taxAmount: taxAmount.toFixed(2),
       discountAmount: discountAmount.toFixed(2),
-      totalAmount: totalAmount.toFixed(2),
+      totalAmount: editableTotalAmount.toFixed(2),
       currency,
       notes,
       paymentTerms,
@@ -692,12 +713,12 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden bg-white border-black">
+      <DialogContent className="max-w-full max-h-full w-screen h-screen overflow-hidden bg-white border-black">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Create Invoice</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">Create Invoice - Full Screen Mode</DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-6 h-[800px]">
+        <div className="grid grid-cols-2 gap-6 h-full overflow-hidden">
           {/* Left Side - Editable Fields */}
           <div className="space-y-6 overflow-y-auto pr-4">
           {/* Customer Selection */}
@@ -992,9 +1013,237 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
           </div>
           </div>
 
-          {/* Right Side - Invoice Preview */}
-          <div className="border-l border-gray-300 pl-6">
-            <InvoicePreview />
+          {/* Right Side - Editable Invoice Preview */}
+          <div className="border-l border-black pl-6 overflow-y-auto">
+            <div className="sticky top-0 bg-white pb-4 mb-4 border-b border-black">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Live Invoice Preview</h3>
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={createInvoiceMutation.isPending || !selectedCustomer || invoiceItems.length === 0}
+                  className="bg-black text-white hover:bg-gray-800"
+                >
+                  {createInvoiceMutation.isPending ? 'Creating...' : 'Create Invoice & Download PDF'}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Editable Invoice Preview */}
+            <div className="bg-white border border-black p-6 rounded-lg">
+              <div className="space-y-6">
+                {/* Company Logo Area */}
+                <div className="flex justify-between items-start mb-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="bg-gray-100 border border-gray-300 w-16 h-16 flex items-center justify-center">
+                      {companyProfile?.logoData ? (
+                        <img 
+                          src={companyProfile.logoData} 
+                          alt="Company Logo" 
+                          className="w-full h-full object-cover rounded"
+                        />
+                      ) : (
+                        <div className="text-center">
+                          <div className="w-8 h-8 border-2 border-gray-400 rounded-full mx-auto mb-1 flex items-center justify-center">
+                            <span className="text-xs font-bold">{companyProfile?.companyName ? companyProfile.companyName.substring(0, 3) : 'Logo'}</span>
+                          </div>
+                          <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">Company</div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-bold text-lg mb-1">{companyProfile?.companyName || 'Company Name'}</div>
+                      <div>{companyProfile?.addressLine1 || 'Address Line 1'}</div>
+                      {companyProfile?.addressLine2 && <div>{companyProfile.addressLine2}</div>}
+                      <div>{companyProfile?.city || 'City'}, {companyProfile?.stateProvince || 'State'} {companyProfile?.zipPostalCode || 'ZIP'}</div>
+                      <div>{companyProfile?.country || 'Country'}</div>
+                      <div>{companyProfile?.phoneNumber || 'Phone Number'}</div>
+                      <div>{companyProfile?.emailAddress || 'Email Address'}</div>
+                      {companyProfile?.websiteUrl && <div>{companyProfile.websiteUrl}</div>}
+                      {companyProfile?.gstNumber && <div>GST: {companyProfile.gstNumber}</div>}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <h1 className="text-3xl font-bold mb-4">Invoice</h1>
+                    <div className="space-y-2">
+                      <div>
+                        <Label className="text-sm font-medium">Invoice Number</Label>
+                        <Input 
+                          value={editableInvoiceNumber} 
+                          onChange={(e) => setEditableInvoiceNumber(e.target.value)}
+                          className="text-right border-black mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Invoice Date</Label>
+                        <Input 
+                          type="date" 
+                          value={invoiceDate} 
+                          onChange={(e) => setInvoiceDate(e.target.value)}
+                          className="border-black mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Due Date</Label>
+                        <Input 
+                          type="date" 
+                          value={dueDate} 
+                          onChange={(e) => setDueDate(e.target.value)}
+                          className="border-black mt-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bill To Section */}
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-3">Bill To:</h3>
+                  {selectedCustomer ? (
+                    <div className="text-sm bg-gray-50 p-4 rounded border border-gray-200">
+                      <div className="font-medium text-lg">{selectedCustomer.name}</div>
+                      <div>{selectedCustomer.email}</div>
+                      <div>{selectedCustomer.phone}</div>
+                      {selectedCustomer.company && <div>{selectedCustomer.company}</div>}
+                      {selectedCustomer.address && <div>{selectedCustomer.address}</div>}
+                      {selectedCustomer.city && <div>{selectedCustomer.city}, {selectedCustomer.state} {selectedCustomer.pincode}</div>}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 italic">Select a customer to see details</div>
+                  )}
+                </div>
+
+                {/* Items Table */}
+                <div className="mb-6">
+                  <table className="w-full border-collapse border border-black">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="border border-black p-3 text-left">Item</th>
+                        <th className="border border-black p-3 text-center">Qty</th>
+                        <th className="border border-black p-3 text-right">Rate</th>
+                        <th className="border border-black p-3 text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoiceItems.length > 0 ? (
+                        invoiceItems.map((item, index) => (
+                          <tr key={index}>
+                            <td className="border border-black p-3">
+                              <div className="font-medium">{item.itemName}</div>
+                              {item.itemDescription && <div className="text-sm text-gray-600">{item.itemDescription}</div>}
+                            </td>
+                            <td className="border border-black p-3 text-center">{item.quantity}</td>
+                            <td className="border border-black p-3 text-right">₹{item.unitPrice.toFixed(2)}</td>
+                            <td className="border border-black p-3 text-right">₹{item.totalPrice.toFixed(2)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="border border-black p-3 text-center text-gray-500 italic">
+                            No items added yet
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Editable Totals Section */}
+                <div className="flex justify-end mb-6">
+                  <div className="w-80 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Subtotal:</span>
+                      <div className="flex items-center space-x-2">
+                        <span>₹</span>
+                        <Input 
+                          type="number"
+                          value={editableSubtotal} 
+                          onChange={(e) => setEditableSubtotal(parseFloat(e.target.value) || 0)}
+                          className="w-24 text-right border-black"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-2">
+                        <span>Discount:</span>
+                        <Input 
+                          type="number"
+                          value={discountRate} 
+                          onChange={(e) => setDiscountRate(parseFloat(e.target.value) || 0)}
+                          className="w-16 text-right border-black"
+                        />
+                        <span>%</span>
+                      </div>
+                      <span>-₹{discountAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-2">
+                        <span>Tax:</span>
+                        <Input 
+                          type="number"
+                          value={taxRate} 
+                          onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+                          className="w-16 text-right border-black"
+                        />
+                        <span>%</span>
+                      </div>
+                      <span>₹{taxAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center font-bold text-lg border-t border-black pt-3">
+                      <span>Total:</span>
+                      <div className="flex items-center space-x-2">
+                        <span>₹</span>
+                        <Input 
+                          type="number"
+                          value={editableTotalAmount} 
+                          onChange={(e) => setEditableTotalAmount(parseFloat(e.target.value) || 0)}
+                          className="w-32 text-right border-black font-bold text-lg"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Terms */}
+                <div className="mb-6">
+                  <Label className="text-sm font-medium">Payment Terms</Label>
+                  <Select value={paymentTerms} onValueChange={setPaymentTerms}>
+                    <SelectTrigger className="border-black mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Net 15">Net 15</SelectItem>
+                      <SelectItem value="Net 30">Net 30</SelectItem>
+                      <SelectItem value="Net 45">Net 45</SelectItem>
+                      <SelectItem value="Net 60">Net 60</SelectItem>
+                      <SelectItem value="Due on Receipt">Due on Receipt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Editable Notes Section */}
+                <div className="mb-6">
+                  <Label className="text-sm font-medium">Notes</Label>
+                  <Textarea 
+                    value={notes} 
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Additional notes or terms..."
+                    className="border-black mt-1"
+                    rows={3}
+                  />
+                </div>
+
+                {/* Footer */}
+                <div className="text-sm space-y-2 border-t border-gray-200 pt-4">
+                  <div className="font-medium">Thanks for your business!</div>
+                  <div className="space-y-1">
+                    <div><strong>Name:</strong> {companyProfile?.companyName || 'Company Name'}</div>
+                    <div><strong>Account:</strong> 50200042158914</div>
+                    <div><strong>IFSC Code:</strong> HDFC0000192</div>
+                    <div><strong>Address:</strong> {companyProfile ? `${companyProfile.city}, ${companyProfile.stateProvince}` : 'City, State'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </DialogContent>
