@@ -324,6 +324,11 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     
+    // Invoice title at top center
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INVOICE', pageWidth / 2, 8, { align: 'center' });
+    
     // Draw main page border with thinner lines
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.2);
@@ -404,10 +409,7 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
       doc.text(`GST: ${companyProfile.gstNumber}`, 75, yPosition);
     }
     
-    // Invoice title
-    doc.setFontSize(24);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Invoice', 160, 40);
+    // Invoice title removed from here - moved to top center
     
     // Invoice details section with thinner border
     doc.setDrawColor(0, 0, 0);
