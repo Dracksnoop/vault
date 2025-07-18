@@ -96,14 +96,6 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
 
   const { data: companyProfile } = useQuery({
     queryKey: ['/api/company-profiles/default'],
-    queryFn: async () => {
-      const response = await fetch('/api/company-profiles/default');
-      if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error('Failed to fetch company profile');
-      }
-      return response.json();
-    },
   });
 
   // Fetch customer rental items when customer is selected
