@@ -81,6 +81,7 @@ interface RecurringSchedule {
 export default function Billing() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
+  const [showCreateRecurringModal, setShowCreateRecurringModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const { toast } = useToast();
@@ -383,13 +384,23 @@ export default function Billing() {
         <TabsContent value="invoices" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Invoices</h2>
-            <Button 
-              className="bg-black text-white hover:bg-gray-800 border-black"
-              onClick={() => setShowCreateInvoiceModal(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Invoice
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                className="bg-black text-white hover:bg-gray-800 border-black"
+                onClick={() => setShowCreateInvoiceModal(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Invoice
+              </Button>
+              <Button 
+                variant="outline"
+                className="border-black text-black hover:bg-gray-100"
+                onClick={() => setShowCreateRecurringModal(true)}
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Create Recurring Invoice
+              </Button>
+            </div>
           </div>
 
           <Card className="bg-white border-black">
@@ -613,6 +624,64 @@ export default function Billing() {
         isOpen={showCreateInvoiceModal} 
         onClose={() => setShowCreateInvoiceModal(false)} 
       />
+
+      {/* Create Recurring Invoice Modal */}
+      <Dialog open={showCreateRecurringModal} onOpenChange={setShowCreateRecurringModal}>
+        <DialogContent className="max-w-2xl bg-white border-black">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Create Recurring Invoice</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="text-center py-12">
+              <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Recurring Invoice Setup</h3>
+              <p className="text-gray-600 mb-6">
+                This feature will allow you to create automated recurring invoices for your customers.
+              </p>
+              <div className="space-y-4 text-left max-w-md mx-auto">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-gray-700">Set up monthly, quarterly, or yearly billing</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-gray-700">Automatic invoice generation</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-gray-700">Customer notification system</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-gray-700">Payment tracking and reminders</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 pt-4 border-t border-gray-200">
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateRecurringModal(false)}
+                className="border-black"
+              >
+                Cancel
+              </Button>
+              <Button
+                className="bg-black text-white hover:bg-gray-800"
+                onClick={() => {
+                  toast({
+                    title: "Coming Soon",
+                    description: "Recurring invoice feature will be available in the next update",
+                  });
+                  setShowCreateRecurringModal(false);
+                }}
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Set Up Recurring
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Invoice Preview Dialog */}
       <Dialog open={showInvoicePreview} onOpenChange={setShowInvoicePreview}>
