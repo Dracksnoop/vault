@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Package, Plus, Building, ShoppingCart, CheckCircle, Upload, X, Edit2, Trash2, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Package, Plus, Building, ShoppingCart, CheckCircle, Upload, X, Edit2, Trash2, Eye, Users } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -73,6 +73,7 @@ const itemSchema = z.object({
 export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [vendorData, setVendorData] = useState<VendorFormData | null>(null);
+  const [showVendorModal, setShowVendorModal] = useState(false);
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>([]);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -416,38 +417,17 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
               {/* Vendor Selection */}
               {vendors.length > 0 && (
                 <div className="mb-6">
-                  <h4 className="text-sm font-medium text-black mb-3">Select Existing Vendor or Create New</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {vendors.map((vendor: any) => (
-                      <button
-                        key={vendor.id}
-                        type="button"
-                        onClick={() => {
-                          vendorForm.reset({
-                            name: vendor.name,
-                            organization: vendor.organization || '',
-                            country: vendor.country || '',
-                            city: vendor.city || '',
-                            state: vendor.state || '',
-                            pincode: vendor.pincode || '',
-                            address: vendor.address || '',
-                            gstTaxId: vendor.gstTaxId || '',
-                            contactPerson: vendor.contactPerson || '',
-                            phone: vendor.phone || '',
-                            email: vendor.email || '',
-                            legalDocuments: vendor.legalDocuments || '',
-                          });
-                        }}
-                        className="p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 text-left transition-colors"
-                      >
-                        <div className="font-medium text-black">{vendor.name}</div>
-                        <div className="text-sm text-gray-600">{vendor.organization || 'No organization'}</div>
-                        <div className="text-sm text-gray-500">{vendor.email}</div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-4 text-sm text-gray-600">
-                    Or create a new vendor below:
+                  <div className="flex items-center gap-3 mb-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowVendorModal(true)}
+                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Select Previous Vendor
+                    </Button>
+                    <span className="text-sm text-gray-600">or create a new vendor below</span>
                   </div>
                 </div>
               )}
@@ -1147,6 +1127,58 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Vendor Selection Modal */}
+      <Dialog open={showVendorModal} onOpenChange={setShowVendorModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Select Previous Vendor</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+              {vendors.map((vendor: any) => (
+                <button
+                  key={vendor.id}
+                  type="button"
+                  onClick={() => {
+                    vendorForm.reset({
+                      name: vendor.name,
+                      organization: vendor.organization || '',
+                      country: vendor.country || '',
+                      city: vendor.city || '',
+                      state: vendor.state || '',
+                      pincode: vendor.pincode || '',
+                      address: vendor.address || '',
+                      gstTaxId: vendor.gstTaxId || '',
+                      contactPerson: vendor.contactPerson || '',
+                      phone: vendor.phone || '',
+                      email: vendor.email || '',
+                      legalDocuments: vendor.legalDocuments || '',
+                    });
+                    setShowVendorModal(false);
+                    toast({
+                      title: "Vendor Selected",
+                      description: `${vendor.name} has been selected and form filled automatically.`,
+                    });
+                  }}
+                  className="p-4 border border-gray-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 text-left transition-colors"
+                >
+                  <div className="font-medium text-black">{vendor.name}</div>
+                  <div className="text-sm text-gray-600">{vendor.organization || 'No organization'}</div>
+                  <div className="text-sm text-gray-500">{vendor.email}</div>
+                  <div className="text-sm text-gray-500">{vendor.phone}</div>
+                  <div className="text-sm text-gray-500">{vendor.city}, {vendor.state}</div>
+                </button>
+              ))}
+            </div>
+            {vendors.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No vendors found. Create a new vendor below.
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
