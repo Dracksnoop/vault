@@ -19,7 +19,6 @@ import {
   X
 } from 'lucide-react';
 import CreateInvoiceModal from '@/components/CreateInvoiceModal';
-import CreateScheduleModal from '@/components/CreateScheduleModal';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -84,8 +83,6 @@ export default function Billing() {
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
-  const [showCreateScheduleModal, setShowCreateScheduleModal] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState<RecurringSchedule | null>(null);
   const { toast } = useToast();
 
   const { data: stats, isLoading: statsLoading } = useQuery<BillingStats>({
@@ -189,57 +186,6 @@ export default function Billing() {
       });
     }
   };
-
-  const handlePreviewRecurringInvoice = (schedule: RecurringSchedule) => {
-    // Show preview of what the next invoice will look like
-    setSelectedSchedule(schedule);
-    toast({
-      title: "Preview",
-      description: `Next invoice for ${schedule.customerName} will be generated on ${formatDate(schedule.nextInvoiceDate)}`,
-    });
-  };
-
-  const handleToggleSchedule = useMutation({
-    mutationFn: async (schedule: RecurringSchedule) => {
-      return await apiRequest('PUT', `/api/recurring-schedules/${schedule.id}`, {
-        isActive: !schedule.isActive
-      });
-    },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/recurring-schedules'] });
-      toast({
-        title: "Success",
-        description: `Schedule ${variables.isActive ? 'paused' : 'activated'} successfully`,
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update schedule",
-        variant: "destructive",
-      });
-    }
-  });
-
-  const handleDeleteSchedule = useMutation({
-    mutationFn: async (scheduleId: string) => {
-      return await apiRequest('DELETE', `/api/recurring-schedules/${scheduleId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/recurring-schedules'] });
-      toast({
-        title: "Success",
-        description: "Schedule deleted successfully",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to delete schedule",
-        variant: "destructive",
-      });
-    }
-  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -576,10 +522,7 @@ export default function Billing() {
         <TabsContent value="recurring" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Recurring Billing</h2>
-            <Button 
-              className="bg-black text-white hover:bg-gray-800 border-black"
-              onClick={() => setShowCreateScheduleModal(true)}
-            >
+            <Button className="bg-black text-white hover:bg-gray-800 border-black">
               <Plus className="w-4 h-4 mr-2" />
               Create Schedule
             </Button>
@@ -627,29 +570,8 @@ export default function Billing() {
                           </td>
                           <td className="p-4">
                             <div className="flex gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="border-black"
-                                onClick={() => handlePreviewRecurringInvoice(schedule)}
-                              >
+                              <Button variant="outline" size="sm" className="border-black">
                                 <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className={schedule.isActive ? 'border-yellow-500 text-yellow-600' : 'border-green-500 text-green-600'}
-                                onClick={() => handleToggleSchedule(schedule)}
-                              >
-                                {schedule.isActive ? 'Pause' : 'Resume'}
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="border-red-500 text-red-600"
-                                onClick={() => handleDeleteSchedule(schedule.id)}
-                              >
-                                Delete
                               </Button>
                             </div>
                           </td>
@@ -690,12 +612,6 @@ export default function Billing() {
       <CreateInvoiceModal 
         isOpen={showCreateInvoiceModal} 
         onClose={() => setShowCreateInvoiceModal(false)} 
-      />
-
-      {/* Create Schedule Modal */}
-      <CreateScheduleModal 
-        isOpen={showCreateScheduleModal} 
-        onClose={() => setShowCreateScheduleModal(false)} 
       />
 
       {/* Invoice Preview Dialog */}
