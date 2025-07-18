@@ -198,21 +198,26 @@ export default function Replacements() {
             customerName: 'Krishna Gurjar'
           },
           {
-            id: 'sample-2',
-            unitId: 'unit-045',
-            unitSerialNumber: 'CAM-1752400045-1',
-            itemName: 'Professional Camera',
-            itemModel: 'Canon EOS R5',
-            reason: 'damage',
+            id: 'test-replacement-' + Date.now(),
+            unitId: '1752575932110_unit_2',
+            unitSerialNumber: 'I543089001',
+            itemId: '1752575932110',
+            itemName: 'CPU Intel Core i7',
+            itemModel: 'Intel Core i7-12700K',
+            reason: 'defective',
             status: 'pending',
-            requestDate: '2025-01-18',
-            notes: 'Water damage during outdoor shoot',
-            vendorName: 'Canon Service Center',
-            cost: 15000,
-            customerId: '2',
-            customerName: 'John Doe'
+            requestDate: new Date().toISOString().split('T')[0],
+            notes: 'Unit showing performance issues and overheating - test replacement',
+            vendorName: 'Intel Corporation',
+            warrantyExpiryDate: '2025-12-31',
+            cost: 45000,
+            customerId: null,
+            customerName: null
           }
         ];
+        
+        // Store the test replacement data
+        localStorage.setItem('replacementRequests', JSON.stringify(replacementData));
       }
       
       return replacementData as ReplacementRecord[];
