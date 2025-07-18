@@ -329,8 +329,8 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     doc.setLineWidth(0.2);
     doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
     
-    // Company logo area with light gray background
-    doc.setFillColor(230, 235, 240);
+    // Company logo area with white background
+    doc.setFillColor(255, 255, 255);
     doc.rect(15, 15, 55, 40, 'F');
     
     // Company logo handling
