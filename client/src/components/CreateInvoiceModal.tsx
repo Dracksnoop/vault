@@ -197,155 +197,173 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-
-    // Company logo and address placeholder (top left)
-    // TODO: When Profile section is implemented, populate these fields dynamically
-    const companyLogoX = 20;
-    const companyLogoY = 20;
     
-    // Placeholder for company logo
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(companyLogoX, companyLogoY, 40, 40); // Logo placeholder box
+    // Draw main page border
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
+    
+    // Company logo area with light gray background
+    doc.setFillColor(230, 235, 240);
+    doc.rect(15, 15, 55, 40, 'F');
+    
+    // Logo placeholder - circular design
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(2);
+    doc.circle(30, 30, 8);
+    
+    // "Gac" text in logo circle
     doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text('Logo', companyLogoX + 18, companyLogoY + 22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Gac', 25, 32);
     
-    // Placeholder for company address
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text('[Company Name]', companyLogoX + 50, companyLogoY + 5);
-    doc.text('[Address Line 1]', companyLogoX + 50, companyLogoY + 15);
-    doc.text('[Address Line 2]', companyLogoX + 50, companyLogoY + 25);
-    doc.text('[City, State, PIN]', companyLogoX + 50, companyLogoY + 35);
-    doc.text('[Phone]', companyLogoX + 50, companyLogoY + 45);
-    doc.text('[Email]', companyLogoX + 50, companyLogoY + 55);
-
-    // Invoice title (top right)
+    // Blue rectangle with "InfoTech" text
+    doc.setFillColor(70, 130, 180);
+    doc.rect(22, 38, 16, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(6);
+    doc.text('InfoTech', 24, 43);
+    
+    // Company name and details
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Gac Infotech', 75, 25);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('102 Gac business t near nakoda namkeen telephone', 75, 32);
+    doc.text('square', 75, 36);
+    doc.text('bangali chauraha', 75, 40);
+    doc.text('indore Madhya Pradesh 452016', 75, 44);
+    doc.text('India', 75, 48);
+    doc.text('9322277787', 75, 52);
+    doc.text('gacinfo@chol@gmail.com', 75, 56);
+    doc.text('WWW.GACINFOTECH.COM', 75, 60);
+    
+    // Invoice title
     doc.setFontSize(24);
-    doc.setTextColor(0, 0, 0);
-    doc.text('Invoice', pageWidth - 60, 30);
-
-    // Invoice details box
-    const invoiceDetailsY = 70;
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    
-    // Invoice details
-    doc.text('Invoice #:', 20, invoiceDetailsY);
-    doc.text(invoiceData.invoiceNumber, 60, invoiceDetailsY);
-    
-    doc.text('Invoice Date:', 20, invoiceDetailsY + 10);
-    doc.text(new Date(invoiceData.invoiceDate).toLocaleDateString('en-GB'), 60, invoiceDetailsY + 10);
-    
-    doc.text('Terms:', 20, invoiceDetailsY + 20);
-    doc.text(invoiceData.paymentTerms, 60, invoiceDetailsY + 20);
-    
-    doc.text('Due Date:', 20, invoiceDetailsY + 30);
-    doc.text(new Date(invoiceData.dueDate).toLocaleDateString('en-GB'), 60, invoiceDetailsY + 30);
-
-    // Customer details
-    const customerY = invoiceDetailsY + 50;
-    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(selectedCustomer?.name || 'Customer Name', 20, customerY);
+    doc.text('Invoice', 160, 40);
     
+    // Invoice details section with border
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.rect(15, 65, 180, 25);
+    
+    // Invoice details content
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    if (selectedCustomer?.company) {
-      doc.text(selectedCustomer.company, 20, customerY + 10);
-    }
-    if (selectedCustomer?.address) {
-      doc.text(selectedCustomer.address, 20, customerY + 20);
-    }
-    if (selectedCustomer?.city) {
-      doc.text(`${selectedCustomer.city}, ${selectedCustomer.state} ${selectedCustomer.pincode}`, 20, customerY + 30);
-    }
-
+    doc.text('#', 20, 75);
+    doc.text('Invoice Date', 20, 80);
+    doc.text('Terms', 20, 85);
+    doc.text('Due Date', 20, 90);
+    
+    // Invoice details values
+    doc.text(`: ${invoiceData.invoiceNumber}`, 80, 75);
+    doc.text(`: ${new Date(invoiceData.invoiceDate).toLocaleDateString('en-GB')}`, 80, 80);
+    doc.text(': Due on Receipt', 80, 85);
+    doc.text(`: ${new Date(invoiceData.dueDate).toLocaleDateString('en-GB')}`, 80, 90);
+    
+    // Customer name
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(selectedCustomer?.name || 'Dr. Krishna', 20, 105);
+    
     // Items table
-    const tableStartY = customerY + 50;
-    const tableData = invoiceItems.map((item, index) => [
-      (index + 1).toString(),
-      item.itemName,
-      item.quantity.toString() + ' pcs',
-      '₹' + item.unitPrice.toFixed(2),
-      '₹' + item.totalPrice.toFixed(2)
-    ]);
-
-    autoTable(doc, {
-      startY: tableStartY,
-      head: [['#', 'Description', 'Qty', 'Rate', 'Amount']],
-      body: tableData,
-      theme: 'grid',
-      styles: {
-        fontSize: 10,
-        cellPadding: 5,
-      },
-      headStyles: {
-        fillColor: [240, 240, 240],
-        textColor: [0, 0, 0],
-        fontStyle: 'bold',
-      },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 15 },
-        1: { halign: 'left', cellWidth: 80 },
-        2: { halign: 'center', cellWidth: 25 },
-        3: { halign: 'right', cellWidth: 30 },
-        4: { halign: 'right', cellWidth: 30 },
-      },
-    });
-
-    // Get table end position
-    const tableEndY = (doc as any).lastAutoTable.finalY + 10;
-
-    // Totals section
-    const totalsX = pageWidth - 80;
-    doc.setFontSize(10);
+    let yPos = 120;
     
-    doc.text('Sub Total:', totalsX - 30, tableEndY);
-    doc.text('₹' + subtotal.toFixed(2), totalsX + 10, tableEndY);
-
-    if (discountAmount > 0) {
-      doc.text('Discount:', totalsX - 30, tableEndY + 10);
-      doc.text('(-) ₹' + discountAmount.toFixed(2), totalsX + 10, tableEndY + 10);
-    }
-
-    if (taxAmount > 0) {
-      doc.text('Tax:', totalsX - 30, tableEndY + 20);
-      doc.text('₹' + taxAmount.toFixed(2), totalsX + 10, tableEndY + 20);
-    }
-
+    // Table header with borders
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.rect(15, yPos, 180, 12);
+    doc.line(25, yPos, 25, yPos + 12); // # column separator
+    doc.line(130, yPos, 130, yPos + 12); // Qty column separator
+    doc.line(155, yPos, 155, yPos + 12); // Rate column separator
+    
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('Total:', totalsX - 30, tableEndY + 30);
-    doc.text('₹' + totalAmount.toFixed(2), totalsX + 10, tableEndY + 30);
-
-    // Amount in words
-    const amountInWords = numberToWords(Math.floor(totalAmount));
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text('Total In Words:', 20, tableEndY + 20);
-    doc.text(`Indian Rupee ${amountInWords}`, 20, tableEndY + 30);
-
-    // Payment info placeholder (will be populated when Profile is implemented)
-    const paymentInfoY = tableEndY + 50;
-    doc.setFontSize(10);
-    doc.text('Thanks for your business.', 20, paymentInfoY);
+    doc.text('#', 18, yPos + 8);
+    doc.text('Description', 30, yPos + 8);
+    doc.text('Qty', 135, yPos + 8);
+    doc.text('Rate', 160, yPos + 8);
+    doc.text('Amount', 175, yPos + 8);
     
+    yPos += 12;
+    
+    // Table rows
+    doc.setFont('helvetica', 'normal');
+    let calculatedSubtotal = 0;
+    invoiceItems.forEach((item, index) => {
+      const itemTotal = item.quantity * item.unitPrice;
+      calculatedSubtotal += itemTotal;
+      
+      // Draw row borders
+      doc.rect(15, yPos, 180, 10);
+      doc.line(25, yPos, 25, yPos + 10);
+      doc.line(130, yPos, 130, yPos + 10);
+      doc.line(155, yPos, 155, yPos + 10);
+      
+      // Row content
+      doc.text((index + 1).toString(), 18, yPos + 6);
+      doc.text(item.itemName, 30, yPos + 6);
+      doc.text(`${item.quantity.toFixed(2)}`, 132, yPos + 6);
+      doc.text('pcs', 142, yPos + 6);
+      doc.text(`${item.unitPrice.toFixed(2)}`, 158, yPos + 6);
+      doc.text(`${itemTotal.toFixed(2)}`, 175, yPos + 6);
+      
+      yPos += 10;
+    });
+    
+    // Totals section
+    yPos += 5;
+    const calculatedTotal = calculatedSubtotal + taxAmount - discountAmount;
+    
+    // Total in words (left side)
     doc.setFontSize(9);
-    doc.text('Name - [Company Name]', 20, paymentInfoY + 15);
-    doc.text('Account - [Account Number]', 20, paymentInfoY + 25);
-    doc.text('IFSC code - [IFSC Code]', 20, paymentInfoY + 35);
-    doc.text('Address - [Bank Address]', 20, paymentInfoY + 45);
-
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total In Words', 20, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Indian Rupee ${numberToWords(Math.floor(calculatedTotal))}`, 20, yPos + 6);
+    
+    // Right side totals
+    doc.text('Sub Total', 145, yPos);
+    doc.text(`${calculatedSubtotal.toFixed(2)}`, 175, yPos);
+    
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total', 145, yPos + 6);
+    doc.text(`₹${calculatedTotal.toFixed(2)}`, 175, yPos + 6);
+    
+    doc.text('Payment Made', 145, yPos + 12);
+    doc.text('(-) 180.00', 175, yPos + 12);
+    
+    doc.text('Balance Due', 145, yPos + 18);
+    doc.text('₹0.00', 175, yPos + 18);
+    
+    // Thank you message
+    yPos += 30;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Thanks for your business.', 20, yPos);
+    
+    // Bank details
+    yPos += 10;
+    doc.text('Name - Gac Infotech', 20, yPos);
+    doc.text('Account - 50200042158914', 20, yPos + 5);
+    doc.text('Ifsc code - HDFC0000192', 20, yPos + 10);
+    doc.text('Address - City Center Gwalior', 20, yPos + 15);
+    
     // Terms and conditions
-    const termsY = paymentInfoY + 65;
+    yPos += 25;
     doc.setFontSize(8);
-    doc.text('- An invoice will be provided for all transactions, specifying itemized', 20, termsY);
-    doc.text('  charges, rental period, and total amount.', 20, termsY + 8);
-    doc.text('- Disputes regarding invoices must be raised within 2 days of receipt.', 20, termsY + 16);
-    doc.text('- The customer is liable for any damage or loss to rented equipment', 20, termsY + 24);
-    doc.text('  during the rental period.', 20, termsY + 32);
-    doc.text('- Charges for repair or replacement will be billed separately.', 20, termsY + 40);
-
+    doc.text('- An invoice will be provided for all transactions, specifying itemized', 20, yPos);
+    doc.text('charges, rental period, and total amount.', 20, yPos + 4);
+    doc.text('- Disputes regarding invoices must be raised within 2 days of receipt.', 20, yPos + 8);
+    doc.text('- The customer is liable for any damage or loss to rented equipment', 20, yPos + 12);
+    doc.text('during the rental period.', 20, yPos + 16);
+    doc.text('- Charges for repair or replacement will be billed separately.', 20, yPos + 20);
+    
     // Save the PDF
     doc.save(`${invoiceData.invoiceNumber}.pdf`);
   };
