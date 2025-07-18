@@ -16,6 +16,7 @@ import {
   Eye,
   Download
 } from 'lucide-react';
+import CreateInvoiceModal from '@/components/CreateInvoiceModal';
 
 interface BillingStats {
   totalInvoices: number;
@@ -75,6 +76,7 @@ interface RecurringSchedule {
 
 export default function Billing() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
 
   const { data: stats, isLoading: statsLoading } = useQuery<BillingStats>({
     queryKey: ['/api/billing/stats'],
@@ -288,7 +290,10 @@ export default function Billing() {
         <TabsContent value="invoices" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Invoices</h2>
-            <Button className="bg-black text-white hover:bg-gray-800 border-black">
+            <Button 
+              className="bg-black text-white hover:bg-gray-800 border-black"
+              onClick={() => setShowCreateInvoiceModal(true)}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Invoice
             </Button>
@@ -488,6 +493,12 @@ export default function Billing() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Create Invoice Modal */}
+      <CreateInvoiceModal 
+        isOpen={showCreateInvoiceModal} 
+        onClose={() => setShowCreateInvoiceModal(false)} 
+      />
     </div>
   );
 }
