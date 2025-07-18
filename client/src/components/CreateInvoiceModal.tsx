@@ -497,12 +497,6 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     doc.text('Total', 145, yPos + 6);
     doc.text(`Rs. ${calculatedTotal.toFixed(2)}`, 175, yPos + 6);
     
-    doc.text('Payment Made', 145, yPos + 12);
-    doc.text('Rs. 180.00', 175, yPos + 12);
-    
-    doc.text('Balance Due', 145, yPos + 18);
-    doc.text('Rs. 0.00', 175, yPos + 18);
-    
     // Thank you message
     yPos += 30;
     doc.setFontSize(9);
