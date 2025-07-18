@@ -9,7 +9,8 @@ import {
   RefreshCw, 
   UserCheck, 
   User, 
-  LifeBuoy 
+  LifeBuoy,
+  RotateCcw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logoPath from "@assets/WhatsApp_Image_2025-07-13_at_1.27.05_AM-removebg-preview_1752387426033.png";
@@ -28,6 +29,7 @@ const navigationItems = [
   { name: "Demo", href: "/demo", icon: Play },
   { name: "Call/Service", href: "/callservice", icon: Phone },
   { name: "Trade", href: "/trade", icon: RefreshCw },
+  { name: "Replacements", href: "/replacements", icon: RotateCcw },
   { name: "Users", href: "/users", icon: UserCheck },
   { name: "Profile", href: "/profile", icon: User },
   { name: "Support", href: "/support", icon: LifeBuoy },
