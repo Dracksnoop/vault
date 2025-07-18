@@ -12,6 +12,7 @@ import {
   Search,
   Plus
 } from 'lucide-react';
+import { ReplacementRequestModal } from '@/components/ReplacementRequestModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +45,7 @@ export default function Replacements() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [reasonFilter, setReasonFilter] = useState('all');
+  const [showReplacementModal, setShowReplacementModal] = useState(false);
 
   // Fetch replacement data (mock data for now - would be replaced with real API)
   const { data: replacements = [], isLoading } = useQuery({
@@ -177,7 +179,10 @@ export default function Replacements() {
               <h1 className="text-3xl font-bold text-black">Replacements</h1>
               <p className="text-gray-600 mt-2">Manage warranty replacements, damaged items, and defective units</p>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => setShowReplacementModal(true)}
+            >
               <Plus className="w-4 h-4 mr-2" />
               New Replacement Request
             </Button>
@@ -499,6 +504,12 @@ export default function Replacements() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Replacement Request Modal */}
+        <ReplacementRequestModal 
+          isOpen={showReplacementModal} 
+          onClose={() => setShowReplacementModal(false)} 
+        />
       </div>
     </div>
   );
