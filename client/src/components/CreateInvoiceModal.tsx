@@ -106,6 +106,22 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     },
   });
 
+  // Fetch customer rental items when customer is selected
+  const { data: customerRentals } = useQuery({
+    queryKey: ['/api/customers', selectedCustomer?.id, 'rentals'],
+    enabled: !!selectedCustomer?.id,
+  });
+
+  const { data: serviceItems } = useQuery({
+    queryKey: ['/api/service-items'],
+    enabled: !!selectedCustomer?.id,
+  });
+
+  const { data: services } = useQuery({
+    queryKey: ['/api/services'],
+    enabled: !!selectedCustomer?.id,
+  });
+
   // Auto-calculate due date based on payment terms
   useEffect(() => {
     if (invoiceDate && paymentTerms) {
@@ -160,6 +176,51 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     }
   }, [companyProfile, bankName]);
 
+  // Process rental items for display
+  const getRentalItems = () => {
+    if (!customerRentals || !serviceItems || !services || !items) return [];
+    
+    const rentalItems = [];
+    
+    for (const rental of customerRentals) {
+      // Find the service for this rental
+      const service = services.find(s => s.id === rental.serviceId);
+      if (!service || service.serviceType !== 'rent') continue;
+      
+      // Find service items for this rental
+      const rentalServiceItems = serviceItems.filter(si => si.serviceId === rental.serviceId);
+      
+      for (const serviceItem of rentalServiceItems) {
+        // Find the inventory item
+        const item = items.find(i => i.id === serviceItem.itemId);
+        if (!item) continue;
+        
+        rentalItems.push({
+          id: `rental-${rental.id}-${serviceItem.id}`,
+          rentalId: rental.id,
+          serviceId: rental.serviceId,
+          serviceItemId: serviceItem.id,
+          itemId: item.id,
+          name: item.name,
+          model: item.model,
+          quantity: serviceItem.quantity,
+          unitPrice: parseFloat(serviceItem.unitPrice || '0'),
+          totalPrice: parseFloat(serviceItem.totalPrice || '0'),
+          rentalPeriod: rental.isOngoing ? 
+            `${rental.startDate} to Ongoing` : 
+            `${rental.startDate} to ${rental.endDate || 'Ongoing'}`,
+          monthlyRate: parseFloat(rental.monthlyRate || '0'),
+          paymentFrequency: rental.paymentFrequency,
+          isActive: rental.status === 'active'
+        });
+      }
+    }
+    
+    return rentalItems.filter(item => item.isActive);
+  };
+
+  const rentalItems = getRentalItems();
+
   // Add item to invoice
   const addItemToInvoice = () => {
     if (!selectedItem || itemQuantity <= 0) {
@@ -189,6 +250,23 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     setItemQuantity(1);
     setItemUnitPrice(0);
     setItemRentalPeriod('');
+  };
+
+  // Add rental item to invoice
+  const addRentalItemToInvoice = (rentalItem: any) => {
+    const newItem: InvoiceItem = {
+      itemId: rentalItem.itemId,
+      itemName: rentalItem.name,
+      itemDescription: `${rentalItem.model} (Rental)`,
+      quantity: rentalItem.quantity,
+      unitPrice: rentalItem.monthlyRate,
+      totalPrice: rentalItem.quantity * rentalItem.monthlyRate,
+      taxRate: 0,
+      discountRate: 0,
+      rentalPeriod: rentalItem.rentalPeriod,
+    };
+    
+    setInvoiceItems([...invoiceItems, newItem]);
   };
 
   // Remove item from invoice
@@ -892,6 +970,51 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
               </Button>
             </CardContent>
           </Card>
+
+          {/* Customer Rental Items */}
+          {selectedCustomer && rentalItems.length > 0 && (
+            <Card className="border-black">
+              <CardHeader>
+                <CardTitle className="text-lg">Customer's Active Rental Items</CardTitle>
+                <p className="text-sm text-gray-600">
+                  Click on any item to add it to the invoice
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {rentalItems.map((rentalItem) => (
+                    <div 
+                      key={rentalItem.id}
+                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => addRentalItemToInvoice(rentalItem)}
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{rentalItem.name}</div>
+                        <div className="text-sm text-gray-600">
+                          {rentalItem.model} • Qty: {rentalItem.quantity} • Monthly Rate: ₹{rentalItem.monthlyRate.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {rentalItem.rentalPeriod} • {rentalItem.paymentFrequency}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary" className="text-xs">
+                          Active Rental
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-black text-black hover:bg-black hover:text-white"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Invoice Items List */}
           {invoiceItems.length > 0 && (
