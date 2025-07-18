@@ -195,6 +195,9 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
         const item = items.find(i => i.id === serviceItem.itemId);
         if (!item) continue;
         
+        // Use service item unit price as monthly rate if rental monthly rate is empty
+        const monthlyRate = parseFloat(rental.monthlyRate || serviceItem.unitPrice || '0');
+        
         rentalItems.push({
           id: `rental-${rental.id}-${serviceItem.id}`,
           rentalId: rental.id,
@@ -209,9 +212,9 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
           rentalPeriod: rental.isOngoing ? 
             `${rental.startDate} to Ongoing` : 
             `${rental.startDate} to ${rental.endDate || 'Ongoing'}`,
-          monthlyRate: parseFloat(rental.monthlyRate || '0'),
-          paymentFrequency: rental.paymentFrequency,
-          isActive: rental.status === 'active'
+          monthlyRate: monthlyRate,
+          paymentFrequency: rental.paymentFrequency || 'monthly',
+          isActive: rental.isOngoing // Use isOngoing field since status field doesn't exist
         });
       }
     }
