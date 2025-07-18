@@ -53,6 +53,11 @@ interface Unit {
   serialNumber: string;
   barcode: string;
   status: "Available" | "Rented" | "Maintenance" | "Retired";
+  isReplacement?: boolean;
+  originalUnitId?: string;
+  replacementReason?: string;
+  replacementDate?: string;
+  replacedUnitId?: string;
   location: string;
   warrantyExpiry: string;
   notes: string;
@@ -318,7 +323,29 @@ export default function Inventory() {
 
   const selectedItemData = items.find(item => item.id === selectedItem);
   const itemUnits = units.filter(unit => unit.itemId === selectedItem);
-  const filteredUnits = itemUnits.filter(unit =>
+  
+  // Get replacement units from localStorage
+  const replacementUnits = (() => {
+    const stored = localStorage.getItem('replacementUnits');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (error) {
+        console.error('Error parsing replacement units:', error);
+        return [];
+      }
+    }
+    return [];
+  })();
+
+  // Add replacement units that match the selected item
+  const replacementUnitsForItem = replacementUnits.filter((unit: any) => 
+    unit.itemId === selectedItem
+  );
+
+  const allUnits = [...itemUnits, ...replacementUnitsForItem];
+  
+  const filteredUnits = allUnits.filter(unit =>
     unit.serialNumber.toLowerCase().includes(unitSearchTerm.toLowerCase()) ||
     unit.barcode.toLowerCase().includes(unitSearchTerm.toLowerCase())
   ).sort((a, b) => {
@@ -1172,10 +1199,18 @@ export default function Inventory() {
                             <div className="flex-1">
                               <div className="flex items-center gap-4 mb-3">
                                 <div className="font-medium text-black">{unit.serialNumber}</div>
-                                <Badge className={`${getStatusColor(unit.status)} border`}>
-                                  {getStatusIcon(unit.status)}
-                                  <span className="ml-1">{unit.status}</span>
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  <Badge className={`${getStatusColor(unit.status)} border`}>
+                                    {getStatusIcon(unit.status)}
+                                    <span className="ml-1">{unit.status}</span>
+                                  </Badge>
+                                  {unit.isReplacement && (
+                                    <Badge className="bg-orange-100 text-orange-800 border-orange-300">
+                                      <AlertCircle className="w-3 h-3 mr-1" />
+                                      Replacement
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                                 <div className="flex items-center gap-2">

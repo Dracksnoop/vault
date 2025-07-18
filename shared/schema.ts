@@ -73,6 +73,13 @@ export const units = pgTable("units", {
   
   // Additional specifications
   networkAdapter: text("network_adapter"),
+  
+  // Replacement tracking
+  isReplacement: boolean("is_replacement").default(false),
+  originalUnitId: text("original_unit_id"), // ID of the original unit this replaces
+  replacementReason: text("replacement_reason"), // warranty, damage, expired, defective, other
+  replacementDate: text("replacement_date"), // When this unit was created as a replacement
+  replacedUnitId: text("replaced_unit_id"), // ID of the unit that replaced this one (for original units)
   opticalDrive: text("optical_drive"),
   ports: text("ports"),
   coolingSystem: text("cooling_system"),

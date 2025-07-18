@@ -73,6 +73,12 @@ interface Unit {
   psuEfficiency?: string;
   // Operating System
   osName?: string;
+  // Replacement tracking
+  isReplacement?: boolean;
+  originalUnitId?: string;
+  replacementReason?: string;
+  replacementDate?: string;
+  replacedUnitId?: string;
   // Additional specifications
   networkAdapter?: string;
   opticalDrive?: string;
@@ -267,6 +273,45 @@ export default function UnitDetailsPanel({ unit, item, category, isOpen, onClose
         <div>
           <Label className="text-sm font-medium text-gray-700">Notes</Label>
           <p className="text-sm mt-1 p-3 bg-gray-50 border border-gray-200 rounded">{unit.notes}</p>
+        </div>
+      )}
+      
+      {/* Replacement Information */}
+      {unit.isReplacement && (
+        <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="w-4 h-4 text-orange-600" />
+            <Label className="text-sm font-medium text-orange-800">Replacement Unit</Label>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div>
+              <span className="font-medium text-orange-700">Reason:</span> 
+              <span className="ml-2 text-orange-600 capitalize">{unit.replacementReason}</span>
+            </div>
+            <div>
+              <span className="font-medium text-orange-700">Replacement Date:</span> 
+              <span className="ml-2 text-orange-600">{unit.replacementDate}</span>
+            </div>
+            {unit.originalUnitId && (
+              <div>
+                <span className="font-medium text-orange-700">Original Unit ID:</span> 
+                <span className="ml-2 text-orange-600">{unit.originalUnitId}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {unit.replacedUnitId && (
+        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <Info className="w-4 h-4 text-yellow-600" />
+            <Label className="text-sm font-medium text-yellow-800">Unit Status</Label>
+          </div>
+          <div className="text-sm">
+            <span className="font-medium text-yellow-700">This unit has been replaced by:</span> 
+            <span className="ml-2 text-yellow-600">{unit.replacedUnitId}</span>
+          </div>
         </div>
       )}
     </div>

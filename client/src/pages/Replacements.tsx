@@ -93,18 +93,65 @@ export default function Replacements() {
       const storedReplacements = localStorage.getItem('replacementRequests');
       if (storedReplacements) {
         const replacements = JSON.parse(storedReplacements);
-        const updatedReplacements = replacements.map((replacement: any) => {
-          if (replacement.id === replacementId) {
-            return {
-              ...replacement,
-              status: 'completed',
-              completionDate: new Date().toISOString().split('T')[0]
-            };
+        const replacementToComplete = replacements.find((r: any) => r.id === replacementId);
+        
+        if (replacementToComplete) {
+          // Create a new replacement unit
+          const newUnitId = Date.now().toString();
+          const newSerialNumber = replacementToComplete.unitSerialNumber; // Keep same serial number
+          
+          const replacementUnit = {
+            id: newUnitId,
+            itemId: replacementToComplete.itemId,
+            serialNumber: newSerialNumber,
+            barcode: replacementToComplete.unitSerialNumber?.replace(/[^0-9]/g, '') || newUnitId,
+            status: 'Available',
+            location: 'Warehouse',
+            warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 year warranty
+            notes: `Replacement unit for ${replacementToComplete.replacementReason} issue`,
+            isReplacement: true,
+            originalUnitId: replacementToComplete.unitId,
+            replacementReason: replacementToComplete.replacementReason,
+            replacementDate: new Date().toISOString().split('T')[0]
+          };
+          
+          // Store replacement unit for demo purposes
+          const existingReplacementUnits = localStorage.getItem('replacementUnits');
+          let replacementUnits = [];
+          if (existingReplacementUnits) {
+            try {
+              replacementUnits = JSON.parse(existingReplacementUnits);
+            } catch (error) {
+              console.error('Error parsing replacement units:', error);
+            }
           }
-          return replacement;
-        });
-        localStorage.setItem('replacementRequests', JSON.stringify(updatedReplacements));
-        return updatedReplacements;
+          
+          replacementUnits.push(replacementUnit);
+          localStorage.setItem('replacementUnits', JSON.stringify(replacementUnits));
+          
+          // In a real implementation, this would:
+          // 1. Create the new replacement unit in the database
+          // 2. Update the original unit to mark it as replaced
+          // 3. Update item details if it's a different item replacement
+          console.log('Creating replacement unit:', replacementUnit);
+          
+          // For now, we'll just update the replacement record
+          const updatedReplacements = replacements.map((replacement: any) => {
+            if (replacement.id === replacementId) {
+              return {
+                ...replacement,
+                status: 'completed',
+                completionDate: new Date().toISOString().split('T')[0],
+                replacementUnitId: newUnitId,
+                replacementSerialNumber: newSerialNumber
+              };
+            }
+            return replacement;
+          });
+          
+          localStorage.setItem('replacementRequests', JSON.stringify(updatedReplacements));
+          return updatedReplacements;
+        }
       }
       return [];
     },
