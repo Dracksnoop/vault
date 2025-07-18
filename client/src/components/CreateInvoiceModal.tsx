@@ -83,6 +83,18 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     queryKey: ['/api/items'],
   });
 
+  const { data: companyProfile } = useQuery({
+    queryKey: ['/api/company-profiles/default'],
+    queryFn: async () => {
+      const response = await fetch('/api/company-profiles/default');
+      if (!response.ok) {
+        if (response.status === 404) return null;
+        throw new Error('Failed to fetch company profile');
+      }
+      return response.json();
+    },
+  });
+
   // Auto-calculate due date based on payment terms
   useEffect(() => {
     if (invoiceDate && paymentTerms) {
@@ -207,40 +219,73 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     doc.setFillColor(230, 235, 240);
     doc.rect(15, 15, 55, 40, 'F');
     
-    // Logo placeholder - circular design
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(2);
-    doc.circle(30, 30, 8);
-    
-    // "Gac" text in logo circle
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('Gac', 25, 32);
-    
-    // Blue rectangle with "InfoTech" text
-    doc.setFillColor(70, 130, 180);
-    doc.rect(22, 38, 16, 8, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(6);
-    doc.text('InfoTech', 24, 43);
+    // Company logo handling
+    if (companyProfile?.logoData) {
+      try {
+        // Add the actual logo image
+        doc.addImage(companyProfile.logoData, 'JPEG', 20, 20, 30, 30);
+      } catch (error) {
+        console.warn('Failed to add logo to PDF:', error);
+        // Fallback to placeholder
+        doc.setDrawColor(100, 100, 100);
+        doc.setLineWidth(2);
+        doc.circle(35, 35, 12);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        const initials = companyProfile.companyName ? companyProfile.companyName.substring(0, 3) : 'Logo';
+        doc.text(initials, 30, 37);
+      }
+    } else {
+      // Logo placeholder - circular design
+      doc.setDrawColor(100, 100, 100);
+      doc.setLineWidth(2);
+      doc.circle(35, 35, 12);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      const initials = companyProfile?.companyName ? companyProfile.companyName.substring(0, 3) : 'Logo';
+      doc.text(initials, 30, 37);
+    }
     
     // Company name and details
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('Gac Infotech', 75, 25);
+    doc.text(companyProfile?.companyName || 'Company Name', 75, 25);
     
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('102 Gac business t near nakoda namkeen telephone', 75, 32);
-    doc.text('square', 75, 36);
-    doc.text('bangali chauraha', 75, 40);
-    doc.text('indore Madhya Pradesh 452016', 75, 44);
-    doc.text('India', 75, 48);
-    doc.text('9322277787', 75, 52);
-    doc.text('gacinfo@chol@gmail.com', 75, 56);
-    doc.text('WWW.GACINFOTECH.COM', 75, 60);
+    let yPosition = 32;
+    doc.text(companyProfile?.addressLine1 || 'Address Line 1', 75, yPosition);
+    yPosition += 4;
+    
+    if (companyProfile?.addressLine2) {
+      doc.text(companyProfile.addressLine2, 75, yPosition);
+      yPosition += 4;
+    }
+    
+    const cityStateZip = `${companyProfile?.city || 'City'}, ${companyProfile?.stateProvince || 'State'} ${companyProfile?.zipPostalCode || 'ZIP'}`;
+    doc.text(cityStateZip, 75, yPosition);
+    yPosition += 4;
+    
+    doc.text(companyProfile?.country || 'Country', 75, yPosition);
+    yPosition += 4;
+    
+    doc.text(companyProfile?.phoneNumber || 'Phone Number', 75, yPosition);
+    yPosition += 4;
+    
+    doc.text(companyProfile?.emailAddress || 'Email Address', 75, yPosition);
+    yPosition += 4;
+    
+    if (companyProfile?.websiteUrl) {
+      doc.text(companyProfile.websiteUrl, 75, yPosition);
+      yPosition += 4;
+    }
+    
+    if (companyProfile?.gstNumber) {
+      doc.text(`GST: ${companyProfile.gstNumber}`, 75, yPosition);
+    }
     
     // Invoice title
     doc.setFontSize(24);
@@ -347,12 +392,13 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     doc.setFont('helvetica', 'normal');
     doc.text('Thanks for your business.', 20, yPos);
     
-    // Bank details
+    // Bank details (using company profile info)
     yPos += 10;
-    doc.text('Name - Gac Infotech', 20, yPos);
-    doc.text('Account - 50200042158914', 20, yPos + 5);
-    doc.text('Ifsc code - HDFC0000192', 20, yPos + 10);
-    doc.text('Address - City Center Gwalior', 20, yPos + 15);
+    doc.text(`Name - ${companyProfile?.companyName || 'Company Name'}`, 20, yPos);
+    doc.text('Account - 50200042158914', 20, yPos + 5); // TODO: Add bank details to profile
+    doc.text('Ifsc code - HDFC0000192', 20, yPos + 10); // TODO: Add bank details to profile
+    const addressLine = companyProfile ? `${companyProfile.city}, ${companyProfile.stateProvince}` : 'City, State';
+    doc.text(`Address - ${addressLine}`, 20, yPos + 15);
     
     // Terms and conditions
     yPos += 25;
@@ -489,23 +535,31 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-start space-x-4">
               <div className="bg-gray-100 border border-gray-300 w-16 h-16 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-8 h-8 border-2 border-gray-400 rounded-full mx-auto mb-1 flex items-center justify-center">
-                    <span className="text-xs font-bold">Gac</span>
+                {companyProfile?.logoData ? (
+                  <img 
+                    src={companyProfile.logoData} 
+                    alt="Company Logo" 
+                    className="w-full h-full object-cover rounded"
+                  />
+                ) : (
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-gray-400 rounded-full mx-auto mb-1 flex items-center justify-center">
+                      <span className="text-xs font-bold">{companyProfile?.companyName ? companyProfile.companyName.substring(0, 3) : 'Logo'}</span>
+                    </div>
+                    <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">Company</div>
                   </div>
-                  <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">InfoTech</div>
-                </div>
+                )}
               </div>
               <div className="text-sm">
-                <div className="font-bold text-lg mb-1">Gac Infotech</div>
-                <div>102 Gac business t near nakoda namkeen telephone</div>
-                <div>square</div>
-                <div>bangali chauraha</div>
-                <div>indore Madhya Pradesh 452016</div>
-                <div>India</div>
-                <div>9322277787</div>
-                <div>gacinfo@chol@gmail.com</div>
-                <div>WWW.GACINFOTECH.COM</div>
+                <div className="font-bold text-lg mb-1">{companyProfile?.companyName || 'Company Name'}</div>
+                <div>{companyProfile?.addressLine1 || 'Address Line 1'}</div>
+                {companyProfile?.addressLine2 && <div>{companyProfile.addressLine2}</div>}
+                <div>{companyProfile?.city || 'City'}, {companyProfile?.stateProvince || 'State'} {companyProfile?.zipPostalCode || 'ZIP'}</div>
+                <div>{companyProfile?.country || 'Country'}</div>
+                <div>{companyProfile?.phoneNumber || 'Phone Number'}</div>
+                <div>{companyProfile?.emailAddress || 'Email Address'}</div>
+                {companyProfile?.websiteUrl && <div>{companyProfile.websiteUrl}</div>}
+                {companyProfile?.gstNumber && <div>GST: {companyProfile.gstNumber}</div>}
               </div>
             </div>
             <div className="text-right">
