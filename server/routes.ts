@@ -1857,12 +1857,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PDF Download endpoint
   app.post("/api/invoices/download", async (req, res) => {
     try {
+      console.log('PDF download request received:', req.body);
+      
       const { invoiceId, companyProfile } = req.body;
+      
+      if (!invoiceId) {
+        console.error('Missing invoiceId in request');
+        return res.status(400).json({ error: "Invoice ID is required" });
+      }
       
       const invoice = await storage.getInvoice(invoiceId);
       if (!invoice) {
+        console.error('Invoice not found:', invoiceId);
         return res.status(404).json({ error: "Invoice not found" });
       }
+
+      console.log('Found invoice:', invoice.invoiceNumber);
 
       // Import jsPDF dynamically
       const { jsPDF } = await import('jspdf');
@@ -1953,6 +1963,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate PDF buffer
       const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
       
+      console.log('PDF generated successfully, size:', pdfBuffer.length);
+      
       res.set({
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${invoice.invoiceNumber}.pdf"`,
@@ -1962,7 +1974,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(pdfBuffer);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      res.status(500).json({ error: "Failed to generate PDF" });
+      res.status(500).json({ error: "Failed to generate PDF", details: error.message });
     }
   });
 

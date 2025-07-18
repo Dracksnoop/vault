@@ -135,6 +135,8 @@ export default function Billing() {
 
   const handleDownloadInvoice = async (invoice: Invoice) => {
     try {
+      console.log('Downloading invoice:', invoice.id);
+      
       const response = await fetch('/api/invoices/download', {
         method: 'POST',
         headers: {
@@ -147,11 +149,21 @@ export default function Billing() {
         })
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to download invoice');
+        const errorText = await response.text();
+        console.error('Download error:', errorText);
+        throw new Error(`Failed to download invoice: ${response.status}`);
       }
 
       const blob = await response.blob();
+      console.log('Blob size:', blob.size);
+      
+      if (blob.size === 0) {
+        throw new Error('Empty PDF file received');
+      }
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -166,9 +178,10 @@ export default function Billing() {
         description: "Invoice downloaded successfully",
       });
     } catch (error) {
+      console.error('Download error:', error);
       toast({
         title: "Error",
-        description: "Failed to download invoice",
+        description: error instanceof Error ? error.message : "Failed to download invoice",
         variant: "destructive",
       });
     }
