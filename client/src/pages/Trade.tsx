@@ -20,22 +20,24 @@ export default function Trade() {
     enabled: true
   });
 
-  // Calculate totals
+  // Calculate totals with better error handling
   const totalPurchases = purchaseOrders?.reduce((sum: number, order: any) => {
-    const amount = parseFloat(order.totalAmount) || 0;
+    // Try different possible field names and formats
+    const amount = parseFloat(order.totalValue) || 
+                  parseFloat(order.totalAmount) || 
+                  parseFloat(order.total_value) || 
+                  parseFloat(order.total_amount) || 0;
     return sum + amount;
   }, 0) || 0;
 
   const totalSales = sellOrders?.reduce((sum: number, order: any) => {
-    const amount = parseFloat(order.totalAmount) || 0;
+    // Try different possible field names and formats
+    const amount = parseFloat(order.totalValue) || 
+                  parseFloat(order.totalAmount) || 
+                  parseFloat(order.total_value) || 
+                  parseFloat(order.total_amount) || 0;
     return sum + amount;
   }, 0) || 0;
-
-  // Debug logging
-  console.log('Purchase Orders:', purchaseOrders);
-  console.log('Sell Orders:', sellOrders);
-  console.log('Total Purchases:', totalPurchases);
-  console.log('Total Sales:', totalSales);
 
   if (selectedView === 'purchase') {
     return <PurchaseDashboard onBack={() => setSelectedView('overview')} />;
@@ -169,7 +171,9 @@ export default function Trade() {
                         <p className="text-sm text-gray-600">Vendor: {order.vendorName}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-black">₹{order.totalAmount?.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-black">
+                          ₹{(order.totalValue || order.totalAmount || order.total_value || order.total_amount || 0).toLocaleString()}
+                        </p>
                         <p className="text-sm text-gray-600">
                           {new Date(order.orderDate).toLocaleDateString()}
                         </p>
@@ -219,7 +223,9 @@ export default function Trade() {
                         )}
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-black">₹{order.totalAmount?.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-black">
+                          ₹{(order.totalValue || order.totalAmount || order.total_value || order.total_amount || 0).toLocaleString()}
+                        </p>
                         <p className="text-sm text-gray-600">
                           {new Date(order.createdAt).toLocaleDateString()}
                         </p>
