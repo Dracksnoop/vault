@@ -20,6 +20,23 @@ export default function Trade() {
     enabled: true
   });
 
+  // Calculate totals
+  const totalPurchases = purchaseOrders?.reduce((sum: number, order: any) => {
+    const amount = parseFloat(order.totalAmount) || 0;
+    return sum + amount;
+  }, 0) || 0;
+
+  const totalSales = sellOrders?.reduce((sum: number, order: any) => {
+    const amount = parseFloat(order.totalAmount) || 0;
+    return sum + amount;
+  }, 0) || 0;
+
+  // Debug logging
+  console.log('Purchase Orders:', purchaseOrders);
+  console.log('Sell Orders:', sellOrders);
+  console.log('Total Purchases:', totalPurchases);
+  console.log('Total Sales:', totalSales);
+
   if (selectedView === 'purchase') {
     return <PurchaseDashboard onBack={() => setSelectedView('overview')} />;
   }
@@ -79,7 +96,7 @@ export default function Trade() {
             <div>
               <p className="text-sm text-gray-600">Total Purchases</p>
               <p className="text-xl font-bold text-black">
-                ₹{purchaseOrders?.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0).toLocaleString() || '0'}
+                ₹{totalPurchases.toLocaleString()}
               </p>
             </div>
             <Package className="w-6 h-6 text-blue-600" />
@@ -91,7 +108,7 @@ export default function Trade() {
             <div>
               <p className="text-sm text-gray-600">Total Sales</p>
               <p className="text-xl font-bold text-black">
-                ₹{sellOrders?.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0).toLocaleString() || '0'}
+                ₹{totalSales.toLocaleString()}
               </p>
             </div>
             <DollarSign className="w-6 h-6 text-green-600" />
