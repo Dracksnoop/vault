@@ -25,7 +25,11 @@ import {
   type PurchaseOrder,
   type InsertPurchaseOrder,
   type PurchaseOrderItem,
-  type InsertPurchaseOrderItem
+  type InsertPurchaseOrderItem,
+  type SellOrder,
+  type InsertSellOrder,
+  type SellOrderItem,
+  type InsertSellOrderItem
 } from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -128,6 +132,21 @@ export interface IStorage {
   updatePurchaseOrderItem(id: string, item: Partial<InsertPurchaseOrderItem>): Promise<PurchaseOrderItem | undefined>;
   deletePurchaseOrderItem(id: string): Promise<boolean>;
   
+  // Sell Order methods
+  getSellOrders(): Promise<SellOrder[]>;
+  getSellOrder(id: string): Promise<SellOrder | undefined>;
+  createSellOrder(order: InsertSellOrder): Promise<SellOrder>;
+  updateSellOrder(id: string, order: Partial<InsertSellOrder>): Promise<SellOrder | undefined>;
+  deleteSellOrder(id: string): Promise<boolean>;
+  
+  // Sell Order Item methods
+  getSellOrderItems(): Promise<SellOrderItem[]>;
+  getSellOrderItem(id: string): Promise<SellOrderItem | undefined>;
+  getSellOrderItemsByOrder(orderId: string): Promise<SellOrderItem[]>;
+  createSellOrderItem(item: InsertSellOrderItem): Promise<SellOrderItem>;
+  updateSellOrderItem(id: string, item: Partial<InsertSellOrderItem>): Promise<SellOrderItem | undefined>;
+  deleteSellOrderItem(id: string): Promise<boolean>;
+  
   initialize(): Promise<void>;
 }
 
@@ -147,6 +166,8 @@ export class MongoStorage implements IStorage {
   private vendors: Collection<Vendor>;
   private purchaseOrders: Collection<PurchaseOrder>;
   private purchaseOrderItems: Collection<PurchaseOrderItem>;
+  private sellOrders: Collection<SellOrder>;
+  private sellOrderItems: Collection<SellOrderItem>;
   private isInitialized = false;
 
   constructor() {
@@ -176,6 +197,8 @@ export class MongoStorage implements IStorage {
       this.vendors = this.db.collection<Vendor>('vendors');
       this.purchaseOrders = this.db.collection<PurchaseOrder>('purchaseOrders');
       this.purchaseOrderItems = this.db.collection<PurchaseOrderItem>('purchaseOrderItems');
+      this.sellOrders = this.db.collection<SellOrder>('sellOrders');
+      this.sellOrderItems = this.db.collection<SellOrderItem>('sellOrderItems');
       
       // Initialize default categories if they don't exist
       const categoryCount = await this.categories.countDocuments();
@@ -754,6 +777,99 @@ export class MongoStorage implements IStorage {
     const result = await this.purchaseOrderItems.deleteOne({ id });
     return result.deletedCount === 1;
   }
+
+  // Sell Order methods
+  async getSellOrders(): Promise<SellOrder[]> {
+    await this.initialize();
+    return await this.sellOrders.find({}).toArray();
+  }
+
+  async getSellOrder(id: string): Promise<SellOrder | undefined> {
+    await this.initialize();
+    const order = await this.sellOrders.findOne({ id });
+    return order || undefined;
+  }
+
+  async createSellOrder(insertOrder: InsertSellOrder): Promise<SellOrder> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const id = Date.now().toString();
+    const order: SellOrder = { 
+      ...insertOrder,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    console.log("Creating sell order with ID:", id);
+    await this.sellOrders.insertOne(order);
+    return order;
+  }
+
+  async updateSellOrder(id: string, updateData: Partial<InsertSellOrder>): Promise<SellOrder | undefined> {
+    await this.initialize();
+    const result = await this.sellOrders.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteSellOrder(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.sellOrders.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Sell Order Item methods
+  async getSellOrderItems(): Promise<SellOrderItem[]> {
+    await this.initialize();
+    return await this.sellOrderItems.find({}).toArray();
+  }
+
+  async getSellOrderItem(id: string): Promise<SellOrderItem | undefined> {
+    await this.initialize();
+    const item = await this.sellOrderItems.findOne({ id });
+    return item || undefined;
+  }
+
+  async getSellOrderItemsByOrder(orderId: string): Promise<SellOrderItem[]> {
+    await this.initialize();
+    console.log("Looking for sell order items with orderId:", orderId);
+    const items = await this.sellOrderItems.find({ sellOrderId: orderId }).toArray();
+    console.log("Found sell order items:", items);
+    return items;
+  }
+
+  async createSellOrderItem(insertItem: InsertSellOrderItem): Promise<SellOrderItem> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const item: SellOrderItem = { 
+      ...insertItem,
+      id,
+      createdAt: now
+    };
+    console.log("Creating sell order item with ID:", id);
+    await this.sellOrderItems.insertOne(item);
+    return item;
+  }
+
+  async updateSellOrderItem(id: string, updateData: Partial<InsertSellOrderItem>): Promise<SellOrderItem | undefined> {
+    await this.initialize();
+    const result = await this.sellOrderItems.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteSellOrderItem(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.sellOrderItems.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -770,6 +886,8 @@ export class MemStorage implements IStorage {
   private vendors: Map<string, Vendor>;
   private purchaseOrders: Map<string, PurchaseOrder>;
   private purchaseOrderItems: Map<string, PurchaseOrderItem>;
+  private sellOrders: Map<string, SellOrder>;
+  private sellOrderItems: Map<string, SellOrderItem>;
   private currentUserId: number;
   private currentInventoryId: number;
   private currentCustomerId: number;
@@ -788,6 +906,8 @@ export class MemStorage implements IStorage {
     this.vendors = new Map();
     this.purchaseOrders = new Map();
     this.purchaseOrderItems = new Map();
+    this.sellOrders = new Map();
+    this.sellOrderItems = new Map();
     this.currentUserId = 1;
     this.currentInventoryId = 1;
     this.currentCustomerId = 1;
@@ -1219,6 +1339,81 @@ export class MemStorage implements IStorage {
 
   async deletePurchaseOrderItem(id: string): Promise<boolean> {
     return this.purchaseOrderItems.delete(id);
+  }
+
+  // Sell Order methods
+  async getSellOrders(): Promise<SellOrder[]> {
+    return Array.from(this.sellOrders.values());
+  }
+
+  async getSellOrder(id: string): Promise<SellOrder | undefined> {
+    return this.sellOrders.get(id);
+  }
+
+  async createSellOrder(insertOrder: InsertSellOrder): Promise<SellOrder> {
+    const now = new Date().toISOString();
+    const id = Date.now().toString();
+    const order: SellOrder = { 
+      ...insertOrder,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.sellOrders.set(order.id, order);
+    return order;
+  }
+
+  async updateSellOrder(id: string, updateData: Partial<InsertSellOrder>): Promise<SellOrder | undefined> {
+    const existing = this.sellOrders.get(id);
+    if (!existing) return undefined;
+    
+    const updated: SellOrder = { ...existing, ...updateData, updatedAt: new Date().toISOString() };
+    this.sellOrders.set(id, updated);
+    return updated;
+  }
+
+  async deleteSellOrder(id: string): Promise<boolean> {
+    return this.sellOrders.delete(id);
+  }
+
+  // Sell Order Item methods
+  async getSellOrderItems(): Promise<SellOrderItem[]> {
+    return Array.from(this.sellOrderItems.values());
+  }
+
+  async getSellOrderItem(id: string): Promise<SellOrderItem | undefined> {
+    return this.sellOrderItems.get(id);
+  }
+
+  async getSellOrderItemsByOrder(orderId: string): Promise<SellOrderItem[]> {
+    return Array.from(this.sellOrderItems.values()).filter(
+      item => item.sellOrderId === orderId
+    );
+  }
+
+  async createSellOrderItem(insertItem: InsertSellOrderItem): Promise<SellOrderItem> {
+    const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const item: SellOrderItem = { 
+      ...insertItem,
+      id,
+      createdAt: now
+    };
+    this.sellOrderItems.set(item.id, item);
+    return item;
+  }
+
+  async updateSellOrderItem(id: string, updateData: Partial<InsertSellOrderItem>): Promise<SellOrderItem | undefined> {
+    const existing = this.sellOrderItems.get(id);
+    if (!existing) return undefined;
+    
+    const updated: SellOrderItem = { ...existing, ...updateData };
+    this.sellOrderItems.set(id, updated);
+    return updated;
+  }
+
+  async deleteSellOrderItem(id: string): Promise<boolean> {
+    return this.sellOrderItems.delete(id);
   }
 }
 

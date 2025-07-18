@@ -1,12 +1,17 @@
 import { useState } from 'react';
 import { ShoppingCart, DollarSign, Package, Plus, Users, FileText } from 'lucide-react';
 import { PurchaseDashboard } from '@/components/PurchaseDashboard';
+import { SellDashboard } from '@/components/SellDashboard';
 
 export default function Trade() {
   const [selectedView, setSelectedView] = useState<'overview' | 'purchase' | 'sell'>('overview');
 
   if (selectedView === 'purchase') {
     return <PurchaseDashboard onBack={() => setSelectedView('overview')} />;
+  }
+
+  if (selectedView === 'sell') {
+    return <SellDashboard onBack={() => setSelectedView('overview')} />;
   }
 
   return (

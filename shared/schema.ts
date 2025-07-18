@@ -212,6 +212,38 @@ export const purchaseOrderItems = pgTable("purchase_order_items", {
   createdAt: text("created_at").default("now()"),
 });
 
+export const sellOrders = pgTable("sell_orders", {
+  id: text("id").primaryKey(),
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email"),
+  customerPhone: text("customer_phone"),
+  customerAddress: text("customer_address"),
+  customerOrganization: text("customer_organization"),
+  customerCountry: text("customer_country"),
+  customerCity: text("customer_city"),
+  customerState: text("customer_state"),
+  customerPincode: text("customer_pincode"),
+  customerGstTaxId: text("customer_gst_tax_id"),
+  orderDate: text("order_date").notNull(),
+  status: text("status").notNull().default("completed"), // "pending", "processing", "completed", "cancelled"
+  totalItems: integer("total_items").default(0),
+  totalValue: decimal("total_value", { precision: 10, scale: 2 }),
+  notes: text("notes"),
+  createdAt: text("created_at").default("now()"),
+  updatedAt: text("updated_at").default("now()"),
+});
+
+export const sellOrderItems = pgTable("sell_order_items", {
+  id: text("id").primaryKey(),
+  sellOrderId: text("sell_order_id").notNull(),
+  itemId: text("item_id").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  serialNumbers: text("serial_numbers"), // JSON array of serial numbers for sold units
+  createdAt: text("created_at").default("now()"),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -390,6 +422,17 @@ export const insertVendorSchema = createInsertSchema(vendors).omit({
   updatedAt: true,
 });
 
+export const insertSellOrderSchema = createInsertSchema(sellOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSellOrderItemSchema = createInsertSchema(sellOrderItems).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertPurchaseOrderSchema = createInsertSchema(purchaseOrders).pick({
   id: true,
   vendorId: true,
@@ -417,3 +460,9 @@ export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
 
 export type InsertPurchaseOrderItem = z.infer<typeof insertPurchaseOrderItemSchema>;
 export type PurchaseOrderItem = typeof purchaseOrderItems.$inferSelect;
+
+export type InsertSellOrder = z.infer<typeof insertSellOrderSchema>;
+export type SellOrder = typeof sellOrders.$inferSelect;
+
+export type InsertSellOrderItem = z.infer<typeof insertSellOrderItemSchema>;
+export type SellOrderItem = typeof sellOrderItems.$inferSelect;

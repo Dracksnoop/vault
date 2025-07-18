@@ -14,7 +14,9 @@ import {
   insertRentalTimelineSchema,
   insertVendorSchema,
   insertPurchaseOrderSchema,
-  insertPurchaseOrderItemSchema
+  insertPurchaseOrderItemSchema,
+  insertSellOrderSchema,
+  insertSellOrderItemSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1585,6 +1587,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete purchase order item" });
+    }
+  });
+
+  // Sell Order routes
+  app.get("/api/sell-orders", requireAuth, async (req, res) => {
+    try {
+      const orders = await storage.getSellOrders();
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sell orders" });
+    }
+  });
+
+  app.get("/api/sell-orders/:id", requireAuth, async (req, res) => {
+    try {
+      const order = await storage.getSellOrder(req.params.id);
+      if (!order) {
+        return res.status(404).json({ error: "Sell order not found" });
+      }
+      
+      // Also fetch the order items
+      const orderItems = await storage.getSellOrderItemsByOrder(req.params.id);
+      res.json({ order, items: orderItems });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sell order" });
+    }
+  });
+
+  app.post("/api/sell-orders", requireAuth, async (req, res) => {
+    try {
+      const { items, ...orderData } = req.body;
+      
+      // Validate main order data
+      const validatedOrderData = insertSellOrderSchema.parse(orderData);
+      
+      // Create the sell order
+      const sellOrder = await storage.createSellOrder(validatedOrderData);
+      
+      // Create sell order items
+      const sellOrderItems = [];
+      for (const item of items) {
+        const sellOrderItem = await storage.createSellOrderItem({
+          sellOrderId: sellOrder.id,
+          itemId: item.itemId,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+          serialNumbers: item.serialNumbers || null
+        });
+        sellOrderItems.push(sellOrderItem);
+        
+        // Update inventory by removing sold units
+        const serialNumbers = item.serialNumbers ? JSON.parse(item.serialNumbers) : [];
+        
+        // Get available units for this item
+        const availableUnits = await storage.getUnitsByItem(item.itemId);
+        const unitsToSell = availableUnits.filter(unit => 
+          unit.status === 'Available'
+        ).slice(0, item.quantity);
+        
+        // Update unit statuses to "Sold"
+        for (const unit of unitsToSell) {
+          await storage.updateUnit(unit.id, { status: 'Sold' });
+        }
+        
+        // Update item quantities
+        const currentItem = await storage.getItem(item.itemId);
+        if (currentItem) {
+          const newQuantityInStock = Math.max(0, (currentItem.quantityInStock || 0) - item.quantity);
+          await storage.updateItem(item.itemId, {
+            quantityInStock: newQuantityInStock
+          });
+        }
+      }
+      
+      res.status(201).json({ 
+        order: sellOrder,
+        items: sellOrderItems,
+        success: true
+      });
+    } catch (error) {
+      console.error("Error creating sell order:", error);
+      res.status(400).json({ error: "Invalid sell order data" });
+    }
+  });
+
+  app.put("/api/sell-orders/:id", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertSellOrderSchema.parse(req.body);
+      const order = await storage.updateSellOrder(req.params.id, validatedData);
+      if (!order) {
+        return res.status(404).json({ error: "Sell order not found" });
+      }
+      res.json(order);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid sell order data" });
+    }
+  });
+
+  app.delete("/api/sell-orders/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteSellOrder(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Sell order not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete sell order" });
+    }
+  });
+
+  // Sell Order Items routes
+  app.get("/api/sell-order-items", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getSellOrderItems();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sell order items" });
+    }
+  });
+
+  app.get("/api/sell-order-items/order/:orderId", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getSellOrderItemsByOrder(req.params.orderId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sell order items" });
+    }
+  });
+
+  app.post("/api/sell-order-items", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertSellOrderItemSchema.parse(req.body);
+      const item = await storage.createSellOrderItem(validatedData);
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid sell order item data" });
+    }
+  });
+
+  app.put("/api/sell-order-items/:id", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertSellOrderItemSchema.parse(req.body);
+      const item = await storage.updateSellOrderItem(req.params.id, validatedData);
+      if (!item) {
+        return res.status(404).json({ error: "Sell order item not found" });
+      }
+      res.json(item);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid sell order item data" });
+    }
+  });
+
+  app.delete("/api/sell-order-items/:id", requireAuth, async (req, res) => {
+    try {
+      const deleted = await storage.deleteSellOrderItem(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Sell order item not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete sell order item" });
     }
   });
 
