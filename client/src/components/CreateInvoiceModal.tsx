@@ -475,14 +475,167 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     createInvoiceMutation.mutate(invoiceData);
   };
 
+  // Live preview component
+  const InvoicePreview = () => {
+    const previewSubtotal = invoiceItems.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    const previewTax = previewSubtotal * (taxRate / 100);
+    const previewDiscount = previewSubtotal * (discountRate / 100);
+    const previewTotal = previewSubtotal + previewTax - previewDiscount;
+
+    return (
+      <div className="bg-white border border-black p-4 rounded-lg h-[800px] overflow-y-auto">
+        <div className="border border-black p-4 bg-white">
+          {/* Company Logo Area */}
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex items-start space-x-4">
+              <div className="bg-gray-100 border border-gray-300 w-16 h-16 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-2 border-gray-400 rounded-full mx-auto mb-1 flex items-center justify-center">
+                    <span className="text-xs font-bold">Gac</span>
+                  </div>
+                  <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded">InfoTech</div>
+                </div>
+              </div>
+              <div className="text-sm">
+                <div className="font-bold text-lg mb-1">Gac Infotech</div>
+                <div>102 Gac business t near nakoda namkeen telephone</div>
+                <div>square</div>
+                <div>bangali chauraha</div>
+                <div>indore Madhya Pradesh 452016</div>
+                <div>India</div>
+                <div>9322277787</div>
+                <div>gacinfo@chol@gmail.com</div>
+                <div>WWW.GACINFOTECH.COM</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <h1 className="text-3xl font-bold">Invoice</h1>
+            </div>
+          </div>
+
+          {/* Invoice Details */}
+          <div className="border border-black p-3 mb-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>#</div>
+              <div>: {generateInvoiceNumber()}</div>
+              <div>Invoice Date</div>
+              <div>: {invoiceDate ? new Date(invoiceDate).toLocaleDateString('en-GB') : 'Select Date'}</div>
+              <div>Terms</div>
+              <div>: {paymentTerms}</div>
+              <div>Due Date</div>
+              <div>: {dueDate ? new Date(dueDate).toLocaleDateString('en-GB') : 'Select Date'}</div>
+            </div>
+          </div>
+
+          {/* Customer Details */}
+          <div className="mb-4">
+            <div className="font-bold text-lg">
+              {selectedCustomer?.name || 'Select Customer'}
+            </div>
+            {selectedCustomer && (
+              <div className="text-sm text-gray-600">
+                {selectedCustomer.email && <div>{selectedCustomer.email}</div>}
+                {selectedCustomer.phone && <div>{selectedCustomer.phone}</div>}
+                {selectedCustomer.address && <div>{selectedCustomer.address}</div>}
+              </div>
+            )}
+          </div>
+
+          {/* Items Table */}
+          <div className="border border-black mb-4">
+            <div className="grid grid-cols-5 gap-2 p-2 bg-gray-50 border-b border-black font-bold text-sm">
+              <div>#</div>
+              <div>Description</div>
+              <div>Qty</div>
+              <div>Rate</div>
+              <div>Amount</div>
+            </div>
+            {invoiceItems.length > 0 ? (
+              invoiceItems.map((item, index) => (
+                <div key={index} className="grid grid-cols-5 gap-2 p-2 border-b border-gray-200 text-sm">
+                  <div>{index + 1}</div>
+                  <div>{item.itemName}</div>
+                  <div>{item.quantity.toFixed(2)} pcs</div>
+                  <div>{item.unitPrice.toFixed(2)}</div>
+                  <div>{(item.quantity * item.unitPrice).toFixed(2)}</div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-center text-gray-500">No items added</div>
+            )}
+          </div>
+
+          {/* Totals */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <div className="font-bold text-sm mb-1">Total In Words</div>
+              <div className="text-sm">
+                Indian Rupee {previewTotal > 0 ? numberToWords(Math.floor(previewTotal)) : 'Zero Only'}
+              </div>
+            </div>
+            <div className="text-right space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span>Sub Total</span>
+                <span>{previewSubtotal.toFixed(2)}</span>
+              </div>
+              {previewTax > 0 && (
+                <div className="flex justify-between">
+                  <span>Tax ({taxRate}%)</span>
+                  <span>{previewTax.toFixed(2)}</span>
+                </div>
+              )}
+              {previewDiscount > 0 && (
+                <div className="flex justify-between">
+                  <span>Discount ({discountRate}%)</span>
+                  <span>(-) {previewDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold">
+                <span>Total</span>
+                <span>₹{previewTotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Payment Made</span>
+                <span>(-) 0.00</span>
+              </div>
+              <div className="flex justify-between font-bold">
+                <span>Balance Due</span>
+                <span>₹{previewTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="text-sm space-y-2">
+            <div>Thanks for your business.</div>
+            <div className="space-y-1">
+              <div>Name - Gac Infotech</div>
+              <div>Account - 50200042158914</div>
+              <div>Ifsc code - HDFC0000192</div>
+              <div>Address - City Center Gwalior</div>
+            </div>
+            <div className="mt-4 space-y-1 text-xs">
+              <div>- An invoice will be provided for all transactions, specifying itemized charges, rental period, and total amount.</div>
+              <div>- Disputes regarding invoices must be raised within 2 days of receipt.</div>
+              <div>- The customer is liable for any damage or loss to rented equipment during the rental period.</div>
+              <div>- Charges for repair or replacement will be billed separately.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border-black">
+      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden bg-white border-black">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Create Invoice</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-6 h-[800px]">
+          {/* Left Side - Editable Fields */}
+          <div className="space-y-6 overflow-y-auto pr-4">
           {/* Customer Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -772,6 +925,12 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
                 </>
               )}
             </Button>
+          </div>
+          </div>
+
+          {/* Right Side - Invoice Preview */}
+          <div className="border-l border-gray-300 pl-6">
+            <InvoicePreview />
           </div>
         </div>
       </DialogContent>
