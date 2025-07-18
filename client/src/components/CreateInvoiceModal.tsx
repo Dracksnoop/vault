@@ -525,31 +525,25 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
   // Create invoice mutation
   const createInvoiceMutation = useMutation({
     mutationFn: async (invoiceData: any) => {
-      const response = await apiRequest('/api/invoices', {
-        method: 'POST',
-        body: JSON.stringify(invoiceData),
-      });
+      const response = await apiRequest('POST', '/api/invoices', invoiceData);
       return response;
     },
     onSuccess: (data) => {
       // Create invoice items
       const itemPromises = invoiceItems.map((item, index) => 
-        apiRequest('/api/invoice-items', {
-          method: 'POST',
-          body: JSON.stringify({
-            id: `${data.id}-item-${index + 1}`,
-            invoiceId: data.id,
-            itemId: item.itemId || null,
-            itemName: item.itemName,
-            itemDescription: item.itemDescription || '',
-            quantity: item.quantity,
-            unitPrice: item.unitPrice.toString(),
-            totalPrice: item.totalPrice.toString(),
-            taxRate: item.taxRate ? item.taxRate.toString() : '0',
-            discountRate: item.discountRate ? item.discountRate.toString() : '0',
-            serialNumbers: item.serialNumbers ? JSON.stringify(item.serialNumbers) : null,
-            rentalPeriod: item.rentalPeriod || null,
-          }),
+        apiRequest('POST', '/api/invoice-items', {
+          id: `${data.id}-item-${index + 1}`,
+          invoiceId: data.id,
+          itemId: item.itemId || null,
+          itemName: item.itemName,
+          itemDescription: item.itemDescription || '',
+          quantity: item.quantity,
+          unitPrice: item.unitPrice.toString(),
+          totalPrice: item.totalPrice.toString(),
+          taxRate: item.taxRate ? item.taxRate.toString() : '0',
+          discountRate: item.discountRate ? item.discountRate.toString() : '0',
+          serialNumbers: item.serialNumbers ? JSON.stringify(item.serialNumbers) : null,
+          rentalPeriod: item.rentalPeriod || null,
         })
       );
 
