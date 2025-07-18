@@ -1019,11 +1019,7 @@ export default function CustomerManagement() {
 
   const submitMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest('/api/customers/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: data,
-      });
+      return await apiRequest('POST', '/api/customers/complete', data);
     },
     onSuccess: (data) => {
       // Invalidate all relevant caches to refresh UI with updated unit statuses

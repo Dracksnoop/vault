@@ -185,21 +185,21 @@ export default function Inventory() {
   // API queries
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
     queryKey: ["/api/categories"],
-    queryFn: () => apiRequest("/api/categories"),
+    queryFn: () => apiRequest("GET", "/api/categories"),
     staleTime: 0, // Always refetch
     cacheTime: 0, // Don't cache
   });
 
   const { data: items = [], isLoading: itemsLoading } = useQuery({
     queryKey: ["/api/items"],
-    queryFn: () => apiRequest("/api/items"),
+    queryFn: () => apiRequest("GET", "/api/items"),
     staleTime: 0, // Always refetch
     cacheTime: 0, // Don't cache
   });
 
   const { data: units = [], isLoading: unitsLoading } = useQuery({
     queryKey: ["/api/units"],
-    queryFn: () => apiRequest("/api/units"),
+    queryFn: () => apiRequest("GET", "/api/units"),
     staleTime: 0, // Always refetch
     cacheTime: 0, // Don't cache
   });
@@ -207,10 +207,7 @@ export default function Inventory() {
   // Mutations
   const createCategoryMutation = useMutation({
     mutationFn: (category: { id: string; name: string; itemCount: number }) =>
-      apiRequest("/api/categories", {
-        method: "POST",
-        body: category,
-      }),
+      apiRequest("POST", "/api/categories", category),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       setShowAddCategory(false);
@@ -220,10 +217,7 @@ export default function Inventory() {
 
   const createItemMutation = useMutation({
     mutationFn: (item: any) =>
-      apiRequest("/api/items", {
-        method: "POST",
-        body: item,
-      }),
+      apiRequest("POST", "/api/items", item),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
@@ -239,10 +233,7 @@ export default function Inventory() {
 
   const createUnitMutation = useMutation({
     mutationFn: (unit: any) =>
-      apiRequest("/api/units", {
-        method: "POST",
-        body: unit,
-      }),
+      apiRequest("POST", "/api/units", unit),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
@@ -253,9 +244,7 @@ export default function Inventory() {
   // Delete mutations
   const deleteItemMutation = useMutation({
     mutationFn: (itemId: string) =>
-      apiRequest(`/api/items/${itemId}`, {
-        method: "DELETE",
-      }),
+      apiRequest("DELETE", `/api/items/${itemId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
@@ -266,9 +255,7 @@ export default function Inventory() {
 
   const deleteUnitMutation = useMutation({
     mutationFn: (unitId: string) =>
-      apiRequest(`/api/units/${unitId}`, {
-        method: "DELETE",
-      }),
+      apiRequest("DELETE", `/api/units/${unitId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
@@ -278,9 +265,7 @@ export default function Inventory() {
 
   const deleteCategoryMutation = useMutation({
     mutationFn: (categoryId: string) =>
-      apiRequest(`/api/categories/${categoryId}`, {
-        method: "DELETE",
-      }),
+      apiRequest("DELETE", `/api/categories/${categoryId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
@@ -292,10 +277,7 @@ export default function Inventory() {
   // Edit mutations
   const editItemMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
-      apiRequest(`/api/items/${id}`, {
-        method: "PUT",
-        body: data,
-      }),
+      apiRequest("PUT", `/api/items/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
@@ -305,10 +287,7 @@ export default function Inventory() {
 
   const editUnitMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) =>
-      apiRequest(`/api/units/${id}`, {
-        method: "PUT",
-        body: data,
-      }),
+      apiRequest("PUT", `/api/units/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });

@@ -99,15 +99,9 @@ export default function Profile() {
       };
 
       if (companyProfile) {
-        return apiRequest(`/api/company-profiles/${companyProfile.id}`, {
-          method: 'PUT',
-          body: JSON.stringify(profileData),
-        });
+        return apiRequest('PUT', `/api/company-profiles/${companyProfile.id}`, profileData);
       } else {
-        return apiRequest('/api/company-profiles', {
-          method: 'POST',
-          body: JSON.stringify(profileData),
-        });
+        return apiRequest('POST', '/api/company-profiles', profileData);
       }
     },
     onSuccess: () => {

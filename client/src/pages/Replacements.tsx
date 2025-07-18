@@ -60,12 +60,9 @@ export default function Replacements() {
         
         if (replacementToApprove) {
           // Mark the unit as under replacement
-          await apiRequest(`/api/units/${replacementToApprove.unitId}`, {
-            method: 'PUT',
-            body: {
-              isUnderReplacement: true,
-              replacementRequestId: replacementId
-            }
+          await apiRequest('PUT', `/api/units/${replacementToApprove.unitId}`, {
+            isUnderReplacement: true,
+            replacementRequestId: replacementId
           });
         }
         
@@ -112,15 +109,12 @@ export default function Replacements() {
         
         if (replacementToComplete) {
           // Mark the original unit as replaced and make it available again
-          await apiRequest(`/api/units/${replacementToComplete.unitId}`, {
-            method: 'PUT',
-            body: {
-              isUnderReplacement: false,
-              replacementRequestId: null,
-              replacedDate: new Date().toISOString().split('T')[0],
-              replacedReason: replacementToComplete.reason,
-              status: 'Available'
-            }
+          await apiRequest('PUT', `/api/units/${replacementToComplete.unitId}`, {
+            isUnderReplacement: false,
+            replacementRequestId: null,
+            replacedDate: new Date().toISOString().split('T')[0],
+            replacedReason: replacementToComplete.reason,
+            status: 'Available'
           });
           
           // Update the replacement record
