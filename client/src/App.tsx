@@ -15,6 +15,7 @@ import Demo from "./pages/Demo";
 import CallService from "./pages/CallService";
 import Trade from "./pages/Trade";
 import Replacements from "./pages/Replacements";
+import Billing from "./pages/Billing";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import Support from "./pages/Support";
@@ -132,6 +133,7 @@ function Router() {
               <Route path="/callservice" component={CallService} />
               <Route path="/trade" component={Trade} />
               <Route path="/replacements" component={Replacements} />
+              <Route path="/billing" component={Billing} />
               <Route path="/users" component={Users} />
               <Route path="/profile" component={Profile} />
               <Route path="/support" component={Support} />

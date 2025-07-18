@@ -250,6 +250,88 @@ export const sellOrderItems = pgTable("sell_order_items", {
   createdAt: text("created_at").default("now()"),
 });
 
+// Billing System Schemas
+export const invoices = pgTable("invoices", {
+  id: text("id").primaryKey(),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  customerId: integer("customer_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  customerEmail: text("customer_email"),
+  customerPhone: text("customer_phone"),
+  customerAddress: text("customer_address"),
+  rentalId: text("rental_id"), // Optional - for rental-based invoices
+  serviceId: text("service_id"), // Optional - for service-based invoices
+  invoiceDate: text("invoice_date").notNull(),
+  dueDate: text("due_date").notNull(),
+  status: text("status").notNull().default("pending"), // "pending", "paid", "overdue", "cancelled"
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  taxAmount: decimal("tax_amount", { precision: 10, scale: 2 }).default("0"),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("INR"),
+  notes: text("notes"),
+  paymentTerms: text("payment_terms"),
+  isRecurring: boolean("is_recurring").default(false),
+  recurringScheduleId: text("recurring_schedule_id"), // Links to recurring schedule
+  createdAt: text("created_at").default("now()"),
+  updatedAt: text("updated_at").default("now()"),
+});
+
+export const invoiceItems = pgTable("invoice_items", {
+  id: text("id").primaryKey(),
+  invoiceId: text("invoice_id").notNull(),
+  itemId: text("item_id"), // Optional - for inventory items
+  itemName: text("item_name").notNull(),
+  itemDescription: text("item_description"),
+  quantity: integer("quantity").notNull().default(1),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  taxRate: decimal("tax_rate", { precision: 5, scale: 2 }).default("0"), // Percentage
+  discountRate: decimal("discount_rate", { precision: 5, scale: 2 }).default("0"), // Percentage
+  serialNumbers: text("serial_numbers"), // JSON array of serial numbers for rented units
+  rentalPeriod: text("rental_period"), // "2025-01-01 to 2025-01-31"
+  createdAt: text("created_at").default("now()"),
+});
+
+export const payments = pgTable("payments", {
+  id: text("id").primaryKey(),
+  paymentNumber: text("payment_number").notNull().unique(),
+  invoiceId: text("invoice_id").notNull(),
+  customerId: integer("customer_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  paymentDate: text("payment_date").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("INR"),
+  paymentMethod: text("payment_method").notNull(), // "cash", "card", "bank_transfer", "upi", "cheque"
+  paymentStatus: text("payment_status").notNull().default("completed"), // "pending", "completed", "failed", "refunded"
+  transactionId: text("transaction_id"), // External payment gateway transaction ID
+  referenceNumber: text("reference_number"), // Cheque number, UPI ref, etc.
+  notes: text("notes"),
+  createdAt: text("created_at").default("now()"),
+  updatedAt: text("updated_at").default("now()"),
+});
+
+export const recurringInvoiceSchedules = pgTable("recurring_invoice_schedules", {
+  id: text("id").primaryKey(),
+  customerId: integer("customer_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  rentalId: text("rental_id"), // Optional - for rental-based schedules
+  serviceId: text("service_id"), // Optional - for service-based schedules
+  frequency: text("frequency").notNull(), // "monthly", "quarterly", "yearly"
+  interval: integer("interval").notNull().default(1), // Every X months/quarters/years
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date"), // Optional - for finite schedules
+  nextInvoiceDate: text("next_invoice_date").notNull(),
+  lastInvoiceDate: text("last_invoice_date"), // Last generated invoice date
+  isActive: boolean("is_active").default(true),
+  templateData: text("template_data").notNull(), // JSON template for generating invoices
+  paymentTerms: text("payment_terms").default("Net 30"),
+  autoGenerate: boolean("auto_generate").default(true),
+  notificationDays: integer("notification_days").default(3), // Days before due date to send reminders
+  createdAt: text("created_at").default("now()"),
+  updatedAt: text("updated_at").default("now()"),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -460,6 +542,43 @@ export const insertPurchaseOrderItemSchema = createInsertSchema(purchaseOrderIte
 
 export type InsertVendor = z.infer<typeof insertVendorSchema>;
 export type Vendor = typeof vendors.$inferSelect;
+
+// Billing System Insert Schemas
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertRecurringInvoiceScheduleSchema = createInsertSchema(recurringInvoiceSchedules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Billing System Types
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
+
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+
+export type InsertRecurringInvoiceSchedule = z.infer<typeof insertRecurringInvoiceScheduleSchema>;
+export type RecurringInvoiceSchedule = typeof recurringInvoiceSchedules.$inferSelect;
 
 export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect;

@@ -16,7 +16,11 @@ import {
   insertPurchaseOrderSchema,
   insertPurchaseOrderItemSchema,
   insertSellOrderSchema,
-  insertSellOrderItemSchema
+  insertSellOrderItemSchema,
+  insertInvoiceSchema,
+  insertInvoiceItemSchema,
+  insertPaymentSchema,
+  insertRecurringInvoiceScheduleSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1753,6 +1757,246 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test endpoint to verify MongoDB connection
+  // Billing System Routes
+  
+  // Invoice routes
+  app.get("/api/invoices", async (req, res) => {
+    try {
+      const invoices = await storage.getInvoices();
+      res.json(invoices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch invoices" });
+    }
+  });
+
+  app.get("/api/invoices/:id", async (req, res) => {
+    try {
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch invoice" });
+    }
+  });
+
+  app.get("/api/invoices/customer/:customerId", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      const invoices = await storage.getInvoicesByCustomer(customerId);
+      res.json(invoices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer invoices" });
+    }
+  });
+
+  app.post("/api/invoices", async (req, res) => {
+    try {
+      const validated = insertInvoiceSchema.parse(req.body);
+      const invoice = await storage.createInvoice(validated);
+      res.status(201).json(invoice);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid invoice data" });
+    }
+  });
+
+  app.put("/api/invoices/:id", async (req, res) => {
+    try {
+      const validated = insertInvoiceSchema.partial().parse(req.body);
+      const invoice = await storage.updateInvoice(req.params.id, validated);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid invoice data" });
+    }
+  });
+
+  app.delete("/api/invoices/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteInvoice(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      res.json({ message: "Invoice deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete invoice" });
+    }
+  });
+
+  // Invoice Items routes
+  app.get("/api/invoice-items", async (req, res) => {
+    try {
+      const items = await storage.getInvoiceItems();
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch invoice items" });
+    }
+  });
+
+  app.get("/api/invoice-items/invoice/:invoiceId", async (req, res) => {
+    try {
+      const items = await storage.getInvoiceItemsByInvoice(req.params.invoiceId);
+      res.json(items);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch invoice items" });
+    }
+  });
+
+  app.post("/api/invoice-items", async (req, res) => {
+    try {
+      const validated = insertInvoiceItemSchema.parse(req.body);
+      const item = await storage.createInvoiceItem(validated);
+      res.status(201).json(item);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid invoice item data" });
+    }
+  });
+
+  // Payment routes
+  app.get("/api/payments", async (req, res) => {
+    try {
+      const payments = await storage.getPayments();
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch payments" });
+    }
+  });
+
+  app.get("/api/payments/customer/:customerId", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      const payments = await storage.getPaymentsByCustomer(customerId);
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer payments" });
+    }
+  });
+
+  app.get("/api/payments/invoice/:invoiceId", async (req, res) => {
+    try {
+      const payments = await storage.getPaymentsByInvoice(req.params.invoiceId);
+      res.json(payments);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch invoice payments" });
+    }
+  });
+
+  app.post("/api/payments", async (req, res) => {
+    try {
+      const validated = insertPaymentSchema.parse(req.body);
+      const payment = await storage.createPayment(validated);
+      
+      // Update invoice status to paid if fully paid
+      if (payment.invoiceId) {
+        const invoice = await storage.getInvoice(payment.invoiceId);
+        if (invoice) {
+          const totalPayments = await storage.getPaymentsByInvoice(payment.invoiceId);
+          const totalPaid = totalPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+          
+          if (totalPaid >= parseFloat(invoice.totalAmount)) {
+            await storage.updateInvoice(payment.invoiceId, { status: 'paid' });
+          }
+        }
+      }
+      
+      res.status(201).json(payment);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid payment data" });
+    }
+  });
+
+  // Recurring Invoice Schedule routes
+  app.get("/api/recurring-schedules", async (req, res) => {
+    try {
+      const schedules = await storage.getRecurringInvoiceSchedules();
+      res.json(schedules);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch recurring schedules" });
+    }
+  });
+
+  app.get("/api/recurring-schedules/customer/:customerId", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      const schedules = await storage.getRecurringInvoiceSchedulesByCustomer(customerId);
+      res.json(schedules);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch customer recurring schedules" });
+    }
+  });
+
+  app.post("/api/recurring-schedules", async (req, res) => {
+    try {
+      const validated = insertRecurringInvoiceScheduleSchema.parse(req.body);
+      const schedule = await storage.createRecurringInvoiceSchedule(validated);
+      res.status(201).json(schedule);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid recurring schedule data" });
+    }
+  });
+
+  app.put("/api/recurring-schedules/:id", async (req, res) => {
+    try {
+      const validated = insertRecurringInvoiceScheduleSchema.partial().parse(req.body);
+      const schedule = await storage.updateRecurringInvoiceSchedule(req.params.id, validated);
+      if (!schedule) {
+        return res.status(404).json({ error: "Recurring schedule not found" });
+      }
+      res.json(schedule);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid recurring schedule data" });
+    }
+  });
+
+  app.delete("/api/recurring-schedules/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteRecurringInvoiceSchedule(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Recurring schedule not found" });
+      }
+      res.json({ message: "Recurring schedule deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete recurring schedule" });
+    }
+  });
+
+  // Billing dashboard stats
+  app.get("/api/billing/stats", async (req, res) => {
+    try {
+      const invoices = await storage.getInvoices();
+      const payments = await storage.getPayments();
+      const recurringSchedules = await storage.getRecurringInvoiceSchedules();
+      
+      const totalInvoices = invoices.length;
+      const pendingInvoices = invoices.filter(i => i.status === 'pending').length;
+      const paidInvoices = invoices.filter(i => i.status === 'paid').length;
+      const overdueInvoices = invoices.filter(i => i.status === 'overdue').length;
+      
+      const totalRevenue = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const outstandingAmount = invoices
+        .filter(i => i.status === 'pending')
+        .reduce((sum, i) => sum + parseFloat(i.totalAmount), 0);
+      
+      const activeSchedules = recurringSchedules.filter(s => s.isActive).length;
+      
+      res.json({
+        totalInvoices,
+        pendingInvoices,
+        paidInvoices,
+        overdueInvoices,
+        totalRevenue,
+        outstandingAmount,
+        activeSchedules,
+        totalPayments: payments.length
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch billing stats" });
+    }
+  });
+
   app.get("/api/test/db", async (req, res) => {
     try {
       await storage.initialize();

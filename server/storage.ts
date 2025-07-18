@@ -29,7 +29,15 @@ import {
   type SellOrder,
   type InsertSellOrder,
   type SellOrderItem,
-  type InsertSellOrderItem
+  type InsertSellOrderItem,
+  type Invoice,
+  type InsertInvoice,
+  type InvoiceItem,
+  type InsertInvoiceItem,
+  type Payment,
+  type InsertPayment,
+  type RecurringInvoiceSchedule,
+  type InsertRecurringInvoiceSchedule
 } from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -147,6 +155,42 @@ export interface IStorage {
   updateSellOrderItem(id: string, item: Partial<InsertSellOrderItem>): Promise<SellOrderItem | undefined>;
   deleteSellOrderItem(id: string): Promise<boolean>;
   
+  // Billing System methods
+  // Invoice methods
+  getInvoices(): Promise<Invoice[]>;
+  getInvoice(id: string): Promise<Invoice | undefined>;
+  getInvoicesByCustomer(customerId: number): Promise<Invoice[]>;
+  getInvoicesByStatus(status: string): Promise<Invoice[]>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
+  deleteInvoice(id: string): Promise<boolean>;
+  
+  // Invoice Item methods
+  getInvoiceItems(): Promise<InvoiceItem[]>;
+  getInvoiceItem(id: string): Promise<InvoiceItem | undefined>;
+  getInvoiceItemsByInvoice(invoiceId: string): Promise<InvoiceItem[]>;
+  createInvoiceItem(item: InsertInvoiceItem): Promise<InvoiceItem>;
+  updateInvoiceItem(id: string, item: Partial<InsertInvoiceItem>): Promise<InvoiceItem | undefined>;
+  deleteInvoiceItem(id: string): Promise<boolean>;
+  
+  // Payment methods
+  getPayments(): Promise<Payment[]>;
+  getPayment(id: string): Promise<Payment | undefined>;
+  getPaymentsByCustomer(customerId: number): Promise<Payment[]>;
+  getPaymentsByInvoice(invoiceId: string): Promise<Payment[]>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  updatePayment(id: string, payment: Partial<InsertPayment>): Promise<Payment | undefined>;
+  deletePayment(id: string): Promise<boolean>;
+  
+  // Recurring Invoice Schedule methods
+  getRecurringInvoiceSchedules(): Promise<RecurringInvoiceSchedule[]>;
+  getRecurringInvoiceSchedule(id: string): Promise<RecurringInvoiceSchedule | undefined>;
+  getRecurringInvoiceSchedulesByCustomer(customerId: number): Promise<RecurringInvoiceSchedule[]>;
+  getActiveRecurringInvoiceSchedules(): Promise<RecurringInvoiceSchedule[]>;
+  createRecurringInvoiceSchedule(schedule: InsertRecurringInvoiceSchedule): Promise<RecurringInvoiceSchedule>;
+  updateRecurringInvoiceSchedule(id: string, schedule: Partial<InsertRecurringInvoiceSchedule>): Promise<RecurringInvoiceSchedule | undefined>;
+  deleteRecurringInvoiceSchedule(id: string): Promise<boolean>;
+  
   initialize(): Promise<void>;
 }
 
@@ -168,6 +212,11 @@ export class MongoStorage implements IStorage {
   private purchaseOrderItems: Collection<PurchaseOrderItem>;
   private sellOrders: Collection<SellOrder>;
   private sellOrderItems: Collection<SellOrderItem>;
+  // Billing system collections
+  private invoices: Collection<Invoice>;
+  private invoiceItems: Collection<InvoiceItem>;
+  private payments: Collection<Payment>;
+  private recurringInvoiceSchedules: Collection<RecurringInvoiceSchedule>;
   private isInitialized = false;
 
   constructor() {
@@ -199,6 +248,11 @@ export class MongoStorage implements IStorage {
       this.purchaseOrderItems = this.db.collection<PurchaseOrderItem>('purchaseOrderItems');
       this.sellOrders = this.db.collection<SellOrder>('sellOrders');
       this.sellOrderItems = this.db.collection<SellOrderItem>('sellOrderItems');
+      // Billing system collections
+      this.invoices = this.db.collection<Invoice>('invoices');
+      this.invoiceItems = this.db.collection<InvoiceItem>('invoiceItems');
+      this.payments = this.db.collection<Payment>('payments');
+      this.recurringInvoiceSchedules = this.db.collection<RecurringInvoiceSchedule>('recurringInvoiceSchedules');
       
       // Initialize default categories if they don't exist
       const categoryCount = await this.categories.countDocuments();
@@ -868,6 +922,209 @@ export class MongoStorage implements IStorage {
   async deleteSellOrderItem(id: string): Promise<boolean> {
     await this.initialize();
     const result = await this.sellOrderItems.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Billing System Implementation
+  // Invoice methods
+  async getInvoices(): Promise<Invoice[]> {
+    await this.initialize();
+    return await this.invoices.find({}).toArray();
+  }
+
+  async getInvoice(id: string): Promise<Invoice | undefined> {
+    await this.initialize();
+    const invoice = await this.invoices.findOne({ id });
+    return invoice || undefined;
+  }
+
+  async getInvoicesByCustomer(customerId: number): Promise<Invoice[]> {
+    await this.initialize();
+    return await this.invoices.find({ customerId }).toArray();
+  }
+
+  async getInvoicesByStatus(status: string): Promise<Invoice[]> {
+    await this.initialize();
+    return await this.invoices.find({ status }).toArray();
+  }
+
+  async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const invoice: Invoice = { 
+      ...insertInvoice,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    await this.invoices.insertOne(invoice);
+    return invoice;
+  }
+
+  async updateInvoice(id: string, updateData: Partial<InsertInvoice>): Promise<Invoice | undefined> {
+    await this.initialize();
+    const result = await this.invoices.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteInvoice(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.invoices.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Invoice Item methods
+  async getInvoiceItems(): Promise<InvoiceItem[]> {
+    await this.initialize();
+    return await this.invoiceItems.find({}).toArray();
+  }
+
+  async getInvoiceItem(id: string): Promise<InvoiceItem | undefined> {
+    await this.initialize();
+    const item = await this.invoiceItems.findOne({ id });
+    return item || undefined;
+  }
+
+  async getInvoiceItemsByInvoice(invoiceId: string): Promise<InvoiceItem[]> {
+    await this.initialize();
+    return await this.invoiceItems.find({ invoiceId }).toArray();
+  }
+
+  async createInvoiceItem(insertItem: InsertInvoiceItem): Promise<InvoiceItem> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const item: InvoiceItem = { 
+      ...insertItem,
+      id,
+      createdAt: now
+    };
+    await this.invoiceItems.insertOne(item);
+    return item;
+  }
+
+  async updateInvoiceItem(id: string, updateData: Partial<InsertInvoiceItem>): Promise<InvoiceItem | undefined> {
+    await this.initialize();
+    const result = await this.invoiceItems.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteInvoiceItem(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.invoiceItems.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Payment methods
+  async getPayments(): Promise<Payment[]> {
+    await this.initialize();
+    return await this.payments.find({}).toArray();
+  }
+
+  async getPayment(id: string): Promise<Payment | undefined> {
+    await this.initialize();
+    const payment = await this.payments.findOne({ id });
+    return payment || undefined;
+  }
+
+  async getPaymentsByCustomer(customerId: number): Promise<Payment[]> {
+    await this.initialize();
+    return await this.payments.find({ customerId }).toArray();
+  }
+
+  async getPaymentsByInvoice(invoiceId: string): Promise<Payment[]> {
+    await this.initialize();
+    return await this.payments.find({ invoiceId }).toArray();
+  }
+
+  async createPayment(insertPayment: InsertPayment): Promise<Payment> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const payment: Payment = { 
+      ...insertPayment,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    await this.payments.insertOne(payment);
+    return payment;
+  }
+
+  async updatePayment(id: string, updateData: Partial<InsertPayment>): Promise<Payment | undefined> {
+    await this.initialize();
+    const result = await this.payments.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deletePayment(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.payments.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Recurring Invoice Schedule methods
+  async getRecurringInvoiceSchedules(): Promise<RecurringInvoiceSchedule[]> {
+    await this.initialize();
+    return await this.recurringInvoiceSchedules.find({}).toArray();
+  }
+
+  async getRecurringInvoiceSchedule(id: string): Promise<RecurringInvoiceSchedule | undefined> {
+    await this.initialize();
+    const schedule = await this.recurringInvoiceSchedules.findOne({ id });
+    return schedule || undefined;
+  }
+
+  async getRecurringInvoiceSchedulesByCustomer(customerId: number): Promise<RecurringInvoiceSchedule[]> {
+    await this.initialize();
+    return await this.recurringInvoiceSchedules.find({ customerId }).toArray();
+  }
+
+  async getActiveRecurringInvoiceSchedules(): Promise<RecurringInvoiceSchedule[]> {
+    await this.initialize();
+    return await this.recurringInvoiceSchedules.find({ isActive: true }).toArray();
+  }
+
+  async createRecurringInvoiceSchedule(insertSchedule: InsertRecurringInvoiceSchedule): Promise<RecurringInvoiceSchedule> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const schedule: RecurringInvoiceSchedule = { 
+      ...insertSchedule,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    await this.recurringInvoiceSchedules.insertOne(schedule);
+    return schedule;
+  }
+
+  async updateRecurringInvoiceSchedule(id: string, updateData: Partial<InsertRecurringInvoiceSchedule>): Promise<RecurringInvoiceSchedule | undefined> {
+    await this.initialize();
+    const result = await this.recurringInvoiceSchedules.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteRecurringInvoiceSchedule(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.recurringInvoiceSchedules.deleteOne({ id });
     return result.deletedCount === 1;
   }
 }
