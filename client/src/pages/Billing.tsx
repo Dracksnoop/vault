@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   CreditCard, 
   DollarSign, 
@@ -14,7 +15,8 @@ import {
   CheckCircle,
   Plus,
   Eye,
-  Download
+  Download,
+  X
 } from 'lucide-react';
 import CreateInvoiceModal from '@/components/CreateInvoiceModal';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -79,6 +81,8 @@ interface RecurringSchedule {
 export default function Billing() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const { toast } = useToast();
 
   const { data: stats, isLoading: statsLoading } = useQuery<BillingStats>({
@@ -95,6 +99,10 @@ export default function Billing() {
 
   const { data: schedules, isLoading: schedulesLoading } = useQuery<RecurringSchedule[]>({
     queryKey: ['/api/recurring-schedules'],
+  });
+
+  const { data: companyProfile } = useQuery({
+    queryKey: ['/api/company-profiles/default'],
   });
 
   const markAsPaidMutation = useMutation({
@@ -119,6 +127,52 @@ export default function Billing() {
       });
     }
   });
+
+  const handleViewInvoice = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setShowInvoicePreview(true);
+  };
+
+  const handleDownloadInvoice = async (invoice: Invoice) => {
+    try {
+      const response = await fetch('/api/invoices/download', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({
+          invoiceId: invoice.id,
+          companyProfile: companyProfile
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download invoice');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${invoice.invoiceNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "Invoice downloaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download invoice",
+        variant: "destructive",
+      });
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -364,10 +418,20 @@ export default function Billing() {
                           <td className="p-4">{getStatusBadge(invoice.status)}</td>
                           <td className="p-4">
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="border-black">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-black"
+                                onClick={() => handleViewInvoice(invoice)}
+                              >
                                 <Eye className="w-4 h-4" />
                               </Button>
-                              <Button variant="outline" size="sm" className="border-black">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="border-black"
+                                onClick={() => handleDownloadInvoice(invoice)}
+                              >
                                 <Download className="w-4 h-4" />
                               </Button>
                               {invoice.status === 'pending' && (
@@ -536,6 +600,131 @@ export default function Billing() {
         isOpen={showCreateInvoiceModal} 
         onClose={() => setShowCreateInvoiceModal(false)} 
       />
+
+      {/* Invoice Preview Dialog */}
+      <Dialog open={showInvoicePreview} onOpenChange={setShowInvoicePreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Invoice Preview - {selectedInvoice?.invoiceNumber}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectedInvoice && handleDownloadInvoice(selectedInvoice)}
+                className="border-black"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download PDF
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedInvoice && (
+            <div className="bg-white p-8 border border-gray-200 rounded-lg">
+              {/* Invoice Header */}
+              <div className="flex justify-between items-start mb-8">
+                <div className="flex items-center gap-4">
+                  {companyProfile?.logoData && (
+                    <img 
+                      src={companyProfile.logoData} 
+                      alt="Company Logo" 
+                      className="w-16 h-16 object-cover rounded border border-gray-300"
+                    />
+                  )}
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-800">
+                      {companyProfile?.companyName || 'Raydify Vault'}
+                    </h1>
+                    <p className="text-gray-600 mt-1">
+                      {companyProfile?.addressLine1 && `${companyProfile.addressLine1}, `}
+                      {companyProfile?.city && `${companyProfile.city}, `}
+                      {companyProfile?.stateProvince && `${companyProfile.stateProvince} `}
+                      {companyProfile?.zipPostalCode}
+                    </p>
+                    {companyProfile?.phoneNumber && (
+                      <p className="text-gray-600">Phone: {companyProfile.phoneNumber}</p>
+                    )}
+                    {companyProfile?.emailAddress && (
+                      <p className="text-gray-600">Email: {companyProfile.emailAddress}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-3xl font-bold text-gray-800 mb-2">INVOICE</h2>
+                  <p className="text-gray-600">#{selectedInvoice.invoiceNumber}</p>
+                </div>
+              </div>
+
+              {/* Invoice Details */}
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-2">Bill To:</h3>
+                  <p className="font-medium">{selectedInvoice.customerName}</p>
+                  <p className="text-gray-600">{selectedInvoice.customerEmail}</p>
+                </div>
+                <div className="text-right">
+                  <div className="mb-2">
+                    <span className="text-gray-600">Invoice Date: </span>
+                    <span className="font-medium">{formatDate(selectedInvoice.invoiceDate)}</span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="text-gray-600">Due Date: </span>
+                    <span className="font-medium">{formatDate(selectedInvoice.dueDate)}</span>
+                  </div>
+                  <div className="mb-2">
+                    <span className="text-gray-600">Status: </span>
+                    {getStatusBadge(selectedInvoice.status)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoice Items */}
+              <div className="mb-8">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="border border-gray-300 p-3 text-left font-medium">Description</th>
+                      <th className="border border-gray-300 p-3 text-right font-medium">Quantity</th>
+                      <th className="border border-gray-300 p-3 text-right font-medium">Rate</th>
+                      <th className="border border-gray-300 p-3 text-right font-medium">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-gray-300 p-3">Professional Services</td>
+                      <td className="border border-gray-300 p-3 text-right">1</td>
+                      <td className="border border-gray-300 p-3 text-right">{formatCurrency(selectedInvoice.totalAmount)}</td>
+                      <td className="border border-gray-300 p-3 text-right font-medium">{formatCurrency(selectedInvoice.totalAmount)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Invoice Total */}
+              <div className="flex justify-end mb-8">
+                <div className="w-64">
+                  <div className="flex justify-between items-center py-2 border-t border-gray-300">
+                    <span className="font-medium">Subtotal:</span>
+                    <span>{formatCurrency(selectedInvoice.totalAmount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 text-lg font-bold border-t border-gray-300">
+                    <span>Total:</span>
+                    <span>{formatCurrency(selectedInvoice.totalAmount)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Terms */}
+              <div className="text-sm text-gray-600">
+                <p><strong>Payment Terms:</strong> {selectedInvoice.paymentTerms}</p>
+                {selectedInvoice.notes && (
+                  <p className="mt-2"><strong>Notes:</strong> {selectedInvoice.notes}</p>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

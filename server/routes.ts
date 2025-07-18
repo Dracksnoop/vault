@@ -1854,6 +1854,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PDF Download endpoint
+  app.post("/api/invoices/download", async (req, res) => {
+    try {
+      const { invoiceId, companyProfile } = req.body;
+      
+      const invoice = await storage.getInvoice(invoiceId);
+      if (!invoice) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      
+      const doc = new jsPDF();
+
+      // Add company logo if available
+      if (companyProfile?.logoData) {
+        try {
+          doc.addImage(companyProfile.logoData, 'PNG', 20, 20, 30, 30);
+        } catch (error) {
+          console.warn('Failed to add logo to PDF:', error);
+        }
+      }
+
+      // Add company information
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text(companyProfile?.companyName || 'Raydify Vault', 60, 30);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      if (companyProfile?.addressLine1) {
+        doc.text(`${companyProfile.addressLine1}, ${companyProfile.city || ''}, ${companyProfile.stateProvince || ''} ${companyProfile.zipPostalCode || ''}`, 60, 40);
+      }
+      if (companyProfile?.phoneNumber) {
+        doc.text(`Phone: ${companyProfile.phoneNumber}`, 60, 45);
+      }
+      if (companyProfile?.emailAddress) {
+        doc.text(`Email: ${companyProfile.emailAddress}`, 60, 50);
+      }
+
+      // Add INVOICE title
+      doc.setFontSize(24);
+      doc.setFont("helvetica", "bold");
+      doc.text("INVOICE", 105, 80, { align: "center" });
+
+      // Add invoice details
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 100);
+      doc.text(`Invoice Date: ${new Date(invoice.invoiceDate).toLocaleDateString()}`, 20, 110);
+      doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 20, 120);
+      doc.text(`Status: ${invoice.status.toUpperCase()}`, 20, 130);
+
+      // Add customer information
+      doc.setFont("helvetica", "bold");
+      doc.text("Bill To:", 20, 150);
+      doc.setFont("helvetica", "normal");
+      doc.text(invoice.customerName, 20, 160);
+      doc.text(invoice.customerEmail, 20, 170);
+
+      // Add invoice items table
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      
+      // Table headers
+      doc.text("Description", 20, 200);
+      doc.text("Quantity", 90, 200);
+      doc.text("Rate", 120, 200);
+      doc.text("Amount", 160, 200);
+      
+      // Table border
+      doc.rect(20, 190, 170, 20);
+      doc.line(20, 205, 190, 205);
+      
+      // Table content
+      doc.setFont("helvetica", "normal");
+      doc.text("Professional Services", 20, 220);
+      doc.text("1", 90, 220);
+      doc.text(`Rs. ${invoice.totalAmount}`, 120, 220);
+      doc.text(`Rs. ${invoice.totalAmount}`, 160, 220);
+      
+      doc.rect(20, 210, 170, 20);
+
+      // Add total
+      doc.setFont("helvetica", "bold");
+      doc.text("Total:", 140, 250);
+      doc.text(`Rs. ${invoice.totalAmount}`, 160, 250);
+
+      // Add payment terms
+      if (invoice.paymentTerms) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Payment Terms: ${invoice.paymentTerms}`, 20, 270);
+      }
+
+      // Generate PDF buffer
+      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+      
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${invoice.invoiceNumber}.pdf"`,
+        'Content-Length': pdfBuffer.length,
+      });
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ error: "Failed to generate PDF" });
+    }
+  });
+
   // Invoice Items routes
   app.get("/api/invoice-items", async (req, res) => {
     try {
