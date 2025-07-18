@@ -409,29 +409,29 @@ export default function CreateInvoiceModal({ isOpen, onClose }: CreateInvoiceMod
     // Invoice details section with thinner border
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.2);
-    doc.rect(15, 65, 180, 25);
+    doc.rect(15, 65, 180, 28);
     
-    // Invoice details content - better aligned
+    // Invoice details content - better aligned and centered
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text('#', 20, 75);
-    doc.text('Invoice Date', 20, 80);
-    doc.text('Terms', 20, 85);
-    doc.text('Due Date', 20, 90);
+    doc.text('#', 20, 73);
+    doc.text('Invoice Date', 20, 78);
+    doc.text('Terms', 20, 83);
+    doc.text('Due Date', 20, 88);
     
     // Invoice details values - properly aligned
-    doc.text(`: ${invoiceData.invoiceNumber}`, 80, 75);
-    doc.text(`: ${new Date(invoiceData.invoiceDate).toLocaleDateString('en-GB')}`, 80, 80);
-    doc.text(': Due on Receipt', 80, 85);
-    doc.text(`: ${new Date(invoiceData.dueDate).toLocaleDateString('en-GB')}`, 80, 90);
+    doc.text(`: ${invoiceData.invoiceNumber}`, 80, 73);
+    doc.text(`: ${new Date(invoiceData.invoiceDate).toLocaleDateString('en-GB')}`, 80, 78);
+    doc.text(': Due on Receipt', 80, 83);
+    doc.text(`: ${new Date(invoiceData.dueDate).toLocaleDateString('en-GB')}`, 80, 88);
     
     // Customer name
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text(selectedCustomer?.name || 'Dr. Krishna', 20, 105);
+    doc.text(selectedCustomer?.name || 'Dr. Krishna', 20, 108);
     
     // Items table
-    let yPos = 120;
+    let yPos = 123;
     
     // Table header with thinner borders
     doc.setDrawColor(0, 0, 0);
