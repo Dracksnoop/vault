@@ -1433,22 +1433,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/purchase-orders/:id", requireAuth, async (req, res) => {
     try {
+      console.log("Fetching purchase order details for ID:", req.params.id);
       const order = await storage.getPurchaseOrder(req.params.id);
       if (!order) {
+        console.log("Purchase order not found");
         return res.status(404).json({ error: "Purchase order not found" });
       }
 
+      console.log("Purchase order found:", order);
+      console.log("Vendor ID:", order.vendorId);
+
       // Fetch vendor data
       const vendor = await storage.getVendor(order.vendorId);
+      console.log("Vendor data:", vendor);
       
       // Fetch purchase order items
       const orderItems = await storage.getPurchaseOrderItemsByOrder(req.params.id);
+      console.log("Order items:", orderItems);
       
       // Fetch item details for each purchase order item
       const itemsWithDetails = await Promise.all(
         orderItems.map(async (orderItem) => {
           const item = await storage.getItem(orderItem.itemId);
           const category = item ? await storage.getCategory(item.categoryId) : null;
+          
+          console.log("Item details:", { item, category });
           
           return {
             ...orderItem,
@@ -1460,8 +1469,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
+      console.log("Items with details:", itemsWithDetails);
+
       // Return enhanced order data
-      res.json({
+      const response = {
         ...order,
         vendorData: vendor ? {
           name: vendor.name,
@@ -1478,7 +1489,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           legalDocuments: vendor.legalDocuments
         } : null,
         items: itemsWithDetails
-      });
+      };
+      
+      console.log("Final response:", JSON.stringify(response, null, 2));
+      res.json(response);
     } catch (error) {
       console.error("Error fetching purchase order details:", error);
       res.status(500).json({ error: "Failed to fetch purchase order" });
