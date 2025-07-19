@@ -439,6 +439,89 @@ export default function Billing() {
     },
   });
 
+  // Download recurring invoice function
+  const downloadRecurringInvoice = async (schedule: RecurringSchedule) => {
+    try {
+      const templateData = schedule.templateData ? JSON.parse(schedule.templateData) : {};
+      
+      // Calculate due date based on payment terms
+      const calculateDueDate = (invoiceDate: string, paymentTerms: string) => {
+        const date = new Date(invoiceDate);
+        const days = parseInt(paymentTerms.match(/\d+/)?.[0] || '30');
+        date.setDate(date.getDate() + days);
+        return date.toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: '2-digit', 
+          year: 'numeric'
+        });
+      };
+
+      const nextInvoiceDate = new Date(schedule.nextInvoiceDate).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+
+      const dueDate = calculateDueDate(schedule.nextInvoiceDate, schedule.paymentTerms);
+      const invoiceNumber = `INV-${new Date(schedule.nextInvoiceDate).toISOString().split('T')[0].replace(/-/g, '')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+
+      // Create invoice data for PDF generation
+      const invoiceData = {
+        invoiceNumber,
+        customerName: schedule.customerName,
+        invoiceDate: nextInvoiceDate,
+        dueDate: dueDate,
+        items: [
+          {
+            description: `Recurring Service (${schedule.frequency} billing)`,
+            quantity: 1,
+            unitPrice: parseFloat(templateData.baseAmount || '0'),
+            totalPrice: parseFloat(templateData.baseAmount || '0')
+          }
+        ],
+        totalAmount: parseFloat(templateData.baseAmount || '0'),
+        currency: 'INR',
+        paymentTerms: schedule.paymentTerms,
+        notes: `This is recurring invoice for ${schedule.frequency} billing cycle. Next invoice will be generated on: ${new Date(new Date(schedule.nextInvoiceDate).setMonth(new Date(schedule.nextInvoiceDate).getMonth() + (schedule.frequency === 'monthly' ? 1 : schedule.frequency === 'quarterly' ? 3 : 12))).toLocaleDateString('en-IN')}`
+      };
+
+      // Generate and download PDF
+      const response = await fetch('/api/invoices/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(invoiceData),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `${invoiceNumber}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast({
+          title: "Download Complete",
+          description: `Invoice ${invoiceNumber} downloaded successfully`,
+        });
+      } else {
+        throw new Error('Failed to generate PDF');
+      }
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Failed to download invoice PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
@@ -1024,6 +1107,14 @@ export default function Billing() {
                                     }}
                                   >
                                     <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="border-black"
+                                    onClick={() => downloadRecurringInvoice(schedule)}
+                                  >
+                                    <Download className="w-4 h-4" />
                                   </Button>
                                 </div>
                               </td>
