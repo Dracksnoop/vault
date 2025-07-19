@@ -1275,6 +1275,45 @@ export default function Billing() {
                                   >
                                     <Download className="w-4 h-4" />
                                   </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="border-green-600 text-green-600 hover:bg-green-50"
+                                    onClick={async () => {
+                                      try {
+                                        // Find the most recent invoice for this recurring schedule
+                                        const recentInvoice = invoices?.find(inv => 
+                                          inv.recurringScheduleId === schedule.id && 
+                                          inv.status === 'pending'
+                                        );
+                                        
+                                        if (!recentInvoice) {
+                                          toast({
+                                            title: "No Invoice Found",
+                                            description: "No pending invoice found for this recurring schedule",
+                                            variant: "destructive",
+                                          });
+                                          return;
+                                        }
+                                        
+                                        // Mark the invoice as paid
+                                        await markAsPaidMutation.mutateAsync(recentInvoice.id);
+                                        
+                                        toast({
+                                          title: "Invoice Marked as Paid",
+                                          description: `Invoice ${recentInvoice.invoiceNumber} marked as paid successfully`,
+                                        });
+                                      } catch (error) {
+                                        toast({
+                                          title: "Error",
+                                          description: "Failed to mark invoice as paid",
+                                          variant: "destructive",
+                                        });
+                                      }
+                                    }}
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                  </Button>
                                 </div>
                               </td>
                             </tr>
