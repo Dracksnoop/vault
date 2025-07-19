@@ -85,6 +85,12 @@ export default function Billing() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedCustomerForRecurring, setSelectedCustomerForRecurring] = useState<Invoice | null>(null);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [recurringFormData, setRecurringFormData] = useState({
+    frequency: 'monthly',
+    startDate: new Date().toISOString().split('T')[0],
+    paymentTerms: 'Net 30',
+    notes: ''
+  });
   const { toast } = useToast();
 
   const { data: stats, isLoading: statsLoading } = useQuery<BillingStats>({
@@ -231,6 +237,35 @@ export default function Billing() {
       year: 'numeric',
     });
   };
+
+  // Create recurring schedule mutation
+  const createRecurringScheduleMutation = useMutation({
+    mutationFn: async (scheduleData: any) => {
+      return await apiRequest('POST', '/api/recurring-schedules', scheduleData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/recurring-schedules'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/billing/stats'] });
+      toast({
+        title: "Recurring Schedule Created",
+        description: `Automated billing set up successfully`,
+      });
+      setSelectedCustomerForRecurring(null);
+      setRecurringFormData({
+        frequency: 'monthly',
+        startDate: new Date().toISOString().split('T')[0],
+        paymentTerms: 'Net 30',
+        notes: ''
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create recurring schedule",
+        variant: "destructive",
+      });
+    },
+  });
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -590,7 +625,11 @@ export default function Billing() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
-                    <select className="w-full p-3 border border-gray-300 rounded-lg">
+                    <select 
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      value={recurringFormData.frequency}
+                      onChange={(e) => setRecurringFormData({...recurringFormData, frequency: e.target.value})}
+                    >
                       <option value="monthly">Monthly</option>
                       <option value="quarterly">Quarterly</option>
                       <option value="yearly">Yearly</option>
@@ -601,12 +640,17 @@ export default function Billing() {
                     <input 
                       type="date" 
                       className="w-full p-3 border border-gray-300 rounded-lg"
-                      defaultValue={new Date().toISOString().split('T')[0]}
+                      value={recurringFormData.startDate}
+                      onChange={(e) => setRecurringFormData({...recurringFormData, startDate: e.target.value})}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Payment Terms</label>
-                    <select className="w-full p-3 border border-gray-300 rounded-lg">
+                    <select 
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      value={recurringFormData.paymentTerms}
+                      onChange={(e) => setRecurringFormData({...recurringFormData, paymentTerms: e.target.value})}
+                    >
                       <option value="Net 15">Net 15 Days</option>
                       <option value="Net 30">Net 30 Days</option>
                       <option value="Net 45">Net 45 Days</option>
@@ -621,6 +665,8 @@ export default function Billing() {
                     className="w-full p-3 border border-gray-300 rounded-lg" 
                     rows={3}
                     placeholder="Add any notes about this recurring schedule..."
+                    value={recurringFormData.notes}
+                    onChange={(e) => setRecurringFormData({...recurringFormData, notes: e.target.value})}
                   ></textarea>
                 </div>
 
@@ -634,16 +680,42 @@ export default function Billing() {
                   </Button>
                   <Button
                     className="bg-blue-600 text-white hover:bg-blue-700"
+                    disabled={createRecurringScheduleMutation.isPending}
                     onClick={() => {
-                      toast({
-                        title: "Recurring Schedule Created",
-                        description: `Automated billing set up for ${selectedCustomerForRecurring.customerName}`,
-                      });
-                      setSelectedCustomerForRecurring(null);
+                      if (!selectedCustomerForRecurring) return;
+                      
+                      const scheduleData = {
+                        id: `schedule-${Date.now()}`,
+                        customerId: selectedCustomerForRecurring.customerId,
+                        customerName: selectedCustomerForRecurring.customerName,
+                        frequency: recurringFormData.frequency,
+                        interval: 1,
+                        nextInvoiceDate: recurringFormData.startDate,
+                        isActive: true,
+                        templateData: JSON.stringify({
+                          baseAmount: selectedCustomerForRecurring.totalAmount,
+                          invoiceNumber: selectedCustomerForRecurring.invoiceNumber,
+                          customerEmail: selectedCustomerForRecurring.customerEmail
+                        }),
+                        paymentTerms: recurringFormData.paymentTerms,
+                        notes: recurringFormData.notes,
+                        createdAt: new Date().toISOString()
+                      };
+                      
+                      createRecurringScheduleMutation.mutate(scheduleData);
                     }}
                   >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Create Schedule
+                    {createRecurringScheduleMutation.isPending ? (
+                      <>
+                        <Clock className="w-4 h-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Create Schedule
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
