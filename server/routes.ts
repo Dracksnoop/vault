@@ -1978,6 +1978,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate PDF from invoice data (for recurring invoices)
+  app.post("/api/invoices/generate-pdf", async (req, res) => {
+    try {
+      console.log('PDF generation request received:', req.body);
+      
+      const { invoiceNumber, customerName, invoiceDate, dueDate, items, totalAmount, currency, paymentTerms, notes } = req.body;
+      
+      if (!invoiceNumber || !customerName || !invoiceDate) {
+        console.error('Missing required fields in request');
+        return res.status(400).json({ error: "Invoice number, customer name, and invoice date are required" });
+      }
+
+      // Get company profile for PDF
+      const companyProfile = await storage.getCompanyProfile('default');
+
+      // Import jsPDF dynamically
+      const { jsPDF } = await import('jspdf');
+      
+      const doc = new jsPDF();
+
+      // Add company logo if available
+      if (companyProfile?.logoData) {
+        try {
+          doc.addImage(companyProfile.logoData, 'PNG', 20, 20, 30, 30);
+        } catch (error) {
+          console.warn('Failed to add logo to PDF:', error);
+        }
+      }
+
+      // Add company information
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text(companyProfile?.companyName || 'Gac infotech', 60, 30);
+      
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      if (companyProfile?.addressLine1) {
+        doc.text(`${companyProfile.addressLine1}, ${companyProfile.city || ''}, ${companyProfile.stateProvince || ''} ${companyProfile.zipPostalCode || ''}`, 60, 40);
+      }
+      if (companyProfile?.phoneNumber) {
+        doc.text(`Phone: ${companyProfile.phoneNumber}`, 60, 45);
+      }
+      if (companyProfile?.emailAddress) {
+        doc.text(`Email: ${companyProfile.emailAddress}`, 60, 50);
+      }
+
+      // Add INVOICE title
+      doc.setFontSize(24);
+      doc.setFont("helvetica", "bold");
+      doc.text("INVOICE", 105, 80, { align: "center" });
+
+      // Add invoice details
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Invoice #: ${invoiceNumber}`, 20, 100);
+      doc.text(`Invoice Date: ${invoiceDate}`, 20, 110);
+      doc.text(`Due Date: ${dueDate}`, 20, 120);
+      doc.text(`Payment Terms: ${paymentTerms || 'Due on Receipt'}`, 20, 130);
+
+      // Add customer information
+      doc.setFont("helvetica", "bold");
+      doc.text("Bill To:", 20, 150);
+      doc.setFont("helvetica", "normal");
+      doc.text(customerName, 20, 160);
+
+      // Add invoice items table
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      
+      // Table headers
+      doc.text("Description", 20, 200);
+      doc.text("Quantity", 90, 200);
+      doc.text("Rate", 120, 200);
+      doc.text("Amount", 160, 200);
+      
+      // Table border
+      doc.rect(20, 190, 170, 20);
+      
+      // Table items
+      doc.setFont("helvetica", "normal");
+      let yPosition = 220;
+      
+      if (items && items.length > 0) {
+        items.forEach((item, index) => {
+          doc.text(item.description || 'Service', 20, yPosition);
+          doc.text(`${item.quantity || 1}.00 pcs`, 90, yPosition);
+          doc.text(`₹${parseFloat(item.unitPrice || '0').toFixed(2)}`, 120, yPosition);
+          doc.text(`₹${parseFloat(item.totalPrice || '0').toFixed(2)}`, 160, yPosition);
+          yPosition += 10;
+        });
+      }
+
+      // Add totals
+      yPosition += 10;
+      doc.setFont("helvetica", "bold");
+      doc.text("Total:", 140, yPosition);
+      doc.text(`₹${parseFloat(totalAmount || '0').toFixed(2)}`, 160, yPosition);
+
+      // Add notes if provided
+      if (notes) {
+        yPosition += 20;
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        const splitNotes = doc.splitTextToSize(notes, 170);
+        doc.text(splitNotes, 20, yPosition);
+      }
+
+      // Add footer
+      yPosition += 30;
+      doc.setFontSize(8);
+      doc.text("Thanks for your business.", 20, yPosition);
+      
+      if (companyProfile) {
+        yPosition += 10;
+        doc.text(`Name - ${companyProfile.companyName || 'Gac infotech'}`, 20, yPosition);
+        yPosition += 8;
+        doc.text(`Account - ${companyProfile.accountNumber || '50200042158014'}`, 20, yPosition);
+        yPosition += 8;
+        doc.text(`IFSC Code - ${companyProfile.ifscCode || 'HDFC0000192'}`, 20, yPosition);
+        yPosition += 8;
+        doc.text(`Address - ${companyProfile.addressLine1 || 'Indore, madhya pradesh'}`, 20, yPosition);
+      }
+
+      // Generate PDF buffer
+      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+      
+      // Set response headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${invoiceNumber}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      // Send PDF buffer
+      res.send(pdfBuffer);
+
+      console.log(`PDF generated successfully for invoice: ${invoiceNumber}`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ error: "Failed to generate PDF", details: error.message });
+    }
+  });
+
   // Invoice Items routes
   app.get("/api/invoice-items", async (req, res) => {
     try {
