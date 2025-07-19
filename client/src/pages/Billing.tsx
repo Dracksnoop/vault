@@ -78,6 +78,176 @@ interface RecurringSchedule {
   createdAt: string;
 }
 
+// Recurring Invoice Preview Component
+function RecurringInvoicePreview({ schedule, companyProfile, onClose }: { 
+  schedule: RecurringSchedule; 
+  companyProfile: any; 
+  onClose: () => void; 
+}) {
+  // Parse template data
+  const templateData = schedule.templateData ? JSON.parse(schedule.templateData) : {};
+  
+  // Calculate due date based on payment terms
+  const calculateDueDate = (invoiceDate: string, paymentTerms: string) => {
+    const date = new Date(invoiceDate);
+    const days = parseInt(paymentTerms.match(/\d+/)?.[0] || '30');
+    date.setDate(date.getDate() + days);
+    return date.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: '2-digit', 
+      year: 'numeric'
+    });
+  };
+
+  const nextInvoiceDate = new Date(schedule.nextInvoiceDate).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+
+  const dueDate = calculateDueDate(schedule.nextInvoiceDate, schedule.paymentTerms);
+  const invoiceNumber = `INV-${new Date(schedule.nextInvoiceDate).toISOString().split('T')[0].replace(/-/g, '')}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+
+  return (
+    <div className="space-y-6">
+      {/* Invoice Header */}
+      <div className="text-center border-b border-black pb-4">
+        <h1 className="text-2xl font-bold">INVOICE</h1>
+      </div>
+
+      {/* Company and Invoice Info */}
+      <div className="grid grid-cols-2 gap-8">
+        {/* Company Logo and Info */}
+        <div className="flex gap-4">
+          <div className="w-32 h-32 border border-black flex items-center justify-center bg-gray-50">
+            {companyProfile?.logoUrl ? (
+              <img src={companyProfile.logoUrl} alt="Company Logo" className="w-full h-full object-contain" />
+            ) : (
+              <div className="text-gray-400 text-center">
+                <div className="text-sm">Company</div>
+                <div className="text-sm">Logo</div>
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold">{companyProfile?.companyName || 'Gac infotech'}</h2>
+            <div className="text-sm space-y-1 mt-2">
+              <div>{companyProfile?.addressLine1 || 'office 103 vidyaik apartment telephone nagar square near nakoda sweets bangali square'}</div>
+              <div>{companyProfile?.addressLine2 || 'Indore, madhya pradesh'}</div>
+              <div>Country</div>
+              <div>{companyProfile?.phoneNumber || '9300004646'}</div>
+              <div>{companyProfile?.emailAddress || 'pradeepraurjan2019@gmail.com'}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Invoice Details */}
+        <div className="border border-black p-4">
+          <table className="w-full text-sm">
+            <tbody>
+              <tr>
+                <td className="py-1 font-medium">#</td>
+                <td className="py-1">: {invoiceNumber}</td>
+              </tr>
+              <tr>
+                <td className="py-1 font-medium">Invoice Date</td>
+                <td className="py-1">: {nextInvoiceDate}</td>
+              </tr>
+              <tr>
+                <td className="py-1 font-medium">Terms</td>
+                <td className="py-1">: Due on Receipt</td>
+              </tr>
+              <tr>
+                <td className="py-1 font-medium">Due Date</td>
+                <td className="py-1">: {dueDate}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Customer Info */}
+      <div>
+        <h3 className="text-lg font-bold">{schedule.customerName}</h3>
+      </div>
+
+      {/* Invoice Items Table */}
+      <div className="border border-black">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-black bg-gray-50">
+              <th className="text-left p-3 border-r border-black">#</th>
+              <th className="text-left p-3 border-r border-black">Description</th>
+              <th className="text-left p-3 border-r border-black">Qty</th>
+              <th className="text-left p-3 border-r border-black">Rate</th>
+              <th className="text-left p-3">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-black">
+              <td className="p-3 border-r border-black">1</td>
+              <td className="p-3 border-r border-black">Recurring Service ({schedule.frequency} billing)</td>
+              <td className="p-3 border-r border-black text-center">1.00 pcs</td>
+              <td className="p-3 border-r border-black text-right">₹{parseFloat(templateData.baseAmount || '0').toFixed(2)}</td>
+              <td className="p-3 text-right">₹{parseFloat(templateData.baseAmount || '0').toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td colSpan={3} className="p-3 font-medium">Total in Words</td>
+              <td className="p-3 text-right font-medium">Sub Total</td>
+              <td className="p-3 text-right">₹{parseFloat(templateData.baseAmount || '0').toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td colSpan={3} className="p-3">Indian Rupees {templateData.baseAmount ? `${templateData.baseAmount} Only` : 'Zero Only'}</td>
+              <td className="p-3 text-right font-bold">Total</td>
+              <td className="p-3 text-right font-bold">Rs. {parseFloat(templateData.baseAmount || '0').toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer */}
+      <div className="space-y-4 text-sm">
+        <div>Thanks for your business.</div>
+        
+        <div className="space-y-1">
+          <div>Name - {companyProfile?.companyName || 'Gac infotech'}</div>
+          <div>Account - {companyProfile?.accountNumber || '50200042158014'}</div>
+          <div>ifsc code - {companyProfile?.ifscCode || 'HDFC0000192'}</div>
+          <div>Address - {companyProfile?.addressLine1 || 'Indore, madhya pradesh'}</div>
+        </div>
+
+        <div className="space-y-1 text-xs">
+          <div>• This is recurring invoice for {schedule.frequency} billing cycle.</div>
+          <div>• Next invoice will be generated on: {new Date(new Date(schedule.nextInvoiceDate).setMonth(new Date(schedule.nextInvoiceDate).getMonth() + (schedule.frequency === 'monthly' ? 1 : schedule.frequency === 'quarterly' ? 3 : 12))).toLocaleDateString('en-IN')}</div>
+          <div>• Disputes regarding invoices must be raised within 2 days of receipt.</div>
+          <div>• The customer is liable for any damage or loss to rented equipment during the rental period.</div>
+          <div>• Charges for repair or replacement will be billed separately.</div>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+        <Button
+          variant="outline"
+          onClick={onClose}
+          className="border-black"
+        >
+          Close
+        </Button>
+        <Button
+          className="bg-black text-white hover:bg-gray-800"
+          onClick={() => {
+            window.print();
+          }}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Print Invoice
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function Billing() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
@@ -85,6 +255,8 @@ export default function Billing() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedCustomerForRecurring, setSelectedCustomerForRecurring] = useState<Invoice | null>(null);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [selectedScheduleForPreview, setSelectedScheduleForPreview] = useState<any>(null);
+  const [showRecurringInvoicePreview, setShowRecurringInvoicePreview] = useState(false);
   const [recurringFormData, setRecurringFormData] = useState({
     frequency: 'monthly',
     startDate: new Date().toISOString().split('T')[0],
@@ -842,7 +1014,15 @@ export default function Billing() {
                               </td>
                               <td className="p-4">
                                 <div className="flex gap-2">
-                                  <Button variant="outline" size="sm" className="border-black">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="border-black"
+                                    onClick={() => {
+                                      setSelectedScheduleForPreview(schedule);
+                                      setShowRecurringInvoicePreview(true);
+                                    }}
+                                  >
                                     <Eye className="w-4 h-4" />
                                   </Button>
                                 </div>
@@ -892,6 +1072,22 @@ export default function Billing() {
         isOpen={showCreateInvoiceModal} 
         onClose={() => setShowCreateInvoiceModal(false)} 
       />
+
+      {/* Recurring Invoice Preview Modal */}
+      <Dialog open={showRecurringInvoicePreview} onOpenChange={setShowRecurringInvoicePreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border-black">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold">Recurring Invoice Preview</DialogTitle>
+          </DialogHeader>
+          {selectedScheduleForPreview && (
+            <RecurringInvoicePreview 
+              schedule={selectedScheduleForPreview} 
+              companyProfile={companyProfile}
+              onClose={() => setShowRecurringInvoicePreview(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Create Recurring Invoice Modal */}
       <Dialog open={showCreateRecurringModal} onOpenChange={setShowCreateRecurringModal}>
