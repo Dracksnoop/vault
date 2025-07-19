@@ -2007,10 +2007,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.setFont("helvetica", "bold");
       doc.text("INVOICE", 105, 25, { align: "center" });
 
-      // Company logo and info section (left side)
-      doc.rect(15, 35, 85, 60); // Left box for logo and company info
+      // Company logo and info section - full width stretched
+      doc.rect(15, 35, 180, 60); // Full width box for company info
       
-      // Logo section with smaller border
+      // Logo section with border
       doc.rect(20, 40, 30, 30);
       
       // Add company logo if available
@@ -2031,7 +2031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.text("Logo", 35, 60, { align: "center" });
       }
 
-      // Company information (right side of logo) - exact format match
+      // Company information (right side of logo) - stretched across full width
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text(companyProfile?.companyName || 'Gac infotech', 55, 45);
@@ -2040,15 +2040,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.setFont("helvetica", "normal");
       let companyY = 52;
       
-      // Full address line matching the template
+      // Full address line matching the template - wider space for full width
       const fullAddress = companyProfile?.addressLine1 || 'office 103 vinayak apartment, telephone nagar square near nakoda sweets bangali square';
       const addressLine2 = companyProfile?.addressLine2 || 'indore, madhya pradesh 452016';
       
-      const splitAddress1 = doc.splitTextToSize(fullAddress, 40);
+      const splitAddress1 = doc.splitTextToSize(fullAddress, 130);
       doc.text(splitAddress1, 55, companyY);
       companyY += splitAddress1.length * 3;
       
-      const splitAddress2 = doc.splitTextToSize(addressLine2, 40);
+      const splitAddress2 = doc.splitTextToSize(addressLine2, 130);
       doc.text(splitAddress2, 55, companyY);
       companyY += splitAddress2.length * 3;
       
@@ -2058,40 +2058,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       companyY += 4;
       doc.text(companyProfile?.emailAddress || 'pradeepgurjar2019@gmail.com', 55, companyY);
 
-      // Invoice details box (right side)
-      doc.rect(105, 35, 90, 60);
+      // Invoice details box - moved down and stretched horizontally to full width
+      doc.rect(15, 105, 180, 40); // Full width invoice details box, moved down
       
       // Invoice details - manual layout to match exact format
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-      let detailsY = 45;
+      let detailsY = 115;
       
-      doc.text("#", 110, detailsY);
+      doc.text("#", 20, detailsY);
       doc.setFont("helvetica", "normal");
-      doc.text(`: ${invoiceNumber}`, 140, detailsY);
+      doc.text(`: ${invoiceNumber}`, 60, detailsY);
       detailsY += 8;
       
       doc.setFont("helvetica", "bold");
-      doc.text("Invoice Date", 110, detailsY);
+      doc.text("Invoice Date", 20, detailsY);
       doc.setFont("helvetica", "normal");
-      doc.text(`: ${invoiceDate}`, 140, detailsY);
+      doc.text(`: ${invoiceDate}`, 60, detailsY);
       detailsY += 8;
       
       doc.setFont("helvetica", "bold");
-      doc.text("Terms", 110, detailsY);
+      doc.text("Terms", 20, detailsY);
       doc.setFont("helvetica", "normal");
-      doc.text(": Due on Receipt", 140, detailsY);
+      doc.text(": Due on Receipt", 60, detailsY);
       detailsY += 8;
       
       doc.setFont("helvetica", "bold");
-      doc.text("Due Date", 110, detailsY);
+      doc.text("Due Date", 20, detailsY);
       doc.setFont("helvetica", "normal");
-      doc.text(`: ${dueDate}`, 140, detailsY);
+      doc.text(`: ${dueDate}`, 60, detailsY);
 
-      // Customer information
+      // Customer information - moved down to accommodate new layout
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text(customerName, 20, 110);
+      doc.text(customerName, 20, 155);
 
       // Items table with exact formatting
       const tableData = [];
@@ -2142,7 +2142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
 
       autoTable(doc, {
-        startY: 120,
+        startY: 165,
         head: [['#', 'Description', 'Qty', 'Rate', 'Amount']],
         body: tableData,
         theme: 'grid',
