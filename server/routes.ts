@@ -2005,8 +2005,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.setFont("helvetica", "bold");
       doc.text("INVOICE", 105, 12, { align: "center" });
 
-      // Add border around entire page - starts right after title
-      doc.rect(10, 17, 190, 270);
+      // Add border around header area only - not extending to table
+      doc.rect(10, 17, 190, 120);
 
       // Company logo and info section - no border, just content area
       // Remove the border box - just define the area for content positioning
@@ -2116,11 +2116,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Add totals rows with proper border alignment
+      // Add totals rows with exact format
       tableData.push([
-        { content: 'Total in Words', colSpan: 3, styles: { fontStyle: 'bold', lineWidth: 0.5 } },
-        { content: 'Sub Total', styles: { fontStyle: 'bold', lineWidth: 0.5 } },
-        { content: subtotal.toFixed(2), styles: { lineWidth: 0.5 } }
+        { content: 'Total in Words', colSpan: 3, styles: { fontStyle: 'bold' } },
+        { content: 'Sub Total', styles: { fontStyle: 'bold' } },
+        subtotal.toFixed(2)
       ]);
 
       // Convert amount to words (simplified) - exact format from template
@@ -2139,9 +2139,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const amountInWords = `Indian Rupees ${numberToWords(Math.floor(subtotal))} Only`;
       tableData.push([
-        { content: amountInWords, colSpan: 3, styles: { lineWidth: 0.5 } },
-        { content: 'Total', styles: { fontStyle: 'bold', lineWidth: 0.5 } },
-        { content: `Rs. ${subtotal.toFixed(2)}`, styles: { fontStyle: 'bold', lineWidth: 0.5 } }
+        { content: amountInWords, colSpan: 3 },
+        { content: 'Total', styles: { fontStyle: 'bold' } },
+        { content: `Rs. ${subtotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
       ]);
 
       autoTable(doc, {
@@ -2152,19 +2152,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         styles: {
           fontSize: 9,
           cellPadding: 4,
-          lineWidth: 0.5,
-          lineColor: [0, 0, 0]
         },
         headStyles: {
           fillColor: [255, 255, 255],
           textColor: [0, 0, 0],
           fontStyle: 'bold',
-          lineWidth: 0.5,
-          lineColor: [0, 0, 0]
-        },
-        bodyStyles: {
-          lineWidth: 0.5,
-          lineColor: [0, 0, 0]
+          lineWidth: 0.5
         },
         columnStyles: {
           0: { cellWidth: 15, halign: 'center' },
@@ -2175,9 +2168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         margin: { left: 15, right: 15 },
         tableLineWidth: 0.5,
-        tableLineColor: [0, 0, 0],
-        horizontalPageBreak: true,
-        horizontalPageBreakRepeat: 0
+        tableLineColor: [0, 0, 0]
       });
 
       // Footer section - exact format match
