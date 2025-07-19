@@ -1042,6 +1042,7 @@ export default function Billing() {
                     <tr className="border-b border-gray-200">
                       <th className="text-left p-4 font-medium text-gray-600">Customer</th>
                       <th className="text-left p-4 font-medium text-gray-600">Frequency</th>
+                      <th className="text-left p-4 font-medium text-gray-600">Amount</th>
                       <th className="text-left p-4 font-medium text-gray-600">Next Invoice</th>
                       <th className="text-left p-4 font-medium text-gray-600">Last Invoice</th>
                       <th className="text-left p-4 font-medium text-gray-600">Status</th>
@@ -1051,7 +1052,7 @@ export default function Billing() {
                   <tbody>
                     {schedulesLoading ? (
                       <tr>
-                        <td colSpan={6} className="text-center py-8">Loading schedules...</td>
+                        <td colSpan={7} className="text-center py-8">Loading schedules...</td>
                       </tr>
                     ) : schedules && schedules.length > 0 ? (
                       schedules
@@ -1062,6 +1063,21 @@ export default function Billing() {
                           const today = new Date();
                           const daysDiff = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                           const isDueSoon = daysDiff <= 7;
+                          
+                          // Extract amount from templateData
+                          const getScheduleAmount = (schedule: any) => {
+                            try {
+                              if (schedule.templateData) {
+                                const templateData = JSON.parse(schedule.templateData);
+                                return parseFloat(templateData.baseAmount || '0');
+                              }
+                              return 0;
+                            } catch {
+                              return 0;
+                            }
+                          };
+                          
+                          const scheduleAmount = getScheduleAmount(schedule);
                           
                           return (
                             <tr key={schedule.id} className={`border-b border-gray-100 hover:bg-gray-50 ${isUpcoming ? 'bg-blue-50' : ''}`}>
@@ -1078,6 +1094,10 @@ export default function Billing() {
                                   {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)}
                                   {schedule.interval > 1 && ` (Every ${schedule.interval})`}
                                 </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="font-medium text-green-600">{formatCurrency(scheduleAmount)}</div>
+                                <div className="text-xs text-gray-500">Per {schedule.frequency}</div>
                               </td>
                               <td className="p-4">
                                 <div className="text-sm">{formatDate(schedule.nextInvoiceDate)}</div>
@@ -1123,7 +1143,7 @@ export default function Billing() {
                         })
                     ) : (
                       <tr>
-                        <td colSpan={6} className="text-center py-8 text-gray-500">
+                        <td colSpan={7} className="text-center py-8 text-gray-500">
                           No recurring schedules found. Click "Create Schedule" or use the Schedule button on any invoice to get started.
                         </td>
                       </tr>
