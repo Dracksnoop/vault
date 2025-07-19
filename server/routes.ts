@@ -2116,11 +2116,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Add totals rows with exact format
+      // Add totals rows with proper border alignment
       tableData.push([
-        { content: 'Total in Words', colSpan: 3, styles: { fontStyle: 'bold' } },
-        { content: 'Sub Total', styles: { fontStyle: 'bold' } },
-        subtotal.toFixed(2)
+        { content: 'Total in Words', colSpan: 3, styles: { fontStyle: 'bold', lineWidth: 0.5 } },
+        { content: 'Sub Total', styles: { fontStyle: 'bold', lineWidth: 0.5 } },
+        { content: subtotal.toFixed(2), styles: { lineWidth: 0.5 } }
       ]);
 
       // Convert amount to words (simplified) - exact format from template
@@ -2139,9 +2139,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const amountInWords = `Indian Rupees ${numberToWords(Math.floor(subtotal))} Only`;
       tableData.push([
-        { content: amountInWords, colSpan: 3 },
-        { content: 'Total', styles: { fontStyle: 'bold' } },
-        { content: `Rs. ${subtotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+        { content: amountInWords, colSpan: 3, styles: { lineWidth: 0.5 } },
+        { content: 'Total', styles: { fontStyle: 'bold', lineWidth: 0.5 } },
+        { content: `Rs. ${subtotal.toFixed(2)}`, styles: { fontStyle: 'bold', lineWidth: 0.5 } }
       ]);
 
       autoTable(doc, {
@@ -2152,12 +2152,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         styles: {
           fontSize: 9,
           cellPadding: 4,
+          lineWidth: 0.5,
+          lineColor: [0, 0, 0]
         },
         headStyles: {
           fillColor: [255, 255, 255],
           textColor: [0, 0, 0],
           fontStyle: 'bold',
-          lineWidth: 0.5
+          lineWidth: 0.5,
+          lineColor: [0, 0, 0]
+        },
+        bodyStyles: {
+          lineWidth: 0.5,
+          lineColor: [0, 0, 0]
         },
         columnStyles: {
           0: { cellWidth: 15, halign: 'center' },
@@ -2168,7 +2175,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         margin: { left: 15, right: 15 },
         tableLineWidth: 0.5,
-        tableLineColor: [0, 0, 0]
+        tableLineColor: [0, 0, 0],
+        horizontalPageBreak: true,
+        horizontalPageBreakRepeat: 0
       });
 
       // Footer section - exact format match
