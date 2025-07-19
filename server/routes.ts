@@ -1993,113 +1993,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get company profile for PDF
       const companyProfile = await storage.getCompanyProfile('default');
 
-      // Import jsPDF dynamically
+      // Import jsPDF and autoTable dynamically
       const { jsPDF } = await import('jspdf');
+      const autoTable = (await import('jspdf-autotable')).default;
       
       const doc = new jsPDF();
 
+      // Add border around entire page
+      doc.rect(10, 10, 190, 277);
+
+      // Add INVOICE title at top center
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("INVOICE", 105, 25, { align: "center" });
+
+      // Company logo and info section (left side)
+      doc.rect(15, 35, 85, 60); // Left box for logo and company info
+      
       // Add company logo if available
       if (companyProfile?.logoData) {
         try {
-          doc.addImage(companyProfile.logoData, 'PNG', 20, 20, 30, 30);
+          doc.addImage(companyProfile.logoData, 'PNG', 20, 40, 30, 30);
         } catch (error) {
           console.warn('Failed to add logo to PDF:', error);
+          // Fallback logo placeholder
+          doc.rect(20, 40, 30, 30);
+          doc.setFontSize(8);
+          doc.text("Company", 35, 52, { align: "center" });
+          doc.text("Logo", 35, 60, { align: "center" });
         }
+      } else {
+        // Logo placeholder
+        doc.rect(20, 40, 30, 30);
+        doc.setFontSize(8);
+        doc.text("Company", 35, 52, { align: "center" });
+        doc.text("Logo", 35, 60, { align: "center" });
       }
 
-      // Add company information
-      doc.setFontSize(20);
+      // Company information (right side of logo)
+      doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text(companyProfile?.companyName || 'Gac infotech', 60, 30);
+      doc.text(companyProfile?.companyName || 'Gac infotech', 55, 45);
       
-      doc.setFontSize(10);
+      doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
+      let companyY = 52;
       if (companyProfile?.addressLine1) {
-        doc.text(`${companyProfile.addressLine1}, ${companyProfile.city || ''}, ${companyProfile.stateProvince || ''} ${companyProfile.zipPostalCode || ''}`, 60, 40);
+        const addressText = `${companyProfile.addressLine1}${companyProfile.addressLine2 ? ', ' + companyProfile.addressLine2 : ''}`;
+        const splitAddress = doc.splitTextToSize(addressText, 40);
+        doc.text(splitAddress, 55, companyY);
+        companyY += splitAddress.length * 4;
       }
+      doc.text("Country", 55, companyY);
+      companyY += 4;
       if (companyProfile?.phoneNumber) {
-        doc.text(`Phone: ${companyProfile.phoneNumber}`, 60, 45);
+        doc.text(companyProfile.phoneNumber, 55, companyY);
+        companyY += 4;
       }
       if (companyProfile?.emailAddress) {
-        doc.text(`Email: ${companyProfile.emailAddress}`, 60, 50);
+        doc.text(companyProfile.emailAddress, 55, companyY);
       }
 
-      // Add INVOICE title
-      doc.setFontSize(24);
-      doc.setFont("helvetica", "bold");
-      doc.text("INVOICE", 105, 80, { align: "center" });
+      // Invoice details box (right side)
+      doc.rect(105, 35, 90, 60);
+      
+      // Invoice details table
+      const invoiceDetailsData = [
+        ['#', `: ${invoiceNumber}`],
+        ['Invoice Date', `: ${invoiceDate}`],
+        ['Terms', ': Due on Receipt'],
+        ['Due Date', `: ${dueDate}`]
+      ];
 
-      // Add invoice details
+      autoTable(doc, {
+        startY: 40,
+        margin: { left: 110, right: 15 },
+        body: invoiceDetailsData,
+        theme: 'plain',
+        styles: {
+          fontSize: 8,
+          cellPadding: 1,
+        },
+        columnStyles: {
+          0: { cellWidth: 25, fontStyle: 'bold' },
+          1: { cellWidth: 60 }
+        },
+        tableWidth: 85
+      });
+
+      // Customer information
       doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Invoice #: ${invoiceNumber}`, 20, 100);
-      doc.text(`Invoice Date: ${invoiceDate}`, 20, 110);
-      doc.text(`Due Date: ${dueDate}`, 20, 120);
-      doc.text(`Payment Terms: ${paymentTerms || 'Due on Receipt'}`, 20, 130);
-
-      // Add customer information
       doc.setFont("helvetica", "bold");
-      doc.text("Bill To:", 20, 150);
-      doc.setFont("helvetica", "normal");
-      doc.text(customerName, 20, 160);
+      doc.text(customerName, 20, 110);
 
-      // Add invoice items table
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      
-      // Table headers
-      doc.text("Description", 20, 200);
-      doc.text("Quantity", 90, 200);
-      doc.text("Rate", 120, 200);
-      doc.text("Amount", 160, 200);
-      
-      // Table border
-      doc.rect(20, 190, 170, 20);
-      
-      // Table items
-      doc.setFont("helvetica", "normal");
-      let yPosition = 220;
-      
+      // Items table
+      const tableData = [];
+      let itemNumber = 1;
+      let subtotal = 0;
+
       if (items && items.length > 0) {
-        items.forEach((item, index) => {
-          doc.text(item.description || 'Service', 20, yPosition);
-          doc.text(`${item.quantity || 1}.00 pcs`, 90, yPosition);
-          doc.text(`₹${parseFloat(item.unitPrice || '0').toFixed(2)}`, 120, yPosition);
-          doc.text(`₹${parseFloat(item.totalPrice || '0').toFixed(2)}`, 160, yPosition);
-          yPosition += 10;
+        items.forEach(item => {
+          const itemTotal = parseFloat(item.totalPrice || '0');
+          subtotal += itemTotal;
+          tableData.push([
+            itemNumber.toString(),
+            item.description || 'Service',
+            `${parseFloat(item.quantity || 1).toFixed(2)} pcs`,
+            `₹${parseFloat(item.unitPrice || '0').toFixed(2)}`,
+            `₹${itemTotal.toFixed(2)}`
+          ]);
+          itemNumber++;
         });
       }
 
-      // Add totals
-      yPosition += 10;
-      doc.setFont("helvetica", "bold");
-      doc.text("Total:", 140, yPosition);
-      doc.text(`₹${parseFloat(totalAmount || '0').toFixed(2)}`, 160, yPosition);
+      // Add totals rows
+      tableData.push([
+        { content: 'Total in Words', colSpan: 3, styles: { fontStyle: 'bold' } },
+        { content: 'Sub Total', styles: { fontStyle: 'bold' } },
+        `₹${subtotal.toFixed(2)}`
+      ]);
 
-      // Add notes if provided
-      if (notes) {
-        yPosition += 20;
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-        const splitNotes = doc.splitTextToSize(notes, 170);
-        doc.text(splitNotes, 20, yPosition);
-      }
+      // Convert amount to words (simplified)
+      const amountInWords = `Indian Rupees ${Math.floor(subtotal)} Only`;
+      tableData.push([
+        { content: amountInWords, colSpan: 3 },
+        { content: 'Total', styles: { fontStyle: 'bold' } },
+        { content: `Rs. ${subtotal.toFixed(2)}`, styles: { fontStyle: 'bold' } }
+      ]);
 
-      // Add footer
-      yPosition += 30;
-      doc.setFontSize(8);
-      doc.text("Thanks for your business.", 20, yPosition);
+      autoTable(doc, {
+        startY: 120,
+        head: [['#', 'Description', 'Qty', 'Rate', 'Amount']],
+        body: tableData,
+        theme: 'grid',
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
+        },
+        headStyles: {
+          fillColor: [245, 245, 245],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 15, halign: 'center' },
+          1: { cellWidth: 80 },
+          2: { cellWidth: 25, halign: 'center' },
+          3: { cellWidth: 30, halign: 'right' },
+          4: { cellWidth: 30, halign: 'right' }
+        },
+        margin: { left: 15, right: 15 }
+      });
+
+      // Footer section
+      const finalY = (doc as any).lastAutoTable.finalY + 15;
       
-      if (companyProfile) {
-        yPosition += 10;
-        doc.text(`Name - ${companyProfile.companyName || 'Gac infotech'}`, 20, yPosition);
-        yPosition += 8;
-        doc.text(`Account - ${companyProfile.accountNumber || '50200042158014'}`, 20, yPosition);
-        yPosition += 8;
-        doc.text(`IFSC Code - ${companyProfile.ifscCode || 'HDFC0000192'}`, 20, yPosition);
-        yPosition += 8;
-        doc.text(`Address - ${companyProfile.addressLine1 || 'Indore, madhya pradesh'}`, 20, yPosition);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Thanks for your business.", 20, finalY);
+
+      // Company details in footer
+      let footerY = finalY + 10;
+      doc.setFontSize(8);
+      doc.text(`Name - ${companyProfile?.companyName || 'Gac infotech'}`, 20, footerY);
+      footerY += 5;
+      doc.text(`Account - ${companyProfile?.accountNumber || '50200042158014'}`, 20, footerY);
+      footerY += 5;
+      doc.text(`Ifsc code - ${companyProfile?.ifscCode || 'HDFC0000192'}`, 20, footerY);
+      footerY += 5;
+      doc.text(`Address - ${companyProfile?.addressLine1 || 'Indore, madhya pradesh'}`, 20, footerY);
+
+      // Terms and conditions
+      footerY += 10;
+      doc.setFontSize(7);
+      const terms = [
+        `• This is recurring invoice for ${items?.[0]?.description?.includes('monthly') ? 'monthly' : items?.[0]?.description?.includes('quarterly') ? 'quarterly' : 'yearly'} billing cycle.`,
+        "• Disputes regarding invoices must be raised within 2 days of receipt.",
+        "• The customer is liable for any damage or loss to rented equipment during the rental period.",
+        "• Charges for repair or replacement will be billed separately."
+      ];
+
+      if (notes) {
+        terms.unshift(`• ${notes}`);
       }
+
+      terms.forEach(term => {
+        const splitTerm = doc.splitTextToSize(term, 170);
+        doc.text(splitTerm, 20, footerY);
+        footerY += splitTerm.length * 3;
+      });
 
       // Generate PDF buffer
       const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
