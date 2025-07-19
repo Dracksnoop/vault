@@ -1,0 +1,38 @@
+Key changes to implement:
+
+1. **Header Section:**  
+   - Display the company name and complete address block as in the second invoice, including:  
+     - Company Name on top  
+     - Full Address (office number, street, locality)  
+     - Phone number and email below the address  
+   - Move “Country” label as in the second invoice, aligned properly.
+
+2. **Invoice Number and Dates:**  
+   - Align Invoice Number (#), Invoice Date, Terms, and Due Date vertically with clear labeling and spacing as in the second invoice.  
+   - Use the same font sizes and weights.
+
+3. **Customer Name Display:**  
+   - Place the customer name or recipient name clearly below the dates as in the second invoice.
+
+4. **Invoice Items Table:**  
+   - Format the itemized list to have columns: #, Description, Qty, Rate, Unit, Amount.  
+   - Align the columns and data exactly as in the second invoice, including decimal formatting and spacing.  
+   - Remove any odd characters or formatting issues visible in the first invoice.
+
+5. **Totals Section:**  
+   - Use the “Total In Words” label exactly as in the second invoice with the phrase “Indian Rupee [Amount in words] Only.”  
+   - Place Sub Total and Total Rs. aligned below, matching the second invoice’s style.
+
+6. **Footer Section:**  
+   - Include the footer text as in the second invoice: account number, IFSC code, address.  
+   - Include the detailed notes and disclaimers exactly as the second invoice.
+
+7. **Visual and Styling:**  
+   - Use consistent fonts, weights, and spacing to replicate the second invoice exactly.  
+   - Remove any extra lines, spacing, or elements that differ from the second invoice.  
+   - Ensure alignment and margins match the second invoice for a polished, professional look.
+
+8. **Placeholder for Company Logo and Address:**  
+   - Leave space for logo and address to be dynamically inserted from the Profile section in the future.
+
+9. **Do not change any other app functionality, database structure, or routes.**

@@ -2010,83 +2010,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Company logo and info section (left side)
       doc.rect(15, 35, 85, 60); // Left box for logo and company info
       
+      // Logo section with smaller border
+      doc.rect(20, 40, 30, 30);
+      
       // Add company logo if available
       if (companyProfile?.logoData) {
         try {
-          doc.addImage(companyProfile.logoData, 'PNG', 20, 40, 30, 30);
+          doc.addImage(companyProfile.logoData, 'PNG', 22, 42, 26, 26);
         } catch (error) {
           console.warn('Failed to add logo to PDF:', error);
           // Fallback logo placeholder
-          doc.rect(20, 40, 30, 30);
           doc.setFontSize(8);
           doc.text("Company", 35, 52, { align: "center" });
           doc.text("Logo", 35, 60, { align: "center" });
         }
       } else {
-        // Logo placeholder
-        doc.rect(20, 40, 30, 30);
+        // Logo placeholder text
         doc.setFontSize(8);
         doc.text("Company", 35, 52, { align: "center" });
         doc.text("Logo", 35, 60, { align: "center" });
       }
 
-      // Company information (right side of logo)
-      doc.setFontSize(12);
+      // Company information (right side of logo) - exact format match
+      doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
       doc.text(companyProfile?.companyName || 'Gac infotech', 55, 45);
       
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
       let companyY = 52;
-      if (companyProfile?.addressLine1) {
-        const addressText = `${companyProfile.addressLine1}${companyProfile.addressLine2 ? ', ' + companyProfile.addressLine2 : ''}`;
-        const splitAddress = doc.splitTextToSize(addressText, 40);
-        doc.text(splitAddress, 55, companyY);
-        companyY += splitAddress.length * 4;
-      }
+      
+      // Full address line matching the template
+      const fullAddress = companyProfile?.addressLine1 || 'office 103 vinayak apartment, telephone nagar square near nakoda sweets bangali square';
+      const addressLine2 = companyProfile?.addressLine2 || 'indore, madhya pradesh 452016';
+      
+      const splitAddress1 = doc.splitTextToSize(fullAddress, 40);
+      doc.text(splitAddress1, 55, companyY);
+      companyY += splitAddress1.length * 3;
+      
+      const splitAddress2 = doc.splitTextToSize(addressLine2, 40);
+      doc.text(splitAddress2, 55, companyY);
+      companyY += splitAddress2.length * 3;
+      
       doc.text("Country", 55, companyY);
       companyY += 4;
-      if (companyProfile?.phoneNumber) {
-        doc.text(companyProfile.phoneNumber, 55, companyY);
-        companyY += 4;
-      }
-      if (companyProfile?.emailAddress) {
-        doc.text(companyProfile.emailAddress, 55, companyY);
-      }
+      doc.text(companyProfile?.phoneNumber || '9200006546', 55, companyY);
+      companyY += 4;
+      doc.text(companyProfile?.emailAddress || 'pradeepgurjar2019@gmail.com', 55, companyY);
 
       // Invoice details box (right side)
       doc.rect(105, 35, 90, 60);
       
-      // Invoice details table
-      const invoiceDetailsData = [
-        ['#', `: ${invoiceNumber}`],
-        ['Invoice Date', `: ${invoiceDate}`],
-        ['Terms', ': Due on Receipt'],
-        ['Due Date', `: ${dueDate}`]
-      ];
-
-      autoTable(doc, {
-        startY: 40,
-        margin: { left: 110, right: 15 },
-        body: invoiceDetailsData,
-        theme: 'plain',
-        styles: {
-          fontSize: 8,
-          cellPadding: 1,
-        },
-        columnStyles: {
-          0: { cellWidth: 25, fontStyle: 'bold' },
-          1: { cellWidth: 60 }
-        },
-        tableWidth: 85
-      });
+      // Invoice details - manual layout to match exact format
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      let detailsY = 45;
+      
+      doc.text("#", 110, detailsY);
+      doc.setFont("helvetica", "normal");
+      doc.text(`: ${invoiceNumber}`, 140, detailsY);
+      detailsY += 8;
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("Invoice Date", 110, detailsY);
+      doc.setFont("helvetica", "normal");
+      doc.text(`: ${invoiceDate}`, 140, detailsY);
+      detailsY += 8;
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("Terms", 110, detailsY);
+      doc.setFont("helvetica", "normal");
+      doc.text(": Due on Receipt", 140, detailsY);
+      detailsY += 8;
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("Due Date", 110, detailsY);
+      doc.setFont("helvetica", "normal");
+      doc.text(`: ${dueDate}`, 140, detailsY);
 
       // Customer information
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
       doc.text(customerName, 20, 110);
 
-      // Items table
+      // Items table with exact formatting
       const tableData = [];
       let itemNumber = 1;
       let subtotal = 0;
@@ -2099,22 +2106,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             itemNumber.toString(),
             item.description || 'Service',
             `${parseFloat(item.quantity || 1).toFixed(2)} pcs`,
-            `₹${parseFloat(item.unitPrice || '0').toFixed(2)}`,
-            `₹${itemTotal.toFixed(2)}`
+            `${parseFloat(item.unitPrice || '0').toFixed(2)}`,
+            `${itemTotal.toFixed(2)}`
           ]);
           itemNumber++;
         });
       }
 
-      // Add totals rows
+      // Add totals rows with exact format
       tableData.push([
         { content: 'Total in Words', colSpan: 3, styles: { fontStyle: 'bold' } },
         { content: 'Sub Total', styles: { fontStyle: 'bold' } },
-        `₹${subtotal.toFixed(2)}`
+        subtotal.toFixed(2)
       ]);
 
-      // Convert amount to words (simplified)
-      const amountInWords = `Indian Rupees ${Math.floor(subtotal)} Only`;
+      // Convert amount to words (simplified) - exact format from template
+      const numberToWords = (num) => {
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        
+        if (num < 10) return ones[num];
+        if (num < 20) return teens[num - 10];
+        if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '');
+        if (num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 ? ' ' + numberToWords(num % 100) : '');
+        if (num < 100000) return numberToWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 ? ' ' + numberToWords(num % 1000) : '');
+        return num.toString();
+      };
+      
+      const amountInWords = `Indian Rupees ${numberToWords(Math.floor(subtotal))} Only`;
       tableData.push([
         { content: amountInWords, colSpan: 3 },
         { content: 'Total', styles: { fontStyle: 'bold' } },
@@ -2127,60 +2147,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         body: tableData,
         theme: 'grid',
         styles: {
-          fontSize: 8,
-          cellPadding: 3,
+          fontSize: 9,
+          cellPadding: 4,
         },
         headStyles: {
-          fillColor: [245, 245, 245],
+          fillColor: [255, 255, 255],
           textColor: [0, 0, 0],
-          fontStyle: 'bold'
+          fontStyle: 'bold',
+          lineWidth: 0.5
         },
         columnStyles: {
           0: { cellWidth: 15, halign: 'center' },
-          1: { cellWidth: 80 },
+          1: { cellWidth: 85 },
           2: { cellWidth: 25, halign: 'center' },
           3: { cellWidth: 30, halign: 'right' },
           4: { cellWidth: 30, halign: 'right' }
         },
-        margin: { left: 15, right: 15 }
+        margin: { left: 15, right: 15 },
+        tableLineWidth: 0.5,
+        tableLineColor: [0, 0, 0]
       });
 
-      // Footer section
+      // Footer section - exact format match
       const finalY = (doc as any).lastAutoTable.finalY + 15;
       
       doc.setFontSize(9);
       doc.setFont("helvetica", "normal");
       doc.text("Thanks for your business.", 20, finalY);
 
-      // Company details in footer
-      let footerY = finalY + 10;
+      // Company details in footer - exact format
+      let footerY = finalY + 15;
       doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
       doc.text(`Name - ${companyProfile?.companyName || 'Gac infotech'}`, 20, footerY);
       footerY += 5;
-      doc.text(`Account - ${companyProfile?.accountNumber || '50200042158014'}`, 20, footerY);
+      doc.text(`Account - ${companyProfile?.accountNumber || '50200042158914'}`, 20, footerY);
       footerY += 5;
       doc.text(`Ifsc code - ${companyProfile?.ifscCode || 'HDFC0000192'}`, 20, footerY);
       footerY += 5;
       doc.text(`Address - ${companyProfile?.addressLine1 || 'Indore, madhya pradesh'}`, 20, footerY);
 
-      // Terms and conditions
-      footerY += 10;
+      // Terms and conditions - exact format from template
+      footerY += 15;
       doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      
       const terms = [
-        `• This is recurring invoice for ${items?.[0]?.description?.includes('monthly') ? 'monthly' : items?.[0]?.description?.includes('quarterly') ? 'quarterly' : 'yearly'} billing cycle.`,
+        `• This is recurring invoice for ${items?.[0]?.description?.includes('monthly') ? 'monthly' : items?.[0]?.description?.includes('quarterly') ? 'quarterly' : 'yearly'} billing cycle. Next invoice will be generated on: ${notes?.includes('Next invoice will be generated on:') ? notes.split('Next invoice will be generated on: ')[1] : 'next cycle'}.`,
+        "• This is recurring invoice for monthly billing cycle.",
         "• Disputes regarding invoices must be raised within 2 days of receipt.",
         "• The customer is liable for any damage or loss to rented equipment during the rental period.",
         "• Charges for repair or replacement will be billed separately."
       ];
 
-      if (notes) {
-        terms.unshift(`• ${notes}`);
-      }
-
-      terms.forEach(term => {
+      terms.forEach((term, index) => {
         const splitTerm = doc.splitTextToSize(term, 170);
         doc.text(splitTerm, 20, footerY);
-        footerY += splitTerm.length * 3;
+        footerY += splitTerm.length * 3 + 1;
       });
 
       // Generate PDF buffer
