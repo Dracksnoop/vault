@@ -83,6 +83,7 @@ export default function Billing() {
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
   const [showCreateRecurringModal, setShowCreateRecurringModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedCustomerForRecurring, setSelectedCustomerForRecurring] = useState<Invoice | null>(null);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const { toast } = useToast();
 
@@ -463,7 +464,8 @@ export default function Billing() {
                                 size="sm" 
                                 className="border-purple-600 text-purple-600 hover:bg-purple-50"
                                 onClick={() => {
-                                  setShowCreateRecurringModal(true);
+                                  setSelectedCustomerForRecurring(invoice);
+                                  setActiveTab('recurring');
                                   toast({
                                     title: "Schedule Recurring Invoice",
                                     description: `Setting up recurring billing for ${invoice.customerName}`,
