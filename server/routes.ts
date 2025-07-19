@@ -2016,7 +2016,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add company logo if available
       if (companyProfile?.logoData) {
         try {
-          doc.addImage(companyProfile.logoData, 'PNG', 22, 29, 26, 26);
+          // Determine image format from data URL
+          const imageFormat = companyProfile.logoData.includes('data:image/jpeg') ? 'JPEG' : 'PNG';
+          doc.addImage(companyProfile.logoData, imageFormat, 22, 29, 26, 26);
         } catch (error) {
           console.warn('Failed to add logo to PDF:', error);
           // Fallback logo placeholder
@@ -2025,7 +2027,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           doc.text("Logo", 35, 47, { align: "center" });
         }
       } else {
-        // Logo placeholder text
+        // Logo placeholder text when no logo is uploaded
         doc.setFontSize(8);
         doc.text("Company", 35, 39, { align: "center" });
         doc.text("Logo", 35, 47, { align: "center" });
