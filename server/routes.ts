@@ -2454,10 +2454,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paidInvoices = invoices.filter(i => i.status === 'paid').length;
       const overdueInvoices = invoices.filter(i => i.status === 'overdue').length;
       
-      const totalRevenue = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      // Calculate total revenue from completed payments
+      const totalRevenue = payments
+        .filter(p => (p.status === 'completed' || p.paymentStatus === 'completed') && p.amount)
+        .reduce((sum, p) => {
+          const amount = parseFloat(p.amount || '0');
+          return sum + (isNaN(amount) ? 0 : amount);
+        }, 0);
+      
+      // Calculate outstanding amount from pending and overdue invoices
       const outstandingAmount = invoices
-        .filter(i => i.status === 'pending')
-        .reduce((sum, i) => sum + parseFloat(i.totalAmount), 0);
+        .filter(i => i.status === 'pending' || i.status === 'overdue')
+        .reduce((sum, i) => {
+          const amount = parseFloat(i.totalAmount || '0');
+          return sum + (isNaN(amount) ? 0 : amount);
+        }, 0);
+      
+      console.log('Billing stats calculation:', {
+        totalPayments: payments.length,
+        completedPayments: payments.filter(p => (p.status === 'completed' || p.paymentStatus === 'completed') && p.amount).length,
+        totalRevenue,
+        pendingInvoices: invoices.filter(i => i.status === 'pending').length,
+        outstandingAmount
+      });
       
       const activeSchedules = recurringSchedules.filter(s => s.isActive).length;
       
