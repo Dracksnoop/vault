@@ -799,35 +799,57 @@ export default function Billing() {
                         <td colSpan={6} className="text-center py-8">Loading schedules...</td>
                       </tr>
                     ) : schedules && schedules.length > 0 ? (
-                      schedules.map((schedule) => (
-                        <tr key={schedule.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="p-4">
-                            <div className="font-medium">{schedule.customerName}</div>
-                          </td>
-                          <td className="p-4">
-                            <div className="text-sm">
-                              {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)}
-                              {schedule.interval > 1 && ` (Every ${schedule.interval})`}
-                            </div>
-                          </td>
-                          <td className="p-4 text-sm">{formatDate(schedule.nextInvoiceDate)}</td>
-                          <td className="p-4 text-sm">
-                            {schedule.lastInvoiceDate ? formatDate(schedule.lastInvoiceDate) : '—'}
-                          </td>
-                          <td className="p-4">
-                            <Badge className={schedule.isActive ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-800 border-gray-300'}>
-                              {schedule.isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex gap-2">
-                              <Button variant="outline" size="sm" className="border-black">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                      schedules
+                        .sort((a, b) => new Date(a.nextInvoiceDate).getTime() - new Date(b.nextInvoiceDate).getTime())
+                        .map((schedule, index) => {
+                          const isUpcoming = index < 3; // Highlight first 3 upcoming invoices
+                          const nextDate = new Date(schedule.nextInvoiceDate);
+                          const today = new Date();
+                          const daysDiff = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                          const isDueSoon = daysDiff <= 7;
+                          
+                          return (
+                            <tr key={schedule.id} className={`border-b border-gray-100 hover:bg-gray-50 ${isUpcoming ? 'bg-blue-50' : ''}`}>
+                              <td className="p-4">
+                                <div className="font-medium">{schedule.customerName}</div>
+                                {isUpcoming && (
+                                  <div className="text-xs text-blue-600 font-medium">
+                                    {index === 0 ? 'Next Up' : `#${index + 1} Upcoming`}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <div className="text-sm">
+                                  {schedule.frequency.charAt(0).toUpperCase() + schedule.frequency.slice(1)}
+                                  {schedule.interval > 1 && ` (Every ${schedule.interval})`}
+                                </div>
+                              </td>
+                              <td className="p-4">
+                                <div className="text-sm">{formatDate(schedule.nextInvoiceDate)}</div>
+                                {isDueSoon && (
+                                  <div className="text-xs text-orange-600 font-medium">
+                                    {daysDiff === 0 ? 'Due Today' : `Due in ${daysDiff} day${daysDiff > 1 ? 's' : ''}`}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-4 text-sm">
+                                {schedule.lastInvoiceDate ? formatDate(schedule.lastInvoiceDate) : '—'}
+                              </td>
+                              <td className="p-4">
+                                <Badge className={schedule.isActive ? 'bg-green-100 text-green-800 border-green-300' : 'bg-gray-100 text-gray-800 border-gray-300'}>
+                                  {schedule.isActive ? 'Active' : 'Inactive'}
+                                </Badge>
+                              </td>
+                              <td className="p-4">
+                                <div className="flex gap-2">
+                                  <Button variant="outline" size="sm" className="border-black">
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
                     ) : (
                       <tr>
                         <td colSpan={6} className="text-center py-8 text-gray-500">
