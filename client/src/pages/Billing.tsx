@@ -659,6 +659,40 @@ export default function Billing() {
                   </div>
                 </div>
 
+                {/* Next Invoice Date Preview */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">Next Invoice Date:</span>
+                    <span className="text-sm text-blue-700">
+                      {(() => {
+                        const start = new Date(recurringFormData.startDate);
+                        const next = new Date(start);
+                        
+                        switch (recurringFormData.frequency) {
+                          case 'monthly':
+                            next.setMonth(next.getMonth() + 1);
+                            break;
+                          case 'quarterly':
+                            next.setMonth(next.getMonth() + 3);
+                            break;
+                          case 'yearly':
+                            next.setFullYear(next.getFullYear() + 1);
+                            break;
+                          default:
+                            next.setMonth(next.getMonth() + 1);
+                        }
+                        
+                        return next.toLocaleDateString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        });
+                      })()}
+                    </span>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
                   <textarea 
@@ -684,13 +718,35 @@ export default function Billing() {
                     onClick={() => {
                       if (!selectedCustomerForRecurring) return;
                       
+                      // Calculate next invoice date based on frequency
+                      const calculateNextInvoiceDate = (startDate: string, frequency: string) => {
+                        const start = new Date(startDate);
+                        const next = new Date(start);
+                        
+                        switch (frequency) {
+                          case 'monthly':
+                            next.setMonth(next.getMonth() + 1);
+                            break;
+                          case 'quarterly':
+                            next.setMonth(next.getMonth() + 3);
+                            break;
+                          case 'yearly':
+                            next.setFullYear(next.getFullYear() + 1);
+                            break;
+                          default:
+                            next.setMonth(next.getMonth() + 1);
+                        }
+                        
+                        return next.toISOString().split('T')[0];
+                      };
+
                       const scheduleData = {
                         customerId: parseInt(selectedCustomerForRecurring.customerId),
                         customerName: selectedCustomerForRecurring.customerName,
                         frequency: recurringFormData.frequency,
                         interval: 1,
                         startDate: recurringFormData.startDate,
-                        nextInvoiceDate: recurringFormData.startDate,
+                        nextInvoiceDate: calculateNextInvoiceDate(recurringFormData.startDate, recurringFormData.frequency),
                         isActive: true,
                         templateData: JSON.stringify({
                           baseAmount: selectedCustomerForRecurring.totalAmount,
