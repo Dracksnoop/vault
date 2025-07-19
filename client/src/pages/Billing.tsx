@@ -685,21 +685,22 @@ export default function Billing() {
                       if (!selectedCustomerForRecurring) return;
                       
                       const scheduleData = {
-                        id: `schedule-${Date.now()}`,
-                        customerId: selectedCustomerForRecurring.customerId,
+                        customerId: parseInt(selectedCustomerForRecurring.customerId),
                         customerName: selectedCustomerForRecurring.customerName,
                         frequency: recurringFormData.frequency,
                         interval: 1,
+                        startDate: recurringFormData.startDate,
                         nextInvoiceDate: recurringFormData.startDate,
                         isActive: true,
                         templateData: JSON.stringify({
                           baseAmount: selectedCustomerForRecurring.totalAmount,
                           invoiceNumber: selectedCustomerForRecurring.invoiceNumber,
-                          customerEmail: selectedCustomerForRecurring.customerEmail
+                          customerEmail: selectedCustomerForRecurring.customerEmail,
+                          items: [] // Base template for recurring invoices
                         }),
                         paymentTerms: recurringFormData.paymentTerms,
-                        notes: recurringFormData.notes,
-                        createdAt: new Date().toISOString()
+                        notes: recurringFormData.notes || '',
+                        lastInvoiceDate: null
                       };
                       
                       createRecurringScheduleMutation.mutate(scheduleData);
