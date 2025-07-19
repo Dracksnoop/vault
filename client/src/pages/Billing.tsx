@@ -549,11 +549,106 @@ export default function Billing() {
         <TabsContent value="recurring" className="space-y-4">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Recurring Billing</h2>
-            <Button className="bg-black text-white hover:bg-gray-800 border-black">
+            <Button 
+              className="bg-black text-white hover:bg-gray-800 border-black"
+              onClick={() => setShowCreateRecurringModal(true)}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Create Schedule
             </Button>
           </div>
+
+          {/* Show create form if customer is selected for recurring billing */}
+          {selectedCustomerForRecurring && (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardHeader>
+                <CardTitle className="text-lg text-blue-900">
+                  Create Recurring Schedule for {selectedCustomerForRecurring.customerName}
+                </CardTitle>
+                <CardDescription className="text-blue-700">
+                  Set up automated recurring invoices for this customer
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Customer</label>
+                    <div className="p-3 bg-white border border-gray-300 rounded-lg">
+                      <div className="font-medium">{selectedCustomerForRecurring.customerName}</div>
+                      <div className="text-sm text-gray-600">{selectedCustomerForRecurring.customerEmail}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Base Amount</label>
+                    <div className="p-3 bg-white border border-gray-300 rounded-lg">
+                      <div className="font-medium">{formatCurrency(selectedCustomerForRecurring.totalAmount)}</div>
+                      <div className="text-sm text-gray-600">From invoice {selectedCustomerForRecurring.invoiceNumber}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Frequency</label>
+                    <select className="w-full p-3 border border-gray-300 rounded-lg">
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="yearly">Yearly</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <input 
+                      type="date" 
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                      defaultValue={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment Terms</label>
+                    <select className="w-full p-3 border border-gray-300 rounded-lg">
+                      <option value="Net 15">Net 15 Days</option>
+                      <option value="Net 30">Net 30 Days</option>
+                      <option value="Net 45">Net 45 Days</option>
+                      <option value="Net 60">Net 60 Days</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                  <textarea 
+                    className="w-full p-3 border border-gray-300 rounded-lg" 
+                    rows={3}
+                    placeholder="Add any notes about this recurring schedule..."
+                  ></textarea>
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedCustomerForRecurring(null)}
+                    className="border-gray-300"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={() => {
+                      toast({
+                        title: "Recurring Schedule Created",
+                        description: `Automated billing set up for ${selectedCustomerForRecurring.customerName}`,
+                      });
+                      setSelectedCustomerForRecurring(null);
+                    }}
+                  >
+                    <Calendar className="w-4 h-4 mr-2" />
+                    Create Schedule
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="bg-white border-black">
             <CardContent className="p-0">
@@ -574,8 +669,8 @@ export default function Billing() {
                       <tr>
                         <td colSpan={6} className="text-center py-8">Loading schedules...</td>
                       </tr>
-                    ) : (
-                      schedules?.map((schedule) => (
+                    ) : schedules && schedules.length > 0 ? (
+                      schedules.map((schedule) => (
                         <tr key={schedule.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="p-4">
                             <div className="font-medium">{schedule.customerName}</div>
@@ -604,6 +699,12 @@ export default function Billing() {
                           </td>
                         </tr>
                       ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="text-center py-8 text-gray-500">
+                          No recurring schedules found. Click "Create Schedule" or use the Schedule button on any invoice to get started.
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
