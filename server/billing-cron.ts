@@ -57,14 +57,31 @@ export async function processRecurringInvoices(): Promise<void> {
     await storage.initialize();
     
     const activeSchedules = await storage.getActiveRecurringInvoiceSchedules();
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    
+    // Calculate 6 days from today for early invoice generation
+    const sixDaysFromNow = new Date(today);
+    sixDaysFromNow.setDate(today.getDate() + 6);
+    const sixDaysFromNowString = sixDaysFromNow.toISOString().split('T')[0];
     
     for (const schedule of activeSchedules) {
-      // Check if it's time to generate a new invoice
-      if (schedule.nextInvoiceDate <= today) {
+      // Check if invoice should be generated (6 days before the actual invoice date)
+      // Generate invoice if nextInvoiceDate is within the next 6 days
+      if (schedule.nextInvoiceDate <= sixDaysFromNowString) {
         try {
-          await generateInvoiceFromSchedule(schedule);
-          console.log(`Generated invoice for schedule ${schedule.id}`);
+          // Check if invoice already exists for this schedule and date to prevent duplicates
+          const existingInvoices = await storage.getInvoicesByCustomer(schedule.customerId);
+          const invoiceForDate = existingInvoices.find(inv => 
+            inv.invoiceDate === schedule.nextInvoiceDate && 
+            inv.recurringScheduleId === schedule.id
+          );
+          
+          if (!invoiceForDate) {
+            await generateInvoiceFromSchedule(schedule);
+            console.log(`Generated advance invoice for schedule ${schedule.id} (6 days early) for date ${schedule.nextInvoiceDate}`);
+          } else {
+            console.log(`Invoice already exists for schedule ${schedule.id} and date ${schedule.nextInvoiceDate}, skipping...`);
+          }
         } catch (error) {
           console.error(`Failed to generate invoice for schedule ${schedule.id}:`, error);
         }
@@ -82,7 +99,8 @@ async function generateInvoiceFromSchedule(schedule: RecurringInvoiceSchedule): 
   // Parse template data
   const templateData = JSON.parse(schedule.templateData);
   
-  const invoiceDate = new Date().toISOString().split('T')[0];
+  // Use the scheduled invoice date instead of today's date
+  const invoiceDate = schedule.nextInvoiceDate;
   const dueDate = calculateDueDate(invoiceDate, schedule.paymentTerms || 'Net 30');
   
   // Create invoice

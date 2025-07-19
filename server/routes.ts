@@ -2582,6 +2582,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for recurring invoice generation
+  app.post("/api/test-recurring-invoices", async (req, res) => {
+    try {
+      const { processRecurringInvoices } = await import('./billing-cron.js');
+      await processRecurringInvoices();
+      res.json({ 
+        status: "Recurring invoice processing completed", 
+        timestamp: new Date().toISOString(),
+        message: "Check server logs for details on generated invoices"
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        error: "Failed to process recurring invoices", 
+        message: error.message 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
