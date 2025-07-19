@@ -1999,46 +1999,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const doc = new jsPDF();
 
-      // Add INVOICE title at top center - above border
+      // Add INVOICE title at top center - minimal space from top
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text("INVOICE", 105, 20, { align: "center" });
+      doc.text("INVOICE", 105, 15, { align: "center" });
 
-      // Add border around entire page - moved down to accommodate title
-      doc.rect(10, 25, 190, 262);
+      // Add border around entire page - close to title
+      doc.rect(10, 20, 190, 267);
 
-      // Company logo and info section - full width stretched, moved up
-      doc.rect(15, 30, 180, 60); // Full width box for company info
+      // Company logo and info section - full width stretched
+      doc.rect(15, 25, 180, 60); // Full width box for company info
       
-      // Logo section with border - lifted up
-      doc.rect(20, 35, 30, 30);
+      // Logo section with border
+      doc.rect(20, 30, 30, 30);
       
       // Add company logo if available
       if (companyProfile?.logoData) {
         try {
-          doc.addImage(companyProfile.logoData, 'PNG', 22, 37, 26, 26);
+          doc.addImage(companyProfile.logoData, 'PNG', 22, 32, 26, 26);
         } catch (error) {
           console.warn('Failed to add logo to PDF:', error);
           // Fallback logo placeholder
           doc.setFontSize(8);
-          doc.text("Company", 35, 47, { align: "center" });
-          doc.text("Logo", 35, 55, { align: "center" });
+          doc.text("Company", 35, 42, { align: "center" });
+          doc.text("Logo", 35, 50, { align: "center" });
         }
       } else {
         // Logo placeholder text
         doc.setFontSize(8);
-        doc.text("Company", 35, 47, { align: "center" });
-        doc.text("Logo", 35, 55, { align: "center" });
+        doc.text("Company", 35, 42, { align: "center" });
+        doc.text("Logo", 35, 50, { align: "center" });
       }
 
-      // Company information (right side of logo) - lifted up
+      // Company information (right side of logo)
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text(companyProfile?.companyName || 'Gac infotech', 55, 40);
+      doc.text(companyProfile?.companyName || 'Gac infotech', 55, 35);
       
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      let companyY = 47;
+      let companyY = 42;
       
       // Full address line matching the template - wider space for full width
       const fullAddress = companyProfile?.addressLine1 || 'office 103 vinayak apartment, telephone nagar square near nakoda sweets bangali square';
@@ -2058,13 +2058,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       companyY += 4;
       doc.text(companyProfile?.emailAddress || 'pradeepgurjar2019@gmail.com', 55, companyY);
 
-      // Invoice details box - positioned below company box, lifted up
-      doc.rect(15, 100, 180, 40); // Full width invoice details box
+      // Invoice details box - positioned below company box
+      doc.rect(15, 95, 180, 40); // Full width invoice details box
       
-      // Invoice details - lifted up to top of box
+      // Invoice details - positioned at top of box
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-      let detailsY = 108;
+      let detailsY = 103;
       
       doc.text("#", 20, detailsY);
       doc.setFont("helvetica", "normal");
@@ -2091,7 +2091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Customer information - positioned below invoice details
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text(customerName, 20, 150);
+      doc.text(customerName, 20, 145);
 
       // Items table with exact formatting
       const tableData = [];
@@ -2142,7 +2142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
 
       autoTable(doc, {
-        startY: 160,
+        startY: 155,
         head: [['#', 'Description', 'Qty', 'Rate', 'Amount']],
         body: tableData,
         theme: 'grid',
