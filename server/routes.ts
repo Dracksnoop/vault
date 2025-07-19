@@ -1906,59 +1906,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Add INVOICE title
-      doc.setFontSize(24);
+      doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text("INVOICE", 105, 80, { align: "center" });
+      doc.text("INVOICE", 105, 15, { align: "center" });
 
-      // Add invoice details
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Invoice #: ${invoice.invoiceNumber}`, 20, 100);
-      doc.text(`Invoice Date: ${new Date(invoice.invoiceDate).toLocaleDateString()}`, 20, 110);
-      doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 20, 120);
-      doc.text(`Status: ${invoice.status.toUpperCase()}`, 20, 130);
+      // Main container border - clean single border
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(0, 0, 0);
+      doc.rect(15, 25, 180, 110);
 
-      // Add customer information
-      doc.setFont("helvetica", "bold");
-      doc.text("Bill To:", 20, 150);
-      doc.setFont("helvetica", "normal");
-      doc.text(invoice.customerName, 20, 160);
-      doc.text(invoice.customerEmail, 20, 170);
-
-      // Add invoice items table
+      // Add invoice details section
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
+      let detailsY = 35;
       
-      // Table headers
-      doc.text("Description", 20, 200);
-      doc.text("Quantity", 90, 200);
-      doc.text("Rate", 120, 200);
-      doc.text("Amount", 160, 200);
-      
-      // Table border
-      doc.rect(20, 190, 170, 20);
-      doc.line(20, 205, 190, 205);
-      
-      // Table content
+      doc.text("Invoice #:", 20, detailsY);
       doc.setFont("helvetica", "normal");
-      doc.text("Professional Services", 20, 220);
-      doc.text("1", 90, 220);
-      doc.text(`Rs. ${invoice.totalAmount}`, 120, 220);
-      doc.text(`Rs. ${invoice.totalAmount}`, 160, 220);
+      doc.text(invoice.invoiceNumber, 50, detailsY);
+      detailsY += 8;
       
-      doc.rect(20, 210, 170, 20);
-
-      // Add total
       doc.setFont("helvetica", "bold");
-      doc.text("Total:", 140, 250);
-      doc.text(`Rs. ${invoice.totalAmount}`, 160, 250);
+      doc.text("Invoice Date:", 20, detailsY);
+      doc.setFont("helvetica", "normal");
+      doc.text(new Date(invoice.invoiceDate).toLocaleDateString(), 60, detailsY);
+      detailsY += 8;
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("Due Date:", 20, detailsY);
+      doc.setFont("helvetica", "normal");
+      doc.text(new Date(invoice.dueDate).toLocaleDateString(), 55, detailsY);
+      detailsY += 8;
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("Status:", 20, detailsY);
+      doc.setFont("helvetica", "normal");
+      doc.text(invoice.status.toUpperCase(), 45, detailsY);
+
+      // Customer information section
+      doc.setLineWidth(0.3);
+      doc.line(20, 70, 190, 70); // Internal divider
+      
+      doc.setFont("helvetica", "bold");
+      doc.text("Bill To:", 20, 80);
+      doc.setFont("helvetica", "normal");
+      doc.text(invoice.customerName, 20, 90);
+      if (invoice.customerEmail) {
+        doc.text(invoice.customerEmail, 20, 100);
+      }
+
+      // Table with autoTable for cleaner borders
+      const tableData = [
+        ["1", "Professional Services", "1", `Rs. ${invoice.totalAmount}`, `Rs. ${invoice.totalAmount}`]
+      ];
+
+      // Import autoTable
+      const autoTable = (await import('jspdf-autotable')).default;
+      
+      autoTable(doc, {
+        startY: 140,
+        head: [['#', 'Description', 'Qty', 'Rate', 'Amount']],
+        body: tableData,
+        theme: 'grid',
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+          lineWidth: 0.3,
+          lineColor: [0, 0, 0]
+        },
+        headStyles: {
+          fillColor: [240, 240, 240],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          lineWidth: 0.3,
+          lineColor: [0, 0, 0]
+        },
+        bodyStyles: {
+          lineWidth: 0.3,
+          lineColor: [0, 0, 0]
+        },
+        columnStyles: {
+          0: { cellWidth: 15, halign: 'center' },
+          1: { cellWidth: 85 },
+          2: { cellWidth: 25, halign: 'center' },
+          3: { cellWidth: 30, halign: 'right' },
+          4: { cellWidth: 30, halign: 'right' }
+        },
+        margin: { left: 15, right: 15 },
+        tableLineWidth: 0.3,
+        tableLineColor: [0, 0, 0]
+      });
+
+      // Add total below table
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFont("helvetica", "bold");
+      doc.text("Total:", 140, finalY);
+      doc.text(`Rs. ${invoice.totalAmount}`, 160, finalY);
 
       // Add payment terms
       if (invoice.paymentTerms) {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        doc.text(`Payment Terms: ${invoice.paymentTerms}`, 20, 270);
+        doc.text(`Payment Terms: ${invoice.paymentTerms}`, 20, finalY + 15);
       }
+
+      // Footer section
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text("Thanks for your business.", 20, finalY + 30);
 
       // Generate PDF buffer
       const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
@@ -2003,16 +2057,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add INVOICE title at very top
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text("INVOICE", 105, 12, { align: "center" });
+      doc.text("INVOICE", 105, 15, { align: "center" });
 
-      // Add border around header area only - not extending to table
-      doc.rect(10, 17, 190, 120);
+      // Main container border - clean single border
+      doc.setLineWidth(0.5);
+      doc.setDrawColor(0, 0, 0);
+      doc.rect(15, 25, 180, 110);
 
-      // Company logo and info section - no border, just content area
-      // Remove the border box - just define the area for content positioning
-      
-      // Logo section with border (keep logo border as in template)
-      doc.rect(20, 27, 30, 30);
+      // Logo section with clean border
+      doc.rect(20, 30, 30, 30);
       
       // Add company logo if available
       if (companyProfile?.logoData) {
@@ -2034,16 +2087,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.text("Logo", 35, 47, { align: "center" });
       }
 
-      // Company information (right side of logo) - moved up
+      // Company information (right side of logo)
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text(companyProfile?.companyName || 'Gac infotech', 55, 32);
+      doc.text(companyProfile?.companyName || 'Gac infotech', 55, 35);
       
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      let companyY = 39;
+      let companyY = 42;
       
-      // Full address line matching the template - wider space for full width
+      // Full address line - using available space within main border
       const fullAddress = companyProfile?.addressLine1 || 'office 103 vinayak apartment, telephone nagar square near nakoda sweets bangali square';
       const addressLine2 = companyProfile?.addressLine2 || 'indore, madhya pradesh 452016';
       
@@ -2061,40 +2114,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       companyY += 4;
       doc.text(companyProfile?.emailAddress || 'pradeepgurjar2019@gmail.com', 55, companyY);
 
-      // Invoice details box - positioned below company area
-      doc.rect(15, 67, 180, 40); // Full width invoice details box
+      // Invoice details section - internal divider within main border
+      doc.setLineWidth(0.3);
+      doc.line(20, 70, 190, 70); // Horizontal line to separate sections
       
-      // Invoice details - positioned at top of box
+      // Invoice details section - clean layout within main border
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
-      let detailsY = 75;
+      let detailsY = 78;
       
       doc.text("#", 20, detailsY);
       doc.setFont("helvetica", "normal");
-      doc.text(`: ${invoiceNumber}`, 60, detailsY);
-      detailsY += 8;
+      doc.text(`: ${invoiceNumber}`, 40, detailsY);
+      detailsY += 6;
       
       doc.setFont("helvetica", "bold");
       doc.text("Invoice Date", 20, detailsY);
       doc.setFont("helvetica", "normal");
-      doc.text(`: ${invoiceDate}`, 60, detailsY);
-      detailsY += 8;
+      doc.text(`: ${invoiceDate}`, 50, detailsY);
+      detailsY += 6;
       
       doc.setFont("helvetica", "bold");
       doc.text("Terms", 20, detailsY);
       doc.setFont("helvetica", "normal");
-      doc.text(": Due on Receipt", 60, detailsY);
-      detailsY += 8;
+      doc.text(": Due on Receipt", 50, detailsY);
+      detailsY += 6;
       
       doc.setFont("helvetica", "bold");
       doc.text("Due Date", 20, detailsY);
       doc.setFont("helvetica", "normal");
-      doc.text(`: ${dueDate}`, 60, detailsY);
+      doc.text(`: ${dueDate}`, 50, detailsY);
 
-      // Customer information - positioned below invoice details
+      // Customer information section - within main border
+      doc.setLineWidth(0.3);
+      doc.line(20, 110, 190, 110); // Another internal divider
+      
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text(customerName, 20, 117);
+      doc.text(customerName, 20, 120);
 
       // Items table with exact formatting
       const tableData = [];
@@ -2145,19 +2202,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
 
       autoTable(doc, {
-        startY: 127,
+        startY: 140,
         head: [['#', 'Description', 'Qty', 'Rate', 'Amount']],
         body: tableData,
         theme: 'grid',
         styles: {
           fontSize: 9,
-          cellPadding: 4,
+          cellPadding: 3,
+          lineWidth: 0.3,
+          lineColor: [0, 0, 0]
         },
         headStyles: {
-          fillColor: [255, 255, 255],
+          fillColor: [240, 240, 240],
           textColor: [0, 0, 0],
           fontStyle: 'bold',
-          lineWidth: 0.5
+          lineWidth: 0.3,
+          lineColor: [0, 0, 0]
+        },
+        bodyStyles: {
+          lineWidth: 0.3,
+          lineColor: [0, 0, 0]
         },
         columnStyles: {
           0: { cellWidth: 15, halign: 'center' },
@@ -2167,7 +2231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           4: { cellWidth: 30, halign: 'right' }
         },
         margin: { left: 15, right: 15 },
-        tableLineWidth: 0.5,
+        tableLineWidth: 0.3,
         tableLineColor: [0, 0, 0]
       });
 
