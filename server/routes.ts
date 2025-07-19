@@ -1990,8 +1990,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invoice number, customer name, and invoice date are required" });
       }
 
-      // Get company profile for PDF
-      const companyProfile = await storage.getCompanyProfile('default');
+      // Get company profile for PDF - get first available profile
+      const profiles = await storage.getCompanyProfiles();
+      const companyProfile = profiles.length > 0 ? profiles[0] : undefined;
 
       // Import jsPDF and autoTable dynamically
       const { jsPDF } = await import('jspdf');
@@ -2020,7 +2021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const imageFormat = companyProfile.logoData.includes('data:image/jpeg') ? 'JPEG' : 'PNG';
           doc.addImage(companyProfile.logoData, imageFormat, 22, 29, 26, 26);
         } catch (error) {
-          console.warn('Failed to add logo to PDF:', error);
+          console.error('Failed to add logo to PDF:', error);
           // Fallback logo placeholder
           doc.setFontSize(8);
           doc.text("Company", 35, 39, { align: "center" });
