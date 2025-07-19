@@ -2005,8 +2005,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.setFont("helvetica", "bold");
       doc.text("INVOICE", 105, 12, { align: "center" });
 
-      // Add border around entire page - starts right after title
-      doc.rect(10, 17, 190, 270);
+      // Add border around header area only - not extending to table
+      doc.rect(10, 17, 190, 120);
 
       // Company logo and info section - no border, just content area
       // Remove the border box - just define the area for content positioning
