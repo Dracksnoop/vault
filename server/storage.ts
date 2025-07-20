@@ -749,15 +749,19 @@ export class MongoStorage implements IStorage {
   }
 
   // Vendor methods
-  async getVendors(): Promise<Vendor[]> {
+  async getVendors(userId?: number): Promise<Vendor[]> {
     await this.initialize();
+    if (userId) {
+      return await this.vendors.find({ userId }).toArray();
+    }
     return await this.vendors.find({}).toArray();
   }
 
-  async getVendor(id: string): Promise<Vendor | undefined> {
+  async getVendor(id: string, userId?: number): Promise<Vendor | undefined> {
     await this.initialize();
     console.log("Looking for vendor with id:", id);
-    const vendor = await this.vendors.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const vendor = await this.vendors.findOne(filter);
     console.log("Found vendor:", vendor);
     return vendor || undefined;
   }

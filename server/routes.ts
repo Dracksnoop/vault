@@ -1407,18 +1407,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Vendor routes
-  app.get("/api/vendors", requireAuth, async (req, res) => {
+  app.get("/api/vendors", requireAuth, async (req: any, res) => {
     try {
-      const vendors = await storage.getVendors();
+      const userId = req.user?.id;
+      const vendors = await storage.getVendors(userId);
       res.json(vendors);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch vendors" });
     }
   });
 
-  app.get("/api/vendors/:id", requireAuth, async (req, res) => {
+  app.get("/api/vendors/:id", requireAuth, async (req: any, res) => {
     try {
-      const vendor = await storage.getVendor(req.params.id);
+      const userId = req.user?.id;
+      const vendor = await storage.getVendor(req.params.id, userId);
       if (!vendor) {
         return res.status(404).json({ error: "Vendor not found" });
       }
@@ -1428,10 +1430,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/vendors", requireAuth, async (req, res) => {
+  app.post("/api/vendors", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
       console.log("Creating vendor with data:", req.body);
-      const validatedData = insertVendorSchema.parse(req.body);
+      const validatedData = insertVendorSchema.parse({
+        ...req.body,
+        userId
+      });
       console.log("Validated data:", validatedData);
       const vendor = await storage.createVendor(validatedData);
       res.status(201).json(vendor);
@@ -1441,21 +1447,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/vendors/:id", requireAuth, async (req, res) => {
+  app.put("/api/vendors/:id", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertVendorSchema.parse(req.body);
-      const vendor = await storage.updateVendor(req.params.id, validatedData);
-      if (!vendor) {
+      const userId = req.user?.id;
+      // Check if vendor exists and belongs to user
+      const existing = await storage.getVendor(req.params.id, userId);
+      if (!existing) {
         return res.status(404).json({ error: "Vendor not found" });
       }
+      
+      const validatedData = insertVendorSchema.partial().parse(req.body);
+      const vendor = await storage.updateVendor(req.params.id, validatedData);
       res.json(vendor);
     } catch (error) {
       res.status(400).json({ error: "Invalid vendor data" });
     }
   });
 
-  app.delete("/api/vendors/:id", requireAuth, async (req, res) => {
+  app.delete("/api/vendors/:id", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
+      // Check if vendor exists and belongs to user
+      const existing = await storage.getVendor(req.params.id, userId);
+      if (!existing) {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+      
       const deleted = await storage.deleteVendor(req.params.id);
       if (!deleted) {
         return res.status(404).json({ error: "Vendor not found" });
