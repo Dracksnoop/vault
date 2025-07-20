@@ -35,6 +35,7 @@ export default function Employees() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddEmployeeOpen, setIsAddEmployeeOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [showEmployeeCards, setShowEmployeeCards] = useState(false);
   const [newEmployee, setNewEmployee] = useState<Partial<InsertEmployee>>({
     status: "active"
   });
@@ -52,7 +53,10 @@ export default function Employees() {
     mutationFn: (employee: Partial<InsertEmployee>) => 
       apiRequest("POST", "/api/employees", employee),
     onSuccess: () => {
+      // Force refresh the employees data
+      queryClient.removeQueries({ queryKey: ["/api/employees"] });
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
+      queryClient.refetchQueries({ queryKey: ["/api/employees"] });
       setIsAddEmployeeOpen(false);
       setNewEmployee({ status: "active" });
       toast({
@@ -436,13 +440,17 @@ export default function Employees() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <Card 
+          className="cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={() => setShowEmployeeCards(!showEmployeeCards)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{employees.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Click to view all</p>
           </CardContent>
         </Card>
         <Card>
@@ -480,14 +488,109 @@ export default function Employees() {
         </Card>
       </div>
 
+      {/* Employee Cards Dashboard */}
+      {showEmployeeCards && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Employee Cards Dashboard</CardTitle>
+                <CardDescription>All employees in card format</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowEmployeeCards(false)}
+              >
+                Back to Directory
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8">Loading employees...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {employees.length === 0 ? (
+                  <div className="col-span-full text-center py-8 text-muted-foreground">
+                    No employees found. Add your first employee to get started.
+                  </div>
+                ) : (
+                  employees.map((employee: Employee) => (
+                    <Card key={employee.id} className="border border-gray-200 hover:shadow-lg transition-shadow">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-lg">
+                              {employee.firstName} {employee.lastName}
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground">{employee.employeeId}</p>
+                          </div>
+                          <Badge variant={getStatusBadgeVariant(employee.status)}>
+                            {employee.status}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Briefcase className="h-4 w-4 text-muted-foreground" />
+                          <span>{employee.role}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Building className="h-4 w-4 text-muted-foreground" />
+                          <span>{employee.department}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="truncate">{employee.email}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span>{employee.phone}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          <span>{employee.city}, {employee.state}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-sm">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          <span>Joined: {new Date(employee.joiningDate).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex justify-end space-x-1 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingEmployee(employee)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteEmployeeMutation.mutate(employee.id)}
+                            disabled={deleteEmployeeMutation.isPending}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Search and Filter */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Employee Directory</CardTitle>
-          <CardDescription>
-            Search and manage all company employees
-          </CardDescription>
-        </CardHeader>
+      {!showEmployeeCards && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Employee Directory</CardTitle>
+            <CardDescription>
+              Search and manage all company employees
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-2 mb-4">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -590,6 +693,7 @@ export default function Employees() {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Edit Employee Dialog */}
       {editingEmployee && (
