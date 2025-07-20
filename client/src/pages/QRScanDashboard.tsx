@@ -66,14 +66,15 @@ export default function QRScanDashboard() {
     setLoginError("");
 
     try {
+      console.log('Attempting login with:', { username: loginForm.userId, password: '***' });
+      
       // Authenticate user with real API
-      const response = await apiRequest('/api/auth/login', {
-        method: 'POST',
-        body: {
-          username: loginForm.userId,
-          password: loginForm.password
-        }
+      const response = await apiRequest('POST', '/api/auth/login', {
+        username: loginForm.userId,
+        password: loginForm.password
       });
+
+      console.log('Login response:', response);
 
       if (response.user && response.token) {
         // Store the authentication token
@@ -89,7 +90,7 @@ export default function QRScanDashboard() {
       }
     } catch (error) {
       console.error('Login error:', error);
-      setLoginError("Invalid credentials. Please try again.");
+      setLoginError("Invalid credentials. Please verify your username and password.");
     }
 
     setIsLoading(false);
@@ -174,7 +175,8 @@ export default function QRScanDashboard() {
                 <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                   <p className="text-sm text-black font-medium mb-2">Login Options:</p>
                   <div className="text-xs text-gray-600 space-y-1">
-                    <p>• <strong>System Users:</strong> Use your username and password</p>
+                    <p>• <strong>System Users:</strong> Use your username (e.g., 'krish') and password</p>
+                    <p>• <strong>Admin Users:</strong> Use 'admin' as username and 'admin123' as password</p>
                     <p>• <strong>Customers:</strong> Use your name or email as username, phone as password</p>
                   </div>
                 </div>
