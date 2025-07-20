@@ -182,17 +182,6 @@ export default function QRScanDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-6">
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                  <p className="text-sm text-black font-medium mb-2">Login Options:</p>
-                  <div className="text-xs text-gray-600 space-y-1">
-                    <p>• <strong>System Users:</strong> Use your username (e.g., 'krish') and password</p>
-                    <p>• <strong>Admin Users:</strong> Use 'admin' as username and 'admin123' as password</p>
-                    <p>• <strong>Customers:</strong> Use your name or email as username, phone as password</p>
-                  </div>
-                </div>
-              </div>
-              
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="userId" className="text-black">Username</Label>
