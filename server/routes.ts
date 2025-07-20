@@ -3079,6 +3079,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark Call Service as Resolved
+  app.patch("/api/call-services/:id/resolve", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const callService = await storage.getCallService(id, req.user.id);
+      
+      if (!callService) {
+        return res.status(404).json({ error: "Call service not found" });
+      }
+
+      const resolvedAt = new Date().toISOString();
+      const resolutionDate = new Date(callService.issueResolutionDate);
+      const resolvedDate = new Date(resolvedAt);
+      
+      // Check if resolved on time (on or before resolution date)
+      const resolvedOnTime = resolvedDate <= resolutionDate;
+
+      const updatedCallService = await storage.updateCallService(id, req.user.id, {
+        status: "resolved",
+        resolvedAt,
+        resolvedOnTime
+      });
+
+      res.json(updatedCallService);
+    } catch (error) {
+      console.error("Error resolving call service:", error);
+      res.status(500).json({ error: "Failed to resolve call service" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

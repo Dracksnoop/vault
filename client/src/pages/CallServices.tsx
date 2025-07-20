@@ -101,6 +101,27 @@ export default function CallServices() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Mark resolved mutation
+  const markResolvedMutation = useMutation({
+    mutationFn: async (callServiceId: string) => {
+      return await apiRequest("PATCH", `/api/call-services/${callServiceId}/resolve`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/call-services"] });
+      toast({
+        title: "Success",
+        description: "Call service marked as resolved",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to mark call service as resolved",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Fetch existing call services
   const { data: callServices = [], isLoading } = useQuery({
     queryKey: ["/api/call-services"],
@@ -288,6 +309,10 @@ export default function CallServices() {
       priority: formData.priority,
       issueResolutionDate: selectedDate.toISOString(),
     });
+  };
+
+  const handleMarkResolved = (callServiceId: string) => {
+    markResolvedMutation.mutate(callServiceId);
   };
 
   const getStatusBadge = (status: string) => {
@@ -815,6 +840,18 @@ export default function CallServices() {
                       <h3 className="text-lg font-medium">{call.callNumber}</h3>
                       {getStatusBadge(call.status)}
                       {getPriorityBadge(call.priority)}
+                      {call.status === 'resolved' && (
+                        <Badge 
+                          variant={call.resolvedOnTime ? "outline" : "destructive"}
+                          className={
+                            call.resolvedOnTime 
+                              ? "bg-green-50 text-green-700 border-green-200" 
+                              : "bg-red-50 text-red-700 border-red-200"
+                          }
+                        >
+                          {call.resolvedOnTime ? "✓ On Time" : "⚠ Late"}
+                        </Badge>
+                      )}
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
@@ -838,12 +875,37 @@ export default function CallServices() {
                           }
                         </span>
                       </div>
+                      {call.resolvedAt && (
+                        <div className="col-span-2">
+                          <span className="text-gray-600">Resolved On: </span>
+                          <span className="font-medium">
+                            {new Date(call.resolvedAt).toLocaleDateString()} at {new Date(call.resolvedAt).toLocaleTimeString()}
+                          </span>
+                          {!call.resolvedOnTime && (
+                            <span className="text-red-600 ml-2 text-xs">
+                              ({Math.ceil((new Date(call.resolvedAt).getTime() - new Date(call.issueResolutionDate).getTime()) / (1000 * 60 * 60 * 24))} days late)
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="mt-3">
                       <p className="text-sm text-gray-700 line-clamp-2">{call.issueDescription}</p>
                     </div>
                   </div>
                   <div className="flex space-x-2">
+                    {call.status !== 'resolved' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMarkResolved(call.id)}
+                        disabled={markResolvedMutation.isPending}
+                        className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        {markResolvedMutation.isPending ? "Resolving..." : "Mark Resolved"}
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm">
                       <Eye className="w-4 h-4 mr-1" />
                       View
