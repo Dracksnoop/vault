@@ -2669,7 +2669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/company-profiles/:id", async (req, res) => {
+  app.get("/api/company-profiles/:id", requireAuth, async (req: any, res) => {
     try {
       const profile = await storage.getCompanyProfile(req.params.id);
       if (!profile) {
@@ -2681,9 +2681,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/company-profiles", async (req, res) => {
+  app.post("/api/company-profiles", requireAuth, async (req: any, res) => {
     try {
-      const result = insertCompanyProfileSchema.safeParse(req.body);
+      const userId = req.user?.id;
+      const result = insertCompanyProfileSchema.safeParse({
+        ...req.body,
+        userId
+      });
       if (!result.success) {
         return res.status(400).json({ error: "Invalid company profile data", details: result.error.issues });
       }
@@ -2696,7 +2700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/company-profiles/:id", async (req, res) => {
+  app.put("/api/company-profiles/:id", requireAuth, async (req: any, res) => {
     try {
       const result = insertCompanyProfileSchema.partial().safeParse(req.body);
       if (!result.success) {
@@ -2714,7 +2718,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/company-profiles/:id", async (req, res) => {
+  app.delete("/api/company-profiles/:id", requireAuth, async (req: any, res) => {
     try {
       const success = await storage.deleteCompanyProfile(req.params.id);
       if (!success) {
@@ -2727,7 +2731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/company-profiles/:id/set-default", async (req, res) => {
+  app.post("/api/company-profiles/:id/set-default", requireAuth, async (req: any, res) => {
     try {
       const success = await storage.setDefaultCompanyProfile(req.params.id);
       if (!success) {

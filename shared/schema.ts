@@ -603,6 +603,7 @@ export const companyProfiles = pgTable("company_profiles", {
   logoUrl: text("logo_url"), // URL or path to uploaded logo
   logoData: text("logo_data"), // Base64 encoded logo data
   isDefault: boolean("is_default").default(false), // Mark as default profile
+  userId: integer("user_id").notNull(), // User-specific data
   createdAt: text("created_at").default("now()"),
   updatedAt: text("updated_at").default("now()"),
 });
