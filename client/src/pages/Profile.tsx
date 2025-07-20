@@ -30,12 +30,14 @@ export default function Profile() {
   const { data: companyProfile, isLoading } = useQuery<CompanyProfile | null>({
     queryKey: ['/api/company-profiles/default'],
     queryFn: async () => {
-      const response = await fetch('/api/company-profiles/default');
-      if (!response.ok) {
-        if (response.status === 404) return null;
-        throw new Error('Failed to fetch company profile');
+      try {
+        return await apiRequest('GET', '/api/company-profiles/default');
+      } catch (error: any) {
+        if (error.message?.includes('404')) {
+          return null;
+        }
+        throw error;
       }
-      return response.json();
     },
   });
 
@@ -106,6 +108,10 @@ export default function Profile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/company-profiles/default'] });
+      console.log('Company profile saved successfully');
+    },
+    onError: (error) => {
+      console.error('Error saving company profile:', error);
     },
   });
 
