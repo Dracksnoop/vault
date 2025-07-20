@@ -2758,14 +2758,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/replacement-requests", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user?.id;
+      console.log('Creating replacement request with data:', req.body);
       const validated = insertReplacementRequestSchema.parse({
         ...req.body,
         userId
       });
+      console.log('Validated replacement request data:', validated);
       const request = await storage.createReplacementRequest(validated);
       res.status(201).json(request);
     } catch (error) {
-      res.status(400).json({ error: "Invalid replacement request data" });
+      console.error('Replacement request creation error:', error);
+      if (error.errors) {
+        console.error('Validation errors:', error.errors);
+      }
+      res.status(400).json({ error: "Invalid replacement request data", details: error.message });
     }
   });
 

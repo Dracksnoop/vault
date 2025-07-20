@@ -72,7 +72,7 @@ const replacementSchema = z.object({
   newItemName: z.string().optional(),
   newItemModel: z.string().optional(),
   cost: z.number().min(0, 'Cost must be positive').optional(),
-  vendorName: z.string().optional(),
+  vendorName: z.string().min(1, 'Vendor name is required'),
   warrantyExpiryDate: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.replacementType === 'different') {
@@ -134,7 +134,7 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
       newItemName: '',
       newItemModel: '',
       cost: 0,
-      vendorName: '',
+      vendorName: 'Default Vendor',
       warrantyExpiryDate: '',
     },
   });
@@ -167,15 +167,15 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
       const replacementData = {
         unitId: data.unitId,
         unitSerialNumber: selectedUnit?.serialNumber || '',
-        itemId: data.itemId,
+        itemId: data.itemId || '',
         itemName: selectedItem?.name || '',
         itemModel: selectedItem?.model || '',
         reason: data.reason,
         status: 'pending',
         requestDate: new Date().toISOString().split('T')[0],
-        notes: data.notes,
-        cost: data.cost || 0,
-        vendorName: data.vendorName || '',
+        notes: data.notes || '',
+        cost: String(data.cost || 0),
+        vendorName: data.vendorName,
         warrantyExpiryDate: data.warrantyExpiryDate || '',
         customerId: selectedUnit?.currentCustomerId || '',
         customerName: selectedUnit?.currentCustomerId ? 
@@ -203,10 +203,11 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
       setCategoryFilter('all');
       onClose();
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Replacement creation error:', error);
       toast({
         title: "Error",
-        description: "Failed to create replacement request",
+        description: error.message || "Failed to create replacement request",
         variant: "destructive",
       });
     },
