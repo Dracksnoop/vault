@@ -50,19 +50,19 @@ export default function Header({ onMenuClick, user, onLogout }: HeaderProps) {
           <GlobalSearch />
         </div>
         
-        {/* Global Search */}
-        <div className="hidden lg:block flex-1 max-w-md mx-4">
-          <GlobalSearch />
+        {/* Desktop: Global Search and Create Invoice Button */}
+        <div className="hidden lg:flex flex-1 max-w-lg mx-4 gap-3 items-center">
+          <div className="flex-1 max-w-md">
+            <GlobalSearch />
+          </div>
+          <Button 
+            onClick={handleCreateInvoiceClick}
+            className="bg-black text-white hover:bg-gray-800 border-black h-8 px-3 text-sm whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Create Invoice
+          </Button>
         </div>
-        
-        {/* Create Invoice Button */}
-        <Button 
-          onClick={handleCreateInvoiceClick}
-          className="hidden lg:flex bg-black text-white hover:bg-gray-800 border-black h-8 px-3 text-sm"
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Create Invoice
-        </Button>
         
         {/* Mobile Create Invoice Button */}
         <Button 
