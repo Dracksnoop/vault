@@ -328,14 +328,18 @@ export class MongoStorage implements IStorage {
   }
 
   // Category methods
-  async getCategories(): Promise<Category[]> {
+  async getCategories(userId?: number): Promise<Category[]> {
     await this.initialize();
+    if (userId) {
+      return await this.categories.find({ userId }).toArray();
+    }
     return await this.categories.find({}).toArray();
   }
 
-  async getCategory(id: string): Promise<Category | undefined> {
+  async getCategory(id: string, userId?: number): Promise<Category | undefined> {
     await this.initialize();
-    const category = await this.categories.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const category = await this.categories.findOne(filter);
     return category || undefined;
   }
 
@@ -363,20 +367,25 @@ export class MongoStorage implements IStorage {
   }
 
   // Item methods
-  async getItems(): Promise<Item[]> {
+  async getItems(userId?: number): Promise<Item[]> {
     await this.initialize();
+    if (userId) {
+      return await this.items.find({ userId }).toArray();
+    }
     return await this.items.find({}).toArray();
   }
 
-  async getItem(id: string): Promise<Item | undefined> {
+  async getItem(id: string, userId?: number): Promise<Item | undefined> {
     await this.initialize();
-    const item = await this.items.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const item = await this.items.findOne(filter);
     return item || undefined;
   }
 
-  async getItemsByCategory(categoryId: string): Promise<Item[]> {
+  async getItemsByCategory(categoryId: string, userId?: number): Promise<Item[]> {
     await this.initialize();
-    return await this.items.find({ categoryId }).toArray();
+    const filter = userId ? { categoryId, userId } : { categoryId };
+    return await this.items.find(filter).toArray();
   }
 
   async createItem(insertItem: InsertItem): Promise<Item> {
@@ -403,20 +412,25 @@ export class MongoStorage implements IStorage {
   }
 
   // Unit methods
-  async getUnits(): Promise<Unit[]> {
+  async getUnits(userId?: number): Promise<Unit[]> {
     await this.initialize();
+    if (userId) {
+      return await this.units.find({ userId }).toArray();
+    }
     return await this.units.find({}).toArray();
   }
 
-  async getUnit(id: string): Promise<Unit | undefined> {
+  async getUnit(id: string, userId?: number): Promise<Unit | undefined> {
     await this.initialize();
-    const unit = await this.units.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const unit = await this.units.findOne(filter);
     return unit || undefined;
   }
 
-  async getUnitsByItem(itemId: string): Promise<Unit[]> {
+  async getUnitsByItem(itemId: string, userId?: number): Promise<Unit[]> {
     await this.initialize();
-    return await this.units.find({ itemId }).toArray();
+    const filter = userId ? { itemId, userId } : { itemId };
+    return await this.units.find(filter).toArray();
   }
 
   async getUnitBySerialNumber(serialNumber: string): Promise<Unit | undefined> {
@@ -489,14 +503,18 @@ export class MongoStorage implements IStorage {
   }
 
   // Customer methods
-  async getCustomers(): Promise<Customer[]> {
+  async getCustomers(userId?: number): Promise<Customer[]> {
     await this.initialize();
+    if (userId) {
+      return await this.customers.find({ userId }).toArray();
+    }
     return await this.customers.find({}).toArray();
   }
 
-  async getCustomer(id: number): Promise<Customer | undefined> {
+  async getCustomer(id: number, userId?: number): Promise<Customer | undefined> {
     await this.initialize();
-    const customer = await this.customers.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const customer = await this.customers.findOne(filter);
     return customer || undefined;
   }
 
@@ -940,20 +958,25 @@ export class MongoStorage implements IStorage {
 
   // Billing System Implementation
   // Invoice methods
-  async getInvoices(): Promise<Invoice[]> {
+  async getInvoices(userId?: number): Promise<Invoice[]> {
     await this.initialize();
+    if (userId) {
+      return await this.invoices.find({ userId }).toArray();
+    }
     return await this.invoices.find({}).toArray();
   }
 
-  async getInvoice(id: string): Promise<Invoice | undefined> {
+  async getInvoice(id: string, userId?: number): Promise<Invoice | undefined> {
     await this.initialize();
-    const invoice = await this.invoices.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const invoice = await this.invoices.findOne(filter);
     return invoice || undefined;
   }
 
-  async getInvoicesByCustomer(customerId: number): Promise<Invoice[]> {
+  async getInvoicesByCustomer(customerId: number, userId?: number): Promise<Invoice[]> {
     await this.initialize();
-    return await this.invoices.find({ customerId }).toArray();
+    const filter = userId ? { customerId, userId } : { customerId };
+    return await this.invoices.find(filter).toArray();
   }
 
   async getInvoicesByStatus(status: string): Promise<Invoice[]> {
@@ -1038,25 +1061,31 @@ export class MongoStorage implements IStorage {
   }
 
   // Payment methods
-  async getPayments(): Promise<Payment[]> {
+  async getPayments(userId?: number): Promise<Payment[]> {
     await this.initialize();
+    if (userId) {
+      return await this.payments.find({ userId }).toArray();
+    }
     return await this.payments.find({}).toArray();
   }
 
-  async getPayment(id: string): Promise<Payment | undefined> {
+  async getPayment(id: string, userId?: number): Promise<Payment | undefined> {
     await this.initialize();
-    const payment = await this.payments.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const payment = await this.payments.findOne(filter);
     return payment || undefined;
   }
 
-  async getPaymentsByCustomer(customerId: number): Promise<Payment[]> {
+  async getPaymentsByCustomer(customerId: number, userId?: number): Promise<Payment[]> {
     await this.initialize();
-    return await this.payments.find({ customerId }).toArray();
+    const filter = userId ? { customerId, userId } : { customerId };
+    return await this.payments.find(filter).toArray();
   }
 
-  async getPaymentsByInvoice(invoiceId: string): Promise<Payment[]> {
+  async getPaymentsByInvoice(invoiceId: string, userId?: number): Promise<Payment[]> {
     await this.initialize();
-    return await this.payments.find({ invoiceId }).toArray();
+    const filter = userId ? { invoiceId, userId } : { invoiceId };
+    return await this.payments.find(filter).toArray();
   }
 
   async createPayment(insertPayment: InsertPayment): Promise<Payment> {
@@ -1090,25 +1119,31 @@ export class MongoStorage implements IStorage {
   }
 
   // Recurring Invoice Schedule methods
-  async getRecurringInvoiceSchedules(): Promise<RecurringInvoiceSchedule[]> {
+  async getRecurringInvoiceSchedules(userId?: number): Promise<RecurringInvoiceSchedule[]> {
     await this.initialize();
+    if (userId) {
+      return await this.recurringInvoiceSchedules.find({ userId }).toArray();
+    }
     return await this.recurringInvoiceSchedules.find({}).toArray();
   }
 
-  async getRecurringInvoiceSchedule(id: string): Promise<RecurringInvoiceSchedule | undefined> {
+  async getRecurringInvoiceSchedule(id: string, userId?: number): Promise<RecurringInvoiceSchedule | undefined> {
     await this.initialize();
-    const schedule = await this.recurringInvoiceSchedules.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const schedule = await this.recurringInvoiceSchedules.findOne(filter);
     return schedule || undefined;
   }
 
-  async getRecurringInvoiceSchedulesByCustomer(customerId: number): Promise<RecurringInvoiceSchedule[]> {
+  async getRecurringInvoiceSchedulesByCustomer(customerId: number, userId?: number): Promise<RecurringInvoiceSchedule[]> {
     await this.initialize();
-    return await this.recurringInvoiceSchedules.find({ customerId }).toArray();
+    const filter = userId ? { customerId, userId } : { customerId };
+    return await this.recurringInvoiceSchedules.find(filter).toArray();
   }
 
-  async getActiveRecurringInvoiceSchedules(): Promise<RecurringInvoiceSchedule[]> {
+  async getActiveRecurringInvoiceSchedules(userId?: number): Promise<RecurringInvoiceSchedule[]> {
     await this.initialize();
-    return await this.recurringInvoiceSchedules.find({ isActive: true }).toArray();
+    const filter = userId ? { isActive: true, userId } : { isActive: true };
+    return await this.recurringInvoiceSchedules.find(filter).toArray();
   }
 
   async createRecurringInvoiceSchedule(insertSchedule: InsertRecurringInvoiceSchedule): Promise<RecurringInvoiceSchedule> {

@@ -229,13 +229,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Category routes
-  app.get("/api/categories", async (req, res) => {
+  app.get("/api/categories", requireAuth, async (req: any, res) => {
     try {
-      const categories = await storage.getCategories();
+      const userId = req.user?.id;
+      const categories = await storage.getCategories(userId);
       // Calculate actual item counts for each category
       const categoriesWithCounts = await Promise.all(
         categories.map(async (category) => {
-          const items = await storage.getItemsByCategory(category.id);
+          const items = await storage.getItemsByCategory(category.id, userId);
           return {
             ...category,
             itemCount: items.length
@@ -248,9 +249,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/categories", async (req, res) => {
+  app.post("/api/categories", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertCategorySchema.parse(req.body);
+      const userId = req.user?.id;
+      const validatedData = insertCategorySchema.parse({
+        ...req.body,
+        userId
+      });
       const category = await storage.createCategory(validatedData);
       res.json(category);
     } catch (error) {
@@ -286,25 +291,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Item routes
-  app.get("/api/items", async (req, res) => {
+  app.get("/api/items", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
       const { categoryId } = req.query;
       const items = categoryId 
-        ? await storage.getItemsByCategory(categoryId as string)
-        : await storage.getItems();
+        ? await storage.getItemsByCategory(categoryId as string, userId)
+        : await storage.getItems(userId);
       res.json(items);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch items" });
     }
   });
 
-  app.post("/api/items", async (req, res) => {
+  app.post("/api/items", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertItemSchema.parse(req.body);
+      const userId = req.user?.id;
+      const validatedData = insertItemSchema.parse({
+        ...req.body,
+        userId
+      });
       const item = await storage.createItem(validatedData);
       
       // Update category item count
-      const categoryItems = await storage.getItemsByCategory(item.categoryId);
+      const categoryItems = await storage.getItemsByCategory(item.categoryId, userId);
       await storage.updateCategory(item.categoryId, { itemCount: categoryItems.length });
       
       res.json(item);
@@ -356,18 +366,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Unit routes
-  app.get("/api/units", async (req, res) => {
+  app.get("/api/units", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
       const { itemId, serialNumber } = req.query;
       let units;
       
       if (serialNumber) {
-        const unit = await storage.getUnitBySerialNumber(serialNumber as string);
+        const unit = await storage.getUnitBySerialNumber(serialNumber as string, userId);
         units = unit ? [unit] : [];
       } else if (itemId) {
-        units = await storage.getUnitsByItem(itemId as string);
+        units = await storage.getUnitsByItem(itemId as string, userId);
       } else {
-        units = await storage.getUnits();
+        units = await storage.getUnits(userId);
       }
       
       res.json(units);
@@ -376,9 +387,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/units", async (req, res) => {
+  app.post("/api/units", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertUnitSchema.parse(req.body);
+      const userId = req.user?.id;
+      const validatedData = insertUnitSchema.parse({
+        ...req.body,
+        userId
+      });
       const unit = await storage.createUnit(validatedData);
       res.json(unit);
     } catch (error) {
@@ -417,18 +432,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Customer routes
-  app.get("/api/customers", async (req, res) => {
+  app.get("/api/customers", requireAuth, async (req: any, res) => {
     try {
-      const customers = await storage.getCustomers();
+      const userId = req.user?.id;
+      const customers = await storage.getCustomers(userId);
       res.json(customers);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch customers" });
     }
   });
 
-  app.post("/api/customers", async (req, res) => {
+  app.post("/api/customers", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertCustomerSchema.parse(req.body);
+      const userId = req.user?.id;
+      const validatedData = insertCustomerSchema.parse({
+        ...req.body,
+        userId
+      });
       const customer = await storage.createCustomer(validatedData);
       res.json(customer);
     } catch (error) {
@@ -436,10 +456,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/customers/:id", async (req, res) => {
+  app.get("/api/customers/:id", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
       const id = parseInt(req.params.id);
-      const customer = await storage.getCustomer(id);
+      const customer = await storage.getCustomer(id, userId);
       if (!customer) {
         return res.status(404).json({ error: "Customer not found" });
       }
@@ -530,12 +551,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Dashboard stats route
-  app.get("/api/dashboard/stats", async (req, res) => {
+  app.get("/api/dashboard/stats", requireAuth, async (req: any, res) => {
     try {
-      const items = await storage.getItems();
-      const units = await storage.getUnits();
-      const customers = await storage.getCustomers();
-      const categories = await storage.getCategories();
+      const userId = req.user?.id;
+      const items = await storage.getItems(userId);
+      const units = await storage.getUnits(userId);
+      const customers = await storage.getCustomers(userId);
+      const categories = await storage.getCategories(userId);
       
       // Calculate stats based on units
       const totalUnits = units.length;
@@ -1761,18 +1783,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Billing System Routes
   
   // Invoice routes
-  app.get("/api/invoices", async (req, res) => {
+  app.get("/api/invoices", requireAuth, async (req: any, res) => {
     try {
-      const invoices = await storage.getInvoices();
+      const userId = req.user?.id;
+      const invoices = await storage.getInvoices(userId);
       res.json(invoices);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch invoices" });
     }
   });
 
-  app.get("/api/invoices/:id", async (req, res) => {
+  app.get("/api/invoices/:id", requireAuth, async (req: any, res) => {
     try {
-      const invoice = await storage.getInvoice(req.params.id);
+      const userId = req.user?.id;
+      const invoice = await storage.getInvoice(req.params.id, userId);
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
@@ -1792,9 +1816,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/invoices", async (req, res) => {
+  app.post("/api/invoices", requireAuth, async (req: any, res) => {
     try {
-      const validated = insertInvoiceSchema.parse(req.body);
+      const userId = req.user?.id;
+      const validated = insertInvoiceSchema.parse({
+        ...req.body,
+        userId
+      });
       const invoice = await storage.createInvoice(validated);
       res.status(201).json(invoice);
     } catch (error) {
@@ -2335,9 +2363,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Payment routes
-  app.get("/api/payments", async (req, res) => {
+  app.get("/api/payments", requireAuth, async (req: any, res) => {
     try {
-      const payments = await storage.getPayments();
+      const userId = req.user?.id;
+      const payments = await storage.getPayments(userId);
       res.json(payments);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch payments" });

@@ -12,6 +12,7 @@ export const categories = pgTable("categories", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   itemCount: integer("item_count").default(0),
+  userId: integer("user_id").notNull(), // User-specific data
 });
 
 export const items = pgTable("items", {
@@ -22,12 +23,13 @@ export const items = pgTable("items", {
   quantityInStock: integer("quantity_in_stock").default(0),
   quantityRentedOut: integer("quantity_rented_out").default(0),
   location: text("location"),
+  userId: integer("user_id").notNull(), // User-specific data
 });
 
 export const units = pgTable("units", {
   id: text("id").primaryKey(),
   itemId: text("item_id").notNull(),
-  serialNumber: text("serial_number").notNull().unique(),
+  serialNumber: text("serial_number").notNull(),
   barcode: text("barcode"),
   status: text("status").notNull().default("Available"), // Available, Rented, Maintenance, Retired
   currentCustomerId: integer("current_customer_id"), // Customer ID who currently has this unit
@@ -36,6 +38,7 @@ export const units = pgTable("units", {
   notes: text("notes"),
   rentedBy: integer("rented_by"), // Customer ID who has rented this unit (legacy field)
   serviceId: text("service_id"), // Service ID for rental tracking
+  userId: integer("user_id").notNull(), // User-specific data
   
   // CPU Specifications
   cpuBrand: text("cpu_brand"),
@@ -116,13 +119,14 @@ export const inventory = pgTable("inventory", {
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  email: text("email").notNull().unique(),
+  email: text("email").notNull(),
   phone: text("phone"),
   address: text("address"),
   company: text("company"),
   // Extended fields for customer management
   customerType: text("customer_type").notNull(), // "one-time" or "rental"
   companyName: text("company_name"),
+  userId: integer("user_id").notNull(), // User-specific data
   billingAddress: text("billing_address"),
   shippingAddress: text("shipping_address"),
   gstVatNumber: text("gst_vat_number"),
@@ -139,6 +143,7 @@ export const services = pgTable("services", {
   notes: text("notes"),
   createdAt: text("created_at").default("now()"),
   updatedAt: text("updated_at").default("now()"),
+  userId: integer("user_id").notNull(), // User-specific data
 });
 
 export const serviceItems = pgTable("service_items", {
@@ -148,6 +153,7 @@ export const serviceItems = pgTable("service_items", {
   quantity: integer("quantity").notNull(),
   unitPrice: decimal("unit_price", { precision: 10, scale: 2 }),
   totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  userId: integer("user_id").notNull(), // User-specific data
 });
 
 export const rentals = pgTable("rentals", {
@@ -164,6 +170,7 @@ export const rentals = pgTable("rentals", {
   notes: text("notes"),
   createdAt: text("created_at").default("now()"),
   updatedAt: text("updated_at").default("now()"),
+  userId: integer("user_id").notNull(), // User-specific data
 });
 
 export const rentalTimeline = pgTable("rental_timeline", {
@@ -273,6 +280,7 @@ export const invoices = pgTable("invoices", {
   paymentTerms: text("payment_terms"),
   isRecurring: boolean("is_recurring").default(false),
   recurringScheduleId: text("recurring_schedule_id"), // Links to recurring schedule
+  userId: integer("user_id").notNull(), // User-specific data
   createdAt: text("created_at").default("now()"),
   updatedAt: text("updated_at").default("now()"),
 });
@@ -290,6 +298,7 @@ export const invoiceItems = pgTable("invoice_items", {
   discountRate: decimal("discount_rate", { precision: 5, scale: 2 }).default("0"), // Percentage
   serialNumbers: text("serial_numbers"), // JSON array of serial numbers for rented units
   rentalPeriod: text("rental_period"), // "2025-01-01 to 2025-01-31"
+  userId: integer("user_id").notNull(), // User-specific data
   createdAt: text("created_at").default("now()"),
 });
 
@@ -307,6 +316,7 @@ export const payments = pgTable("payments", {
   transactionId: text("transaction_id"), // External payment gateway transaction ID
   referenceNumber: text("reference_number"), // Cheque number, UPI ref, etc.
   notes: text("notes"),
+  userId: integer("user_id").notNull(), // User-specific data
   createdAt: text("created_at").default("now()"),
   updatedAt: text("updated_at").default("now()"),
 });
@@ -328,6 +338,7 @@ export const recurringInvoiceSchedules = pgTable("recurring_invoice_schedules", 
   paymentTerms: text("payment_terms").default("Net 30"),
   autoGenerate: boolean("auto_generate").default(true),
   notificationDays: integer("notification_days").default(3), // Days before due date to send reminders
+  userId: integer("user_id").notNull(), // User-specific data
   createdAt: text("created_at").default("now()"),
   updatedAt: text("updated_at").default("now()"),
 });
