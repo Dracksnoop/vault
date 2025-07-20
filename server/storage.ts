@@ -1475,10 +1475,10 @@ export class MongoStorage implements IStorage {
     return callService;
   }
 
-  async updateCallService(id: string, updateData: Partial<InsertCallService>): Promise<CallService | undefined> {
+  async updateCallService(id: string, userId: number, updateData: Partial<InsertCallService>): Promise<CallService | undefined> {
     await this.initialize();
     const result = await this.callServices.findOneAndUpdate(
-      { id },
+      { id, userId },
       { $set: { ...updateData, updatedAt: new Date().toISOString() } },
       { returnDocument: 'after' }
     );

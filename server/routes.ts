@@ -2991,7 +2991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/call-services/:id", requireAuth, async (req, res) => {
     try {
-      const callService = await storage.updateCallService(req.params.id, req.body);
+      const callService = await storage.updateCallService(req.params.id, req.user.id, req.body);
       if (!callService) {
         return res.status(404).json({ error: "Call service not found" });
       }
@@ -3083,7 +3083,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/call-services/:id/resolve", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
+      console.log(`Resolving call service ${id} for user ${req.user.id}`);
+      
       const callService = await storage.getCallService(id, req.user.id);
+      console.log("Found call service:", callService ? "Yes" : "No");
       
       if (!callService) {
         return res.status(404).json({ error: "Call service not found" });
@@ -3095,12 +3098,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if resolved on time (on or before resolution date)
       const resolvedOnTime = resolvedDate <= resolutionDate;
+      
+      console.log("Updating with:", { status: "resolved", resolvedAt, resolvedOnTime });
 
       const updatedCallService = await storage.updateCallService(id, req.user.id, {
         status: "resolved",
         resolvedAt,
         resolvedOnTime
       });
+      
+      console.log("Updated call service:", updatedCallService ? "Success" : "Failed");
 
       res.json(updatedCallService);
     } catch (error) {
