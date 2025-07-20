@@ -76,39 +76,39 @@ export default function Customer() {
         // Core customer data
         queryClient.prefetchQuery({
           queryKey: ['/api/customers', customerId],
-          queryFn: () => apiRequest(`/api/customers/${customerId}`)
+          queryFn: () => apiRequest('GET', `/api/customers/${customerId}`)
         }),
         
         // Customer timeline
         queryClient.prefetchQuery({
           queryKey: ['/api/customers', customerId, 'timeline'],
-          queryFn: () => apiRequest(`/api/customers/${customerId}/timeline`)
+          queryFn: () => apiRequest('GET', `/api/customers/${customerId}/timeline`)
         }),
         
         // Ensure all related data is cached
         queryClient.prefetchQuery({
           queryKey: ['/api/services'],
-          queryFn: () => apiRequest('/api/services')
+          queryFn: () => apiRequest('GET', '/api/services')
         }),
         
         queryClient.prefetchQuery({
           queryKey: ['/api/rentals'],
-          queryFn: () => apiRequest('/api/rentals')
+          queryFn: () => apiRequest('GET', '/api/rentals')
         }),
         
         queryClient.prefetchQuery({
           queryKey: ['/api/service-items'],
-          queryFn: () => apiRequest('/api/service-items')
+          queryFn: () => apiRequest('GET', '/api/service-items')
         }),
         
         queryClient.prefetchQuery({
           queryKey: ['/api/items'],
-          queryFn: () => apiRequest('/api/items')
+          queryFn: () => apiRequest('GET', '/api/items')
         }),
         
         queryClient.prefetchQuery({
           queryKey: ['/api/units'],
-          queryFn: () => apiRequest('/api/units')
+          queryFn: () => apiRequest('GET', '/api/units')
         })
       ];
       
