@@ -567,7 +567,7 @@ export default function Employees() {
                             <Badge variant={getStatusBadgeVariant(employee.status)}>
                               {employee.status}
                             </Badge>
-                            <div className="w-16 h-16 rounded-lg border-2 border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                            <div className="w-24 h-32 rounded-lg border-2 border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
                               {employee.photo ? (
                                 <img 
                                   src={employee.photo} 
@@ -575,7 +575,7 @@ export default function Employees() {
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <User className="h-8 w-8 text-gray-400" />
+                                <User className="h-12 w-12 text-gray-400" />
                               )}
                             </div>
                           </div>
@@ -869,7 +869,7 @@ export default function Employees() {
                 <div className="space-y-2">
                   <Label htmlFor="editPhoto">Employee Photo</Label>
                   <div className="flex flex-col items-center space-y-3">
-                    <div className="w-24 h-24 rounded-lg border-2 border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                    <div className="w-32 h-40 rounded-lg border-2 border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
                       {photoPreview || editingEmployee.photo ? (
                         <img 
                           src={photoPreview || editingEmployee.photo} 
@@ -877,7 +877,7 @@ export default function Employees() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <User className="h-12 w-12 text-gray-400" />
+                        <User className="h-16 w-16 text-gray-400" />
                       )}
                     </div>
                     <div className="flex space-x-2">
