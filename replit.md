@@ -365,3 +365,15 @@ The application follows a clean architecture pattern with clear separation betwe
   - Corrected all status inconsistencies throughout application (Available vs In Stock)
   - Enhanced UI feedback with proper loading indicators and button states
   - All inventory CRUD operations now work with immediate UI refresh and toast notifications
+
+- **July 20, 2025**: CRITICAL FIX - Resolved schema validation issues breaking multi-tenancy data persistence
+  - Fixed insertCategorySchema missing userId field causing categories to be created without user association
+  - Fixed insertItemSchema missing userId field preventing items from being created properly
+  - Fixed insertUnitSchema missing userId field causing unit creation failures
+  - Fixed insertServiceSchema, insertServiceItemSchema, insertRentalSchema missing userId fields
+  - All Zod validation schemas now properly include userId field for complete multi-tenancy support
+  - Categories now persist correctly and display immediately after creation
+  - Items can now be created and associated with proper user accounts
+  - Units creation now works with proper user isolation
+  - Complete fix for data persistence issues affecting all inventory management operations
+  - All CRUD operations now work correctly with proper user data segregation

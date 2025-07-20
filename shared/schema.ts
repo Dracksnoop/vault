@@ -364,6 +364,7 @@ export const insertItemSchema = createInsertSchema(items).pick({
   quantityInStock: true,
   quantityRentedOut: true,
   location: true,
+  userId: true,
 });
 
 export const insertUnitSchema = createInsertSchema(units).pick({
@@ -420,6 +421,7 @@ export const insertUnitSchema = createInsertSchema(units).pick({
   rentedBy: true,
   serviceId: true,
   currentCustomerId: true,
+  userId: true,
 });
 
 export const insertInventorySchema = createInsertSchema(inventory).pick({
@@ -451,6 +453,7 @@ export const insertServiceSchema = createInsertSchema(services).pick({
   serviceType: true,
   status: true,
   notes: true,
+  userId: true,
 });
 
 export const insertServiceItemSchema = createInsertSchema(serviceItems).pick({
@@ -460,6 +463,7 @@ export const insertServiceItemSchema = createInsertSchema(serviceItems).pick({
   quantity: true,
   unitPrice: true,
   totalPrice: true,
+  userId: true,
 });
 
 export const insertRentalSchema = createInsertSchema(rentals).pick({
@@ -474,6 +478,7 @@ export const insertRentalSchema = createInsertSchema(rentals).pick({
   totalValue: true,
   status: true,
   notes: true,
+  userId: true,
 });
 
 export const insertRentalTimelineSchema = createInsertSchema(rentalTimeline).pick({
