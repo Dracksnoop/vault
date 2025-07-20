@@ -130,6 +130,12 @@ export default function CallServices() {
     queryKey: ["/api/call-services"],
   });
 
+  // Fetch call service items for the selected call service
+  const { data: callServiceItems = [] } = useQuery({
+    queryKey: [`/api/call-service-items/call/${selectedCallService?.id}`],
+    enabled: !!selectedCallService?.id,
+  });
+
   // Fetch customers for step 2
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -1262,38 +1268,32 @@ export default function CallServices() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {(() => {
-                    const { data: callServiceItems = [] } = useQuery({
-                      queryKey: [`/api/call-service-items/call/${selectedCallService.id}`],
-                    });
-                    
-                    return callServiceItems.length > 0 ? (
-                      <div className="space-y-4">
-                        {callServiceItems.map((item: any, index: number) => (
-                          <div key={index} className="p-4 border rounded-lg">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label className="text-sm font-medium text-gray-600">Item Name</Label>
-                                <p className="text-sm font-medium">{item.itemName}</p>
-                              </div>
-                              <div>
-                                <Label className="text-sm font-medium text-gray-600">Serial Numbers</Label>
-                                <p className="text-sm">{item.serialNumbers || "N/A"}</p>
-                              </div>
-                              {item.issueDetails && (
-                                <div className="col-span-2">
-                                  <Label className="text-sm font-medium text-gray-600">Issue Details</Label>
-                                  <p className="text-sm">{item.issueDetails}</p>
-                                </div>
-                              )}
+                  {callServiceItems.length > 0 ? (
+                    <div className="space-y-4">
+                      {callServiceItems.map((item: any, index: number) => (
+                        <div key={index} className="p-4 border rounded-lg">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-sm font-medium text-gray-600">Item Name</Label>
+                              <p className="text-sm font-medium">{item.itemName}</p>
                             </div>
+                            <div>
+                              <Label className="text-sm font-medium text-gray-600">Serial Numbers</Label>
+                              <p className="text-sm">{item.serialNumbers || "N/A"}</p>
+                            </div>
+                            {item.issueDetails && (
+                              <div className="col-span-2">
+                                <Label className="text-sm font-medium text-gray-600">Issue Details</Label>
+                                <p className="text-sm">{item.issueDetails}</p>
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-600">No specific items/units associated with this call service</p>
-                    );
-                  })()}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600">No specific items/units associated with this call service</p>
+                  )}
                 </CardContent>
               </Card>
             </div>
