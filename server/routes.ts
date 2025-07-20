@@ -270,18 +270,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/categories", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user?.id;
-      console.log(`Creating category for userId: ${userId}`);
-      
       const validatedData = insertCategorySchema.parse({
         ...req.body,
         userId
       });
-      
-      console.log(`Validated data:`, validatedData);
       const category = await storage.createCategory(validatedData);
       res.json(category);
     } catch (error) {
-      console.error("Failed to create category:", error);
+
       res.status(500).json({ error: "Failed to create category" });
     }
   });

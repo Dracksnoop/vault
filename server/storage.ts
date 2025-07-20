@@ -342,20 +342,10 @@ export class MongoStorage implements IStorage {
   async getCategories(userId?: number): Promise<Category[]> {
     await this.initialize();
     
-    // Debug logging
-    console.log(`getCategories called with userId: ${userId} (type: ${typeof userId})`);
-    
     if (userId) {
-      const filter = { userId };
-      console.log(`Searching with filter:`, filter);
-      const results = await this.categories.find(filter).toArray();
-      console.log(`Found ${results.length} categories for userId ${userId}`);
-      return results;
+      return await this.categories.find({ userId }).toArray();
     }
-    
-    const allResults = await this.categories.find({}).toArray();
-    console.log(`Found ${allResults.length} categories total (no userId filter)`);
-    return allResults;
+    return await this.categories.find({}).toArray();
   }
 
   async getCategory(id: string, userId?: number): Promise<Category | undefined> {
@@ -369,11 +359,7 @@ export class MongoStorage implements IStorage {
     await this.initialize();
     const category: Category = { ...insertCategory };
     
-    // Debug logging
-    console.log('Creating category:', JSON.stringify(category, null, 2));
-    
     await this.categories.insertOne(category);
-    console.log('Category inserted successfully');
     
     return category;
   }

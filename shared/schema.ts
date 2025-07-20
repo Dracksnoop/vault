@@ -353,6 +353,7 @@ export const insertCategorySchema = createInsertSchema(categories).pick({
   id: true,
   name: true,
   itemCount: true,
+  userId: true,
 });
 
 export const insertItemSchema = createInsertSchema(items).pick({
