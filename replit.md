@@ -168,7 +168,7 @@ The application follows a clean architecture pattern with clear separation betwe
   - Added search functionality for both items and units
   - Implemented automatic serial number generation when creating items with quantities
   - Added dynamic QR code generation for each unit with download functionality
-  - QR codes encode unique URLs (https://raydifyvault.com/unit/{serialNumber}) for live unit tracking
+  - QR codes encode unique URLs (https://vault.raydify.in/unit/{serialNumber}) for live unit tracking
   - Maintained minimal white theme with slim black borders throughout
 
 - **July 13, 2025**: Implemented comprehensive multi-step Customer Management system
@@ -422,3 +422,10 @@ The application follows a clean architecture pattern with clear separation betwe
   - Complete photo validation system with error handling for oversized files and invalid formats
   - Photo upload system fully integrated with existing employee schema and multi-tenancy
   - All photo operations work seamlessly with MongoDB storage and real-time UI updates
+
+- **July 20, 2025**: Updated QR code URLs for live deployment at vault.raydify.in
+  - Updated all QR code generation to use live domain https://vault.raydify.in/unit/{serialNumber}
+  - Changed from development URL https://raydifyvault.com/unit/ to production domain
+  - Updated QR code generation in Inventory.tsx and UnitDetailsPanel.tsx
+  - No functional changes to app or database - only URL updates for live deployment
+  - QR codes now point to correct live website for unit tracking

@@ -830,7 +830,7 @@ export default function UnitDetailsPanel({ unit, item, category, isOpen, onClose
               <div className="p-4 bg-white border border-gray-200 rounded-lg">
                 <QRCodeSVG
                   id="qr-code-svg"
-                  value={`https://raydifyvault.com/unit/${unit.serialNumber}`}
+                  value={`https://vault.raydify.in/unit/${unit.serialNumber}`}
                   size={200}
                   level="M"
                 />

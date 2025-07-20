@@ -584,7 +584,7 @@ export default function Inventory() {
   };
 
   const generateQRUrl = (serialNumber: string) => {
-    return `https://raydifyvault.com/unit/${serialNumber}`;
+    return `https://vault.raydify.in/unit/${serialNumber}`;
   };
 
   const handleGenerateQR = (unit: Unit) => {
