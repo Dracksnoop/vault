@@ -1348,7 +1348,10 @@ export class MongoStorage implements IStorage {
   async getEmployees(userId?: number): Promise<Employee[]> {
     await this.initialize();
     const filter = userId ? { userId } : {};
-    return await this.employees.find(filter).toArray();
+    console.log("Fetching employees with filter:", filter);
+    const result = await this.employees.find(filter).toArray();
+    console.log("Found employees:", result.length, "employees");
+    return result;
   }
 
   async getEmployee(id: string, userId?: number): Promise<Employee | undefined> {
@@ -1368,7 +1371,9 @@ export class MongoStorage implements IStorage {
   async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
     await this.initialize();
     const employee: Employee = { ...insertEmployee };
-    await this.employees.insertOne(employee);
+    console.log("Creating employee with data:", employee);
+    const result = await this.employees.insertOne(employee);
+    console.log("Employee created with MongoDB ID:", result.insertedId);
     return employee;
   }
 
