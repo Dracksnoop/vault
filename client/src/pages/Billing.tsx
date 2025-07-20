@@ -856,7 +856,11 @@ export default function Billing() {
                         <td colSpan={7} className="text-center py-8">Loading invoices...</td>
                       </tr>
                     ) : (
-                      invoices?.map((invoice) => (
+                      invoices?.sort((a, b) => {
+                        // Priority order: pending -> overdue -> paid -> cancelled
+                        const statusOrder = { 'pending': 0, 'overdue': 1, 'paid': 2, 'cancelled': 3 };
+                        return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+                      })?.map((invoice) => (
                         <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="p-4">
                             <div className="font-medium">{invoice.invoiceNumber}</div>
