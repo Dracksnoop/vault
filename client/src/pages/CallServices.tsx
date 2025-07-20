@@ -84,6 +84,8 @@ export default function CallServices() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedItemForUnits, setSelectedItemForUnits] = useState<string | null>(null);
+  const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
   const [formData, setFormData] = useState<CallServiceFormData>({
     customerId: 0,
     customerName: "",
@@ -129,6 +131,12 @@ export default function CallServices() {
   // Fetch items to get item details
   const { data: items = [] } = useQuery({
     queryKey: ["/api/items"],
+    enabled: formData.customerId > 0,
+  });
+
+  // Fetch units to get unit details for selection
+  const { data: units = [] } = useQuery({
+    queryKey: ["/api/units"],
     enabled: formData.customerId > 0,
   });
 
@@ -182,6 +190,8 @@ export default function CallServices() {
       rentalDetails: []
     });
     setSelectedDate(undefined);
+    setSelectedItemForUnits(null);
+    setSelectedUnits([]);
   };
 
   const handleNext = () => {
@@ -447,17 +457,84 @@ export default function CallServices() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                   {rentalServiceItems.map((serviceItem: any) => {
                                     const itemDetails = getItemDetails(serviceItem.itemId);
+                                    const itemUnits = units.filter((unit: any) => 
+                                      unit.itemId === serviceItem.itemId && 
+                                      unit.currentCustomerId === formData.customerId &&
+                                      unit.status === 'Rented'
+                                    );
+                                    const isExpanded = selectedItemForUnits === serviceItem.id;
+                                    
                                     return (
-                                      <div key={serviceItem.id} className="flex items-center space-x-3 p-2 bg-gray-50 rounded border">
-                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                          <Package className="w-4 h-4 text-blue-600" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <div className="font-medium text-sm">{itemDetails?.name || 'Unknown Item'}</div>
-                                          <div className="text-xs text-gray-600">
-                                            Model: {itemDetails?.model || 'N/A'} • Qty: {serviceItem.quantity} • ₹{serviceItem.unitPrice}/unit
+                                      <div key={serviceItem.id}>
+                                        <div 
+                                          className="flex items-center space-x-3 p-2 bg-gray-50 rounded border cursor-pointer hover:bg-gray-100 transition-colors"
+                                          onClick={() => setSelectedItemForUnits(isExpanded ? null : serviceItem.id)}
+                                        >
+                                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <Package className="w-4 h-4 text-blue-600" />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm">{itemDetails?.name || 'Unknown Item'}</div>
+                                            <div className="text-xs text-gray-600">
+                                              Model: {itemDetails?.model || 'N/A'} • Qty: {serviceItem.quantity} • ₹{serviceItem.unitPrice}/unit
+                                            </div>
+                                            <div className="text-xs text-blue-600 mt-1">
+                                              Click to select specific units ({itemUnits.length} units available)
+                                            </div>
+                                          </div>
+                                          <div className="text-gray-400">
+                                            {isExpanded ? '−' : '+'}
                                           </div>
                                         </div>
+                                        
+                                        {/* Unit Selection */}
+                                        {isExpanded && (
+                                          <div className="mt-2 ml-4 space-y-2 border-l-2 border-blue-200 pl-4">
+                                            <div className="text-sm font-medium text-gray-700 mb-2">
+                                              Select Units with Issues:
+                                            </div>
+                                            {itemUnits.map((unit: any) => (
+                                              <div 
+                                                key={unit.id}
+                                                className={`flex items-center space-x-3 p-2 rounded border cursor-pointer transition-colors ${
+                                                  selectedUnits.includes(unit.id) 
+                                                    ? 'bg-blue-50 border-blue-300' 
+                                                    : 'bg-white hover:bg-gray-50'
+                                                }`}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  const isSelected = selectedUnits.includes(unit.id);
+                                                  if (isSelected) {
+                                                    setSelectedUnits(selectedUnits.filter(id => id !== unit.id));
+                                                  } else {
+                                                    setSelectedUnits([...selectedUnits, unit.id]);
+                                                  }
+                                                }}
+                                              >
+                                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                  selectedUnits.includes(unit.id) 
+                                                    ? 'bg-blue-500 border-blue-500' 
+                                                    : 'border-gray-300'
+                                                }`}>
+                                                  {selectedUnits.includes(unit.id) && (
+                                                    <CheckCircle className="w-3 h-3 text-white" />
+                                                  )}
+                                                </div>
+                                                <div className="flex-1">
+                                                  <div className="font-medium text-sm">Serial: {unit.serialNumber}</div>
+                                                  <div className="text-xs text-gray-600">
+                                                    Barcode: {unit.barcode || 'N/A'} • Status: {unit.status}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                            {itemUnits.length === 0 && (
+                                              <div className="text-sm text-gray-500 italic">
+                                                No units found for this item
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })}
