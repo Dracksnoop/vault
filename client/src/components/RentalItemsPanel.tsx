@@ -699,18 +699,15 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         const totalRentalValue = completeItemsSnapshot.reduce((sum: number, item: any) => 
           sum + (item.unitPrice * item.units.length), 0);
         
-        await apiRequest(`/api/customers/${customerId}/timeline`, {
-          method: 'POST',
-          body: {
-            id: `timeline-${Date.now()}`,
-            customerId: parseInt(customerId),
-            serviceId: selectedItem.serviceId,
-            changeType: 'removed',
-            title: 'Units Removed from Rental',
-            description: `Removed ${selectedUnitsToRemove.length} unit(s) from ${selectedItem.itemDetails?.name || 'rental'}`,
-            itemsSnapshot: JSON.stringify(completeItemsSnapshot),
-            totalValue: totalRentalValue.toString()
-          }
+        await apiRequest('POST', `/api/customers/${customerId}/timeline`, {
+          id: `timeline-${Date.now()}`,
+          customerId: parseInt(customerId),
+          serviceId: selectedItem.serviceId,
+          changeType: 'removed',
+          title: 'Units Removed from Rental',
+          description: `Removed ${selectedUnitsToRemove.length} unit(s) from ${selectedItem.itemDetails?.name || 'rental'}`,
+          itemsSnapshot: JSON.stringify(completeItemsSnapshot),
+          totalValue: totalRentalValue.toString()
         });
       } catch (timelineError) {
         console.warn('Failed to create timeline entry:', timelineError);
