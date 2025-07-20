@@ -23,7 +23,9 @@ import {
   insertRecurringInvoiceScheduleSchema,
   insertCompanyProfileSchema,
   insertReplacementRequestSchema,
-  insertEmployeeSchema
+  insertEmployeeSchema,
+  insertCallServiceSchema,
+  insertCallServiceItemSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2912,6 +2914,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error deleting employee:', error);
       res.status(500).json({ error: "Failed to delete employee" });
+    }
+  });
+
+  // Call Services API routes
+  app.get("/api/call-services", requireAuth, async (req, res) => {
+    try {
+      const callServices = await storage.getCallServices(req.user.id);
+      res.json(callServices);
+    } catch (error) {
+      console.error('Error fetching call services:', error);
+      res.status(500).json({ error: "Failed to fetch call services" });
+    }
+  });
+
+  app.get("/api/call-services/:id", requireAuth, async (req, res) => {
+    try {
+      const callService = await storage.getCallService(req.params.id, req.user.id);
+      if (!callService) {
+        return res.status(404).json({ error: "Call service not found" });
+      }
+      res.json(callService);
+    } catch (error) {
+      console.error('Error fetching call service:', error);
+      res.status(500).json({ error: "Failed to fetch call service" });
+    }
+  });
+
+  app.get("/api/call-services/customer/:customerId", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.customerId);
+      const callServices = await storage.getCallServicesByCustomer(customerId, req.user.id);
+      res.json(callServices);
+    } catch (error) {
+      console.error('Error fetching call services by customer:', error);
+      res.status(500).json({ error: "Failed to fetch call services" });
+    }
+  });
+
+  app.get("/api/call-services/employee/:employeeId", requireAuth, async (req, res) => {
+    try {
+      const callServices = await storage.getCallServicesByEmployee(req.params.employeeId, req.user.id);
+      res.json(callServices);
+    } catch (error) {
+      console.error('Error fetching call services by employee:', error);
+      res.status(500).json({ error: "Failed to fetch call services" });
+    }
+  });
+
+  app.get("/api/call-services/status/:status", requireAuth, async (req, res) => {
+    try {
+      const callServices = await storage.getCallServicesByStatus(req.params.status, req.user.id);
+      res.json(callServices);
+    } catch (error) {
+      console.error('Error fetching call services by status:', error);
+      res.status(500).json({ error: "Failed to fetch call services" });
+    }
+  });
+
+  app.post("/api/call-services", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertCallServiceSchema.parse(req.body);
+      const callService = await storage.createCallService({
+        ...validatedData,
+        userId: req.user.id
+      });
+      res.status(201).json(callService);
+    } catch (error) {
+      console.error('Error creating call service:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create call service" });
+    }
+  });
+
+  app.put("/api/call-services/:id", requireAuth, async (req, res) => {
+    try {
+      const callService = await storage.updateCallService(req.params.id, req.body);
+      if (!callService) {
+        return res.status(404).json({ error: "Call service not found" });
+      }
+      res.json(callService);
+    } catch (error) {
+      console.error('Error updating call service:', error);
+      res.status(500).json({ error: "Failed to update call service" });
+    }
+  });
+
+  app.delete("/api/call-services/:id", requireAuth, async (req, res) => {
+    try {
+      const success = await storage.deleteCallService(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Call service not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting call service:', error);
+      res.status(500).json({ error: "Failed to delete call service" });
+    }
+  });
+
+  // Call Service Items API routes
+  app.get("/api/call-service-items", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getCallServiceItems(req.user.id);
+      res.json(items);
+    } catch (error) {
+      console.error('Error fetching call service items:', error);
+      res.status(500).json({ error: "Failed to fetch call service items" });
+    }
+  });
+
+  app.get("/api/call-service-items/call/:callServiceId", requireAuth, async (req, res) => {
+    try {
+      const items = await storage.getCallServiceItemsByCall(req.params.callServiceId, req.user.id);
+      res.json(items);
+    } catch (error) {
+      console.error('Error fetching call service items by call:', error);
+      res.status(500).json({ error: "Failed to fetch call service items" });
+    }
+  });
+
+  app.post("/api/call-service-items", requireAuth, async (req, res) => {
+    try {
+      const validatedData = insertCallServiceItemSchema.parse(req.body);
+      const item = await storage.createCallServiceItem({
+        ...validatedData,
+        userId: req.user.id
+      });
+      res.status(201).json(item);
+    } catch (error) {
+      console.error('Error creating call service item:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "Invalid data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create call service item" });
+    }
+  });
+
+  app.put("/api/call-service-items/:id", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.updateCallServiceItem(req.params.id, req.body);
+      if (!item) {
+        return res.status(404).json({ error: "Call service item not found" });
+      }
+      res.json(item);
+    } catch (error) {
+      console.error('Error updating call service item:', error);
+      res.status(500).json({ error: "Failed to update call service item" });
+    }
+  });
+
+  app.delete("/api/call-service-items/:id", requireAuth, async (req, res) => {
+    try {
+      const success = await storage.deleteCallServiceItem(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Call service item not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting call service item:', error);
+      res.status(500).json({ error: "Failed to delete call service item" });
     }
   });
 

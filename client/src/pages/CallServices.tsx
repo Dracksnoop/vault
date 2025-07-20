@@ -1,0 +1,728 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { CalendarIcon, Phone, User, CheckCircle, Clock, AlertCircle, Search, Plus, Eye } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { apiRequest } from "@/lib/queryClient";
+import type { Customer, Employee, Rental, CallService, CallServiceItem } from "@shared/schema";
+
+interface CallServiceFormData {
+  customerId: number;
+  customerName: string;
+  assignedEmployeeId: string;
+  employeeName: string;
+  issueDescription: string;
+  priority: "low" | "medium" | "high" | "urgent";
+  issueResolutionDate: string;
+  selectedRentals: string[];
+  rentalDetails: { rentalId: string; itemName: string; serialNumbers: string; issueDetails: string }[];
+}
+
+interface StepperProps {
+  currentStep: number;
+  totalSteps: number;
+}
+
+const Stepper = ({ currentStep, totalSteps }: StepperProps) => {
+  const steps = [
+    "Start Call",
+    "Select Customer", 
+    "Select Items",
+    "Set Date",
+    "Assign Employee",
+    "Review & Create"
+  ];
+
+  return (
+    <div className="flex items-center justify-between mb-8">
+      {steps.map((step, index) => (
+        <div key={index} className="flex items-center">
+          <div className="flex items-center">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                ${index + 1 < currentStep
+                  ? "bg-green-500 text-white"
+                  : index + 1 === currentStep
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-200 text-gray-600"
+                }`}
+            >
+              {index + 1 < currentStep ? <CheckCircle className="w-4 h-4" /> : index + 1}
+            </div>
+            <span className={`ml-2 text-sm ${index + 1 === currentStep ? "font-medium" : "text-gray-600"}`}>
+              {step}
+            </span>
+          </div>
+          {index < steps.length - 1 && (
+            <div className={`w-12 h-0.5 mx-4 ${index + 1 < currentStep ? "bg-green-500" : "bg-gray-200"}`} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default function CallServices() {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [formData, setFormData] = useState<CallServiceFormData>({
+    customerId: 0,
+    customerName: "",
+    assignedEmployeeId: "",
+    employeeName: "",
+    issueDescription: "",
+    priority: "medium",
+    issueResolutionDate: "",
+    selectedRentals: [],
+    rentalDetails: []
+  });
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch existing call services
+  const { data: callServices = [], isLoading } = useQuery({
+    queryKey: ["/api/call-services"],
+  });
+
+  // Fetch customers for step 2
+  const { data: customers = [] } = useQuery<Customer[]>({
+    queryKey: ["/api/customers"],
+  });
+
+  // Fetch employees for step 5
+  const { data: employees = [] } = useQuery<Employee[]>({
+    queryKey: ["/api/employees"],
+  });
+
+  // Fetch rentals for selected customer
+  const { data: rentals = [] } = useQuery<Rental[]>({
+    queryKey: ["/api/rentals"],
+    enabled: formData.customerId > 0,
+  });
+
+  // Create call service mutation
+  const createCallServiceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const callServiceResponse = await apiRequest("POST", "/api/call-services", data);
+      
+      // Create call service items
+      for (const rental of formData.rentalDetails) {
+        await apiRequest("POST", "/api/call-service-items", {
+          callServiceId: callServiceResponse.id,
+          rentalId: rental.rentalId,
+          itemName: rental.itemName,
+          serialNumbers: rental.serialNumbers,
+          issueDetails: rental.issueDetails
+        });
+      }
+      
+      return callServiceResponse;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Call service created successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/call-services"] });
+      setShowCreateDialog(false);
+      resetForm();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create call service",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetForm = () => {
+    setCurrentStep(1);
+    setFormData({
+      customerId: 0,
+      customerName: "",
+      assignedEmployeeId: "",
+      employeeName: "",
+      issueDescription: "",
+      priority: "medium",
+      issueResolutionDate: "",
+      selectedRentals: [],
+      rentalDetails: []
+    });
+    setSelectedDate(undefined);
+  };
+
+  const handleNext = () => {
+    if (currentStep < 6) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleCustomerSelect = (customer: Customer) => {
+    setFormData({
+      ...formData,
+      customerId: customer.id,
+      customerName: customer.name
+    });
+  };
+
+  const handleEmployeeSelect = (employee: Employee) => {
+    setFormData({
+      ...formData,
+      assignedEmployeeId: employee.id,
+      employeeName: `${employee.firstName} ${employee.lastName}`
+    });
+  };
+
+  const handleRentalToggle = (rental: Rental) => {
+    const isSelected = formData.selectedRentals.includes(rental.id);
+    let updatedRentals;
+    let updatedDetails = [...formData.rentalDetails];
+
+    if (isSelected) {
+      updatedRentals = formData.selectedRentals.filter(id => id !== rental.id);
+      updatedDetails = updatedDetails.filter(detail => detail.rentalId !== rental.id);
+    } else {
+      updatedRentals = [...formData.selectedRentals, rental.id];
+      updatedDetails.push({
+        rentalId: rental.id,
+        itemName: `Rental ${rental.id}`, // This should be fetched from service items
+        serialNumbers: "",
+        issueDetails: ""
+      });
+    }
+
+    setFormData({
+      ...formData,
+      selectedRentals: updatedRentals,
+      rentalDetails: updatedDetails
+    });
+  };
+
+  const handleCreateCall = () => {
+    if (!formData.customerId || !formData.assignedEmployeeId || !formData.issueDescription || !selectedDate) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    createCallServiceMutation.mutate({
+      customerId: formData.customerId,
+      customerName: formData.customerName,
+      assignedEmployeeId: formData.assignedEmployeeId,
+      employeeName: formData.employeeName,
+      issueDescription: formData.issueDescription,
+      priority: formData.priority,
+      issueResolutionDate: selectedDate.toISOString(),
+    });
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "open":
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Open</Badge>;
+      case "in_progress":
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">In Progress</Badge>;
+      case "resolved":
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Resolved</Badge>;
+      case "closed":
+        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Closed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case "urgent":
+        return <Badge variant="destructive">Urgent</Badge>;
+      case "high":
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">High</Badge>;
+      case "medium":
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Medium</Badge>;
+      case "low":
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Low</Badge>;
+      default:
+        return <Badge variant="outline">{priority}</Badge>;
+    }
+  };
+
+  const filteredCallServices = callServices.filter((call: CallService) =>
+    call.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    call.callNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    call.employeeName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-white">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="text-center py-12">
+            <Phone className="w-16 h-16 mx-auto mb-4 text-blue-500" />
+            <h3 className="text-2xl font-bold mb-4">Create New Call Service</h3>
+            <p className="text-gray-600 mb-8">
+              Start the process to create a new call service record for customer support.
+            </p>
+            <Button onClick={handleNext} size="lg">
+              Start Call Creation
+            </Button>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div>
+            <h3 className="text-xl font-bold mb-4">Select Customer</h3>
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search customers..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {customers
+                  .filter((customer: Customer) =>
+                    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    customer.email.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((customer: Customer) => (
+                    <Card
+                      key={customer.id}
+                      className={`cursor-pointer transition-colors hover:bg-gray-50 ${
+                        formData.customerId === customer.id ? "ring-2 ring-blue-500 bg-blue-50" : ""
+                      }`}
+                      onClick={() => handleCustomerSelect(customer)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-medium">{customer.name}</h4>
+                            <p className="text-sm text-gray-600">{customer.email}</p>
+                            <p className="text-sm text-gray-600">{customer.phone}</p>
+                          </div>
+                          {formData.customerId === customer.id && (
+                            <CheckCircle className="w-5 h-5 text-blue-500" />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 3:
+        const customerRentals = rentals.filter((rental: Rental) => rental.customerId === formData.customerId);
+        return (
+          <div>
+            <h3 className="text-xl font-bold mb-4">Select Rental Items</h3>
+            <p className="text-gray-600 mb-4">
+              Select the rental items that are experiencing issues for {formData.customerName}
+            </p>
+            {customerRentals.length === 0 ? (
+              <div className="text-center py-8">
+                <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-gray-600">No active rentals found for this customer.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {customerRentals.map((rental: Rental) => (
+                  <Card
+                    key={rental.id}
+                    className={`cursor-pointer transition-colors hover:bg-gray-50 ${
+                      formData.selectedRentals.includes(rental.id) ? "ring-2 ring-blue-500 bg-blue-50" : ""
+                    }`}
+                    onClick={() => handleRentalToggle(rental)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-medium">Rental #{rental.id}</h4>
+                          <p className="text-sm text-gray-600">Start: {rental.startDate}</p>
+                          <p className="text-sm text-gray-600">Status: {rental.status}</p>
+                        </div>
+                        {formData.selectedRentals.includes(rental.id) && (
+                          <CheckCircle className="w-5 h-5 text-blue-500" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      case 4:
+        return (
+          <div>
+            <h3 className="text-xl font-bold mb-4">Set Issue Resolution Date</h3>
+            <div className="space-y-4">
+              <Label>Expected Resolution Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={`w-full justify-start text-left font-normal ${
+                      !selectedDate && "text-muted-foreground"
+                    }`}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label>Issue Description</Label>
+                  <Textarea
+                    value={formData.issueDescription}
+                    onChange={(e) => setFormData({ ...formData, issueDescription: e.target.value })}
+                    placeholder="Describe the issue in detail..."
+                    rows={4}
+                  />
+                </div>
+                
+                <div>
+                  <Label>Priority Level</Label>
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value: "low" | "medium" | "high" | "urgent") =>
+                      setFormData({ ...formData, priority: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div>
+            <h3 className="text-xl font-bold mb-4">Assign Employee</h3>
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search employees..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {employees
+                  .filter((employee: Employee) =>
+                    `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    employee.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    employee.role.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((employee: Employee) => (
+                    <Card
+                      key={employee.id}
+                      className={`cursor-pointer transition-colors hover:bg-gray-50 ${
+                        formData.assignedEmployeeId === employee.id ? "ring-2 ring-blue-500 bg-blue-50" : ""
+                      }`}
+                      onClick={() => handleEmployeeSelect(employee)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-3">
+                            {employee.photo ? (
+                              <img
+                                src={employee.photo}
+                                alt={`${employee.firstName} ${employee.lastName}`}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                                <User className="w-6 h-6 text-gray-400" />
+                              </div>
+                            )}
+                            <div>
+                              <h4 className="font-medium">{employee.firstName} {employee.lastName}</h4>
+                              <p className="text-sm text-gray-600">{employee.role}</p>
+                              <p className="text-sm text-gray-600">{employee.department}</p>
+                            </div>
+                          </div>
+                          {formData.assignedEmployeeId === employee.id && (
+                            <CheckCircle className="w-5 h-5 text-blue-500" />
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 6:
+        return (
+          <div>
+            <h3 className="text-xl font-bold mb-4">Review & Create Call Service</h3>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Call Service Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Customer</Label>
+                      <p className="font-medium">{formData.customerName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Assigned Employee</Label>
+                      <p className="font-medium">{formData.employeeName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Priority</Label>
+                      <div className="mt-1">{getPriorityBadge(formData.priority)}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Expected Resolution</Label>
+                      <p className="font-medium">
+                        {selectedDate ? format(selectedDate, "PPP") : "Not set"}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Issue Description</Label>
+                    <p className="mt-1 p-3 bg-gray-50 rounded border">{formData.issueDescription}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Selected Rental Items</Label>
+                    <p className="text-sm text-gray-600">{formData.selectedRentals.length} items selected</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="p-6 bg-white min-h-screen">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Call Services</h1>
+          <p className="text-gray-600">Manage customer service calls and issue tracking</p>
+        </div>
+        <Button
+          onClick={() => setShowCreateDialog(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Create Call
+        </Button>
+      </div>
+
+      {/* Search and Filter */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search call services..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 max-w-md"
+          />
+        </div>
+      </div>
+
+      {/* Call Services List */}
+      <div className="space-y-4">
+        {filteredCallServices.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <Phone className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <h3 className="text-lg font-medium mb-2">No Call Services Found</h3>
+              <p className="text-gray-600 mb-4">
+                {searchQuery ? "No call services match your search." : "Start by creating your first call service."}
+              </p>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Call Service
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredCallServices.map((call: CallService) => (
+            <Card key={call.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="text-lg font-medium">{call.callNumber}</h3>
+                      {getStatusBadge(call.status)}
+                      {getPriorityBadge(call.priority)}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-600">Customer: </span>
+                        <span className="font-medium">{call.customerName}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Assigned to: </span>
+                        <span className="font-medium">{call.employeeName}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Created: </span>
+                        <span>{new Date(call.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Resolution Date: </span>
+                        <span>
+                          {call.issueResolutionDate 
+                            ? new Date(call.issueResolutionDate).toLocaleDateString()
+                            : "Not set"
+                          }
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-sm text-gray-700 line-clamp-2">{call.issueDescription}</p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm">
+                      <Eye className="w-4 h-4 mr-1" />
+                      View
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Create Call Service Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Call Service</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <Stepper currentStep={currentStep} totalSteps={6} />
+            
+            <div className="min-h-[400px]">
+              {renderStepContent()}
+            </div>
+            
+            <div className="flex justify-between pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={currentStep === 1}
+              >
+                Previous
+              </Button>
+              
+              <div className="space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowCreateDialog(false);
+                    resetForm();
+                  }}
+                >
+                  Cancel
+                </Button>
+                {currentStep < 6 ? (
+                  <Button
+                    onClick={handleNext}
+                    disabled={
+                      (currentStep === 2 && !formData.customerId) ||
+                      (currentStep === 5 && !formData.assignedEmployeeId)
+                    }
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleCreateCall}
+                    disabled={createCallServiceMutation.isPending}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {createCallServiceMutation.isPending ? "Creating..." : "Create Call Service"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

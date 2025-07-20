@@ -29,7 +29,7 @@ const navigationItems = [
   { name: "Customer", href: "/customer", icon: Users },
   { name: "Customer Management", href: "/customer-management", icon: UserCheck },
   { name: "Demo", href: "/demo", icon: Play },
-  { name: "Call/Service", href: "/callservice", icon: Phone },
+  { name: "Call Services", href: "/call-services", icon: Phone },
   { name: "Trade", href: "/trade", icon: RefreshCw },
   { name: "Replacements", href: "/replacements", icon: RotateCcw },
   { name: "Billing", href: "/billing", icon: CreditCard },

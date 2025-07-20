@@ -43,7 +43,11 @@ import {
   type ReplacementRequest,
   type InsertReplacementRequest,
   type Employee,
-  type InsertEmployee
+  type InsertEmployee,
+  type CallService,
+  type InsertCallService,
+  type CallServiceItem,
+  type InsertCallServiceItem
 } from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -221,6 +225,24 @@ export interface IStorage {
   updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
   deleteEmployee(id: string): Promise<boolean>;
   
+  // Call Services methods
+  getCallServices(userId?: number): Promise<CallService[]>;
+  getCallService(id: string, userId?: number): Promise<CallService | undefined>;
+  getCallServicesByCustomer(customerId: number, userId?: number): Promise<CallService[]>;
+  getCallServicesByEmployee(employeeId: string, userId?: number): Promise<CallService[]>;
+  getCallServicesByStatus(status: string, userId?: number): Promise<CallService[]>;
+  createCallService(callService: InsertCallService): Promise<CallService>;
+  updateCallService(id: string, callService: Partial<InsertCallService>): Promise<CallService | undefined>;
+  deleteCallService(id: string): Promise<boolean>;
+  
+  // Call Service Items methods
+  getCallServiceItems(userId?: number): Promise<CallServiceItem[]>;
+  getCallServiceItem(id: string, userId?: number): Promise<CallServiceItem | undefined>;
+  getCallServiceItemsByCall(callServiceId: string, userId?: number): Promise<CallServiceItem[]>;
+  createCallServiceItem(item: InsertCallServiceItem): Promise<CallServiceItem>;
+  updateCallServiceItem(id: string, item: Partial<InsertCallServiceItem>): Promise<CallServiceItem | undefined>;
+  deleteCallServiceItem(id: string): Promise<boolean>;
+  
   initialize(): Promise<void>;
 }
 
@@ -250,6 +272,8 @@ export class MongoStorage implements IStorage {
   private companyProfiles: Collection<CompanyProfile>;
   private replacementRequests: Collection<ReplacementRequest>;
   private employees: Collection<Employee>;
+  private callServices: Collection<CallService>;
+  private callServiceItems: Collection<CallServiceItem>;
   private isInitialized = false;
 
   constructor() {
@@ -289,6 +313,8 @@ export class MongoStorage implements IStorage {
       this.companyProfiles = this.db.collection<CompanyProfile>('companyProfiles');
       this.replacementRequests = this.db.collection<ReplacementRequest>('replacementRequests');
       this.employees = this.db.collection<Employee>('employees');
+      this.callServices = this.db.collection<CallService>('callServices');
+      this.callServiceItems = this.db.collection<CallServiceItem>('callServiceItems');
       
       // Initialize default categories if they don't exist
       const categoryCount = await this.categories.countDocuments();
@@ -1390,6 +1416,133 @@ export class MongoStorage implements IStorage {
   async deleteEmployee(id: string): Promise<boolean> {
     await this.initialize();
     const result = await this.employees.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Call Services methods
+  async getCallServices(userId?: number): Promise<CallService[]> {
+    await this.initialize();
+    console.log("Fetching call services with filter:", { userId });
+    if (userId) {
+      const callServices = await this.callServices.find({ userId }).sort({ createdAt: -1 }).toArray();
+      console.log("Found call services:", callServices.length, "call services");
+      return callServices;
+    }
+    return await this.callServices.find({}).sort({ createdAt: -1 }).toArray();
+  }
+
+  async getCallService(id: string, userId?: number): Promise<CallService | undefined> {
+    await this.initialize();
+    const filter = userId ? { id, userId } : { id };
+    const callService = await this.callServices.findOne(filter);
+    return callService || undefined;
+  }
+
+  async getCallServicesByCustomer(customerId: number, userId?: number): Promise<CallService[]> {
+    await this.initialize();
+    const filter = userId ? { customerId, userId } : { customerId };
+    return await this.callServices.find(filter).sort({ createdAt: -1 }).toArray();
+  }
+
+  async getCallServicesByEmployee(employeeId: string, userId?: number): Promise<CallService[]> {
+    await this.initialize();
+    const filter = userId ? { assignedEmployeeId: employeeId, userId } : { assignedEmployeeId: employeeId };
+    return await this.callServices.find(filter).sort({ createdAt: -1 }).toArray();
+  }
+
+  async getCallServicesByStatus(status: string, userId?: number): Promise<CallService[]> {
+    await this.initialize();
+    const filter = userId ? { status, userId } : { status };
+    return await this.callServices.find(filter).sort({ createdAt: -1 }).toArray();
+  }
+
+  async createCallService(insertCallService: InsertCallService): Promise<CallService> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const callNumber = 'CALL-' + Date.now().toString();
+    
+    const callService: CallService = { 
+      ...insertCallService,
+      id,
+      callNumber,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    console.log("Creating call service with ID:", id);
+    await this.callServices.insertOne(callService);
+    return callService;
+  }
+
+  async updateCallService(id: string, updateData: Partial<InsertCallService>): Promise<CallService | undefined> {
+    await this.initialize();
+    const result = await this.callServices.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteCallService(id: string): Promise<boolean> {
+    await this.initialize();
+    // Delete associated call service items first
+    await this.callServiceItems.deleteMany({ callServiceId: id });
+    // Delete the call service
+    const result = await this.callServices.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
+
+  // Call Service Items methods
+  async getCallServiceItems(userId?: number): Promise<CallServiceItem[]> {
+    await this.initialize();
+    if (userId) {
+      return await this.callServiceItems.find({ userId }).toArray();
+    }
+    return await this.callServiceItems.find({}).toArray();
+  }
+
+  async getCallServiceItem(id: string, userId?: number): Promise<CallServiceItem | undefined> {
+    await this.initialize();
+    const filter = userId ? { id, userId } : { id };
+    const item = await this.callServiceItems.findOne(filter);
+    return item || undefined;
+  }
+
+  async getCallServiceItemsByCall(callServiceId: string, userId?: number): Promise<CallServiceItem[]> {
+    await this.initialize();
+    const filter = userId ? { callServiceId, userId } : { callServiceId };
+    return await this.callServiceItems.find(filter).toArray();
+  }
+
+  async createCallServiceItem(insertItem: InsertCallServiceItem): Promise<CallServiceItem> {
+    await this.initialize();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    
+    const item: CallServiceItem = { 
+      ...insertItem,
+      id
+    };
+    
+    console.log("Creating call service item with ID:", id);
+    await this.callServiceItems.insertOne(item);
+    return item;
+  }
+
+  async updateCallServiceItem(id: string, updateData: Partial<InsertCallServiceItem>): Promise<CallServiceItem | undefined> {
+    await this.initialize();
+    const result = await this.callServiceItems.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteCallServiceItem(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.callServiceItems.deleteOne({ id });
     return result.deletedCount === 1;
   }
 }

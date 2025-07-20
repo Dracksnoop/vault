@@ -553,6 +553,36 @@ export const employees = pgTable("employees", {
   createdAt: text("created_at").notNull(),
 });
 
+// Call Services Schema
+export const callServices = pgTable("call_services", {
+  id: text("id").primaryKey(),
+  callNumber: text("call_number").notNull().unique(), // Auto-generated call reference number
+  customerId: integer("customer_id").notNull(),
+  customerName: text("customer_name").notNull(), // Cached for quick reference
+  assignedEmployeeId: text("assigned_employee_id").notNull(),
+  employeeName: text("employee_name").notNull(), // Cached for quick reference
+  issueDescription: text("issue_description").notNull(),
+  priority: text("priority").notNull().default("medium"), // low, medium, high, urgent
+  status: text("status").notNull().default("open"), // open, in_progress, resolved, closed
+  issueResolutionDate: text("issue_resolution_date"), // Expected resolution date
+  actualResolutionDate: text("actual_resolution_date"), // When actually resolved
+  resolutionNotes: text("resolution_notes"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  userId: integer("user_id").notNull(), // User-specific data
+});
+
+// Call Service Items (linking calls to specific rental items)
+export const callServiceItems = pgTable("call_service_items", {
+  id: text("id").primaryKey(),
+  callServiceId: text("call_service_id").notNull(),
+  rentalId: text("rental_id").notNull(),
+  itemName: text("item_name").notNull(), // Cached for quick reference
+  serialNumbers: text("serial_numbers"), // Comma-separated list of affected units
+  issueDetails: text("issue_details"), // Specific issue with this item
+  userId: integer("user_id").notNull(), // User-specific data
+});
+
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
   employeeId: true,
@@ -561,6 +591,22 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({
 
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
+
+// Call Services Types
+export const insertCallServiceSchema = createInsertSchema(callServices).omit({
+  id: true,
+  callNumber: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertCallService = z.infer<typeof insertCallServiceSchema>;
+export type CallService = typeof callServices.$inferSelect;
+
+export const insertCallServiceItemSchema = createInsertSchema(callServiceItems).omit({
+  id: true,
+});
+export type InsertCallServiceItem = z.infer<typeof insertCallServiceItemSchema>;
+export type CallServiceItem = typeof callServiceItems.$inferSelect;
 
 export const insertVendorSchema = createInsertSchema(vendors).omit({
   id: true,
