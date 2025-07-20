@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, Phone, User, CheckCircle, Clock, AlertCircle, Search, Plus, Eye } from "lucide-react";
+import { CalendarIcon, Phone, User, CheckCircle, Clock, AlertCircle, Search, Plus, Eye, Package } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -120,6 +120,18 @@ export default function CallServices() {
     enabled: formData.customerId > 0,
   });
 
+  // Fetch service items to get detailed item information
+  const { data: serviceItems = [] } = useQuery({
+    queryKey: ["/api/service-items"],
+    enabled: formData.customerId > 0,
+  });
+
+  // Fetch items to get item details
+  const { data: items = [] } = useQuery({
+    queryKey: ["/api/items"],
+    enabled: formData.customerId > 0,
+  });
+
   // Create call service mutation
   const createCallServiceMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -210,9 +222,17 @@ export default function CallServices() {
       updatedDetails = updatedDetails.filter(detail => detail.rentalId !== rental.id);
     } else {
       updatedRentals = [...formData.selectedRentals, rental.id];
+      
+      // Get service items for this rental to create a proper item name
+      const rentalServiceItems = serviceItems.filter((serviceItem: any) => serviceItem.serviceId === rental.serviceId);
+      const itemNames = rentalServiceItems.map((serviceItem: any) => {
+        const itemDetails = items.find((item: any) => item.id === serviceItem.itemId);
+        return itemDetails?.name || 'Unknown Item';
+      }).join(', ');
+      
       updatedDetails.push({
         rentalId: rental.id,
-        itemName: `Rental ${rental.id}`, // This should be fetched from service items
+        itemName: itemNames || `Rental ${rental.id}`,
         serialNumbers: "",
         issueDetails: ""
       });
@@ -362,6 +382,16 @@ export default function CallServices() {
 
       case 3:
         const customerRentals = rentals.filter((rental: Rental) => rental.customerId === formData.customerId);
+        
+        // Get service items for each rental to show detailed item information
+        const getServiceItemsForRental = (rentalId: string) => {
+          return serviceItems.filter((serviceItem: any) => serviceItem.serviceId === rentalId);
+        };
+
+        const getItemDetails = (itemId: string) => {
+          return items.find((item: any) => item.id === itemId);
+        };
+
         return (
           <div>
             <h3 className="text-xl font-bold mb-4">Select Rental Items</h3>
@@ -374,29 +404,72 @@ export default function CallServices() {
                 <p className="text-gray-600">No active rentals found for this customer.</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {customerRentals.map((rental: Rental) => (
-                  <Card
-                    key={rental.id}
-                    className={`cursor-pointer transition-colors hover:bg-gray-50 ${
-                      formData.selectedRentals.includes(rental.id) ? "ring-2 ring-blue-500 bg-blue-50" : ""
-                    }`}
-                    onClick={() => handleRentalToggle(rental)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-medium">Rental #{rental.id}</h4>
-                          <p className="text-sm text-gray-600">Start: {rental.startDate}</p>
-                          <p className="text-sm text-gray-600">Status: {rental.status}</p>
+              <div className="space-y-4">
+                {customerRentals.map((rental: Rental) => {
+                  const rentalServiceItems = getServiceItemsForRental(rental.serviceId);
+                  return (
+                    <Card
+                      key={rental.id}
+                      className={`cursor-pointer transition-colors hover:bg-gray-50 ${
+                        formData.selectedRentals.includes(rental.id) ? "ring-2 ring-blue-500 bg-blue-50" : ""
+                      }`}
+                      onClick={() => handleRentalToggle(rental)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-medium text-lg">Rental #{rental.id}</h4>
+                              {formData.selectedRentals.includes(rental.id) && (
+                                <CheckCircle className="w-5 h-5 text-blue-500" />
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-4 text-sm mb-3">
+                              <div>
+                                <span className="text-gray-600">Start Date: </span>
+                                <span className="font-medium">{new Date(rental.startDate).toLocaleDateString()}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Status: </span>
+                                <span className="font-medium capitalize">{rental.status}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Monthly Rate: </span>
+                                <span className="font-medium">₹{rental.monthlyRate}</span>
+                              </div>
+                            </div>
+
+                            {/* Show rental items */}
+                            {rentalServiceItems.length > 0 && (
+                              <div>
+                                <h5 className="font-medium text-sm text-gray-700 mb-2">Rental Items:</h5>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {rentalServiceItems.map((serviceItem: any) => {
+                                    const itemDetails = getItemDetails(serviceItem.itemId);
+                                    return (
+                                      <div key={serviceItem.id} className="flex items-center space-x-3 p-2 bg-gray-50 rounded border">
+                                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                          <Package className="w-4 h-4 text-blue-600" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="font-medium text-sm">{itemDetails?.name || 'Unknown Item'}</div>
+                                          <div className="text-xs text-gray-600">
+                                            Model: {itemDetails?.model || 'N/A'} • Qty: {serviceItem.quantity} • ₹{serviceItem.unitPrice}/unit
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        {formData.selectedRentals.includes(rental.id) && (
-                          <CheckCircle className="w-5 h-5 text-blue-500" />
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>
