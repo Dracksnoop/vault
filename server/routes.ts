@@ -837,8 +837,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Complete customer management endpoint (multi-step submission)
-  app.post("/api/customers/complete", async (req, res) => {
+  app.post("/api/customers/complete", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
       const { 
         customerData, 
         serviceData, 
@@ -847,7 +848,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } = req.body;
 
       // Validate and create customer
-      const validatedCustomer = insertCustomerSchema.parse(customerData);
+      const validatedCustomer = insertCustomerSchema.parse({
+        ...customerData,
+        userId
+      });
       const customer = await storage.createCustomer(validatedCustomer);
 
       // Create service
@@ -855,7 +859,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedService = insertServiceSchema.parse({
         ...serviceData,
         id: serviceId,
-        customerId: customer.id
+        customerId: customer.id,
+        userId
       });
       const service = await storage.createService(validatedService);
 
@@ -867,7 +872,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Check actual available units (units with status 'Available')
-        const availableUnits = await storage.getUnitsByItem(item.itemId);
+        const availableUnits = await storage.getUnitsByItem(item.itemId, userId);
         const availableUnitsFiltered = availableUnits.filter(unit => unit.status === 'Available' && !unit.currentCustomerId);
         
         // Check if requested quantity exceeds available units
@@ -888,14 +893,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           itemId: item.itemId,
           quantity: item.quantity,
           unitPrice: item.unitPrice || "0",
-          totalPrice: item.totalPrice || "0"
+          totalPrice: item.totalPrice || "0",
+          userId
         });
         serviceItems.push(serviceItem);
 
         // If service type is rental, mark units as rented
         if (serviceData.serviceType === 'rent') {
           // Get available units for this item
-          const availableUnits = await storage.getUnitsByItem(item.itemId);
+          const availableUnits = await storage.getUnitsByItem(item.itemId, userId);
           const availableUnitsFiltered = availableUnits.filter(unit => unit.status === 'Available' && !unit.currentCustomerId);
           
           // Mark the required quantity of units as rented and assign to customer
@@ -910,7 +916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Update item's quantityRentedOut
-          const currentItem = await storage.getItem(item.itemId);
+          const currentItem = await storage.getItem(item.itemId, userId);
           if (currentItem) {
             const newQuantityRentedOut = (currentItem.quantityRentedOut || 0) + item.quantity;
             const newQuantityInStock = (currentItem.quantityInStock || 0) - item.quantity;
@@ -930,7 +936,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...rentalData,
           id: rentalId,
           serviceId: service.id,
-          customerId: customer.id
+          customerId: customer.id,
+          userId
         });
 
         // Create timeline entry for rental creation

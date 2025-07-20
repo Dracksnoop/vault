@@ -445,6 +445,7 @@ export const insertCustomerSchema = createInsertSchema(customers).pick({
   shippingAddress: true,
   gstVatNumber: true,
   paymentTerms: true,
+  userId: true,
 });
 
 export const insertServiceSchema = createInsertSchema(services).pick({
