@@ -144,11 +144,11 @@ export default function Employees() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (max 1MB)
-    if (file.size > 1024 * 1024) {
+    // Validate file size (max 200KB)
+    if (file.size > 200 * 1024) {
       toast({
         title: "File too large",
-        description: "Please select an image smaller than 1MB",
+        description: "Please upload image within 200KB max",
         variant: "destructive",
       });
       return;
@@ -180,11 +180,11 @@ export default function Employees() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (max 1MB)
-    if (file.size > 1024 * 1024) {
+    // Validate file size (max 200KB)
+    if (file.size > 200 * 1024) {
       toast({
         title: "File too large",
-        description: "Please select an image smaller than 1MB",
+        description: "Please upload image within 200KB max",
         variant: "destructive",
       });
       return;
@@ -339,7 +339,7 @@ export default function Employees() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground text-center">
-                      Upload employee photo (max 1MB, JPG/PNG)
+                      Upload employee photo (max 200KB, JPG/PNG)
                     </p>
                   </div>
                 </div>
@@ -998,7 +998,7 @@ export default function Employees() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground text-center">
-                      Upload passport size photo (max 1MB, JPG/PNG)
+                      Upload passport size photo (max 200KB, JPG/PNG)
                     </p>
                   </div>
                 </div>
