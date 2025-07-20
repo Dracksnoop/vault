@@ -186,7 +186,7 @@ export default function Inventory() {
 
   // Auto-select first category when categories are loaded
   useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) {
+    if (categories && categories.length > 0 && !selectedCategory) {
       setSelectedCategory(categories[0].id);
     }
   }, [categories, selectedCategory]);
@@ -294,7 +294,7 @@ export default function Inventory() {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
-      if (categories.length > 0) {
+      if (categories && categories.length > 0) {
         setSelectedCategory(categories[0].id);
       } else {
         setSelectedCategory("");
@@ -323,19 +323,20 @@ export default function Inventory() {
     },
   });
 
-  const selectedCategoryData = categories.find(c => c.id === selectedCategory);
-  const categoryItems = items.filter(item => item.categoryId === selectedCategory);
+  // Computed values with null safety
+  const selectedCategoryData = categories?.find(c => c.id === selectedCategory);
+  const categoryItems = items?.filter(item => item.categoryId === selectedCategory) || [];
   const filteredItems = categoryItems.filter(item => 
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.model.toLowerCase().includes(searchTerm.toLowerCase())
+    item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.model?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedItemData = items.find(item => item.id === selectedItem);
-  const itemUnits = units.filter(unit => unit.itemId === selectedItem);
+  const selectedItemData = items?.find(item => item.id === selectedItem);
+  const itemUnits = units?.filter(unit => unit.itemId === selectedItem) || [];
   
   const filteredUnits = itemUnits.filter(unit =>
-    unit.serialNumber.toLowerCase().includes(unitSearchTerm.toLowerCase()) ||
-    unit.barcode.toLowerCase().includes(unitSearchTerm.toLowerCase())
+    unit.serialNumber?.toLowerCase().includes(unitSearchTerm.toLowerCase()) ||
+    unit.barcode?.toLowerCase().includes(unitSearchTerm.toLowerCase())
   ).sort((a, b) => {
     // Define status priority order: Available first, then Rented, then others
     const statusOrder = {
@@ -765,7 +766,7 @@ export default function Inventory() {
             <div className="p-2">
               {categoriesLoading ? (
                 <div className="p-3 text-center text-gray-500">Loading categories...</div>
-              ) : categories.length === 0 ? (
+              ) : !categories || categories.length === 0 ? (
                 <div className="p-3 text-center text-gray-500">
                   <Package className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                   <p className="text-sm">No categories yet</p>
@@ -786,7 +787,7 @@ export default function Inventory() {
                     }`}
                   >
                     <div className="font-medium text-black">{category.name}</div>
-                    <div className="text-sm text-gray-600">{category.itemCount} items</div>
+                    <div className="text-sm text-gray-600">{category.itemCount || 0} items</div>
                   </button>
                 ))
               )}
