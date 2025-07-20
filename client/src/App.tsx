@@ -34,11 +34,6 @@ function Router() {
   const [isPreloading, setIsPreloading] = useState(false);
   const { isMobile } = useMobileDetection();
 
-  // Show mobile landing page for mobile users
-  if (isMobile) {
-    return <MobileLanding />;
-  }
-
   const preloadAllData = async () => {
     try {
       // Preload all critical data that will be needed across the app
@@ -107,6 +102,11 @@ function Router() {
     localStorage.removeItem("authToken");
     setUser(null);
   };
+
+  // Show mobile landing page for mobile users (after all hooks are called)
+  if (isMobile) {
+    return <MobileLanding />;
+  }
 
   return (
     <Switch>

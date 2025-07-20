@@ -7,57 +7,74 @@ interface MobileDetectionResult {
 }
 
 const useMobileDetection = (): MobileDetectionResult => {
-  const [deviceType, setDeviceType] = useState<MobileDetectionResult>({
-    isMobile: false,
-    isTablet: false,
-    isDesktop: true
+  const [deviceType, setDeviceType] = useState<MobileDetectionResult>(() => {
+    // Initialize with immediate detection to avoid flash
+    if (typeof window === 'undefined') {
+      return { isMobile: false, isTablet: false, isDesktop: true };
+    }
+
+    const userAgent = navigator.userAgent.toLowerCase();
+    const width = window.innerWidth;
+    
+    // Mobile device detection
+    const mobileKeywords = [
+      'android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry', 
+      'windows phone', 'mobile', 'opera mini', 'iemobile'
+    ];
+    
+    const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword));
+    const isMobileWidth = width <= 768;
+    
+    // Touch device detection
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    const isMobile = (isMobileUA || (isMobileWidth && isTouchDevice)) && width <= 768;
+    const isTablet = (userAgent.includes('ipad') || (width > 768 && width <= 1024 && isTouchDevice)) && !isMobile;
+    const isDesktop = !isMobile && !isTablet;
+
+    return { isMobile, isTablet, isDesktop };
   });
 
   useEffect(() => {
     const detectDevice = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const width = window.innerWidth;
-      
-      // Mobile device detection
-      const mobileKeywords = [
-        'android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry', 
-        'windows phone', 'mobile', 'opera mini', 'iemobile'
-      ];
-      
-      const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword));
-      const isMobileWidth = width <= 768; // Standard mobile breakpoint
-      const isTabletWidth = width > 768 && width <= 1024;
-      
-      // Touch device detection
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      
-      const isMobile = (isMobileUA || (isMobileWidth && isTouchDevice)) && width <= 768;
-      const isTablet = (userAgent.includes('ipad') || (isTabletWidth && isTouchDevice)) && !isMobile;
-      const isDesktop = !isMobile && !isTablet;
+      try {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const width = window.innerWidth;
+        
+        const mobileKeywords = [
+          'android', 'webos', 'iphone', 'ipad', 'ipod', 'blackberry', 
+          'windows phone', 'mobile', 'opera mini', 'iemobile'
+        ];
+        
+        const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword));
+        const isMobileWidth = width <= 768;
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        
+        const isMobile = (isMobileUA || (isMobileWidth && isTouchDevice)) && width <= 768;
+        const isTablet = (userAgent.includes('ipad') || (width > 768 && width <= 1024 && isTouchDevice)) && !isMobile;
+        const isDesktop = !isMobile && !isTablet;
 
-      setDeviceType({
-        isMobile,
-        isTablet,
-        isDesktop
-      });
+        setDeviceType({ isMobile, isTablet, isDesktop });
+      } catch (error) {
+        console.error('Mobile detection error:', error);
+      }
     };
 
-    // Initial detection
-    detectDevice();
+    // Only set up listeners if not already mobile
+    if (!deviceType.isMobile) {
+      const handleResize = () => {
+        setTimeout(detectDevice, 100);
+      };
 
-    // Listen for window resize to handle orientation changes
-    const handleResize = () => {
-      setTimeout(detectDevice, 100); // Small delay to ensure accurate measurements
-    };
+      window.addEventListener('resize', handleResize);
+      window.addEventListener('orientationchange', handleResize);
 
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
+      return () => {
+        window.removeEventListener('resize', handleResize);
+        window.removeEventListener('orientationchange', handleResize);
+      };
+    }
+  }, [deviceType.isMobile]);
 
   return deviceType;
 };
