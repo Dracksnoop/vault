@@ -21,6 +21,7 @@ import {
   Zap
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import logoPath from "@assets/Embroidered_Shield_with_Clock_Emblem-removebg-preview_1753020884635.png";
 
 interface LandingPageProps {
   onAccessDashboard: () => void;
@@ -97,12 +98,13 @@ export default function LandingPage({ onAccessDashboard }: LandingPageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className={`flex items-center space-x-3 transition-all duration-700 ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
-              <div className="relative">
-                <Package className="w-8 h-8 text-black" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-              </div>
+              <img 
+                src={logoPath} 
+                alt="Vault Logo" 
+                className="w-10 h-10 object-contain"
+              />
               <h1 className="text-2xl font-bold text-black bg-gradient-to-r from-black to-gray-600 bg-clip-text">
-                Raydify Vault
+                VAULT
               </h1>
             </div>
             <Button 
@@ -141,8 +143,8 @@ export default function LandingPage({ onAccessDashboard }: LandingPageProps) {
             </h2>
             
             <p className="text-xl text-gray-600 mb-10 max-w-4xl mx-auto leading-relaxed">
-              Welcome to Raydify Vault, your all-in-one solution to simplify inventory, rental, and customer management.
-              Designed for businesses of all sizes, Raydify Vault empowers you to efficiently track assets, manage customer rentals, 
+              Welcome to VAULT, your all-in-one solution to simplify inventory, rental, and customer management.
+              Designed for businesses of all sizes, VAULT empowers you to efficiently track assets, manage customer rentals, 
               generate invoices, and streamline your operations — all from a sleek, easy-to-use dashboard.
             </p>
             
@@ -194,7 +196,7 @@ export default function LandingPage({ onAccessDashboard }: LandingPageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`text-center mb-16 transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <h3 className="text-5xl font-bold text-black mb-4">
-              Why Choose Raydify Vault?
+              Why Choose VAULT?
             </h3>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Powerful features designed to transform your business operations
@@ -318,7 +320,7 @@ export default function LandingPage({ onAccessDashboard }: LandingPageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
           <div className={`transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <h3 className="text-6xl font-bold mb-6 bg-gradient-to-r from-white via-blue-100 to-white bg-clip-text text-transparent">
-              Get Started with Raydify Vault Today!
+              Get Started with VAULT Today!
             </h3>
             <p className="text-xl mb-10 max-w-4xl mx-auto text-gray-300 leading-relaxed">
               Experience the difference with a powerful inventory and rental management system designed to scale with your business.
@@ -395,12 +397,13 @@ export default function LandingPage({ onAccessDashboard }: LandingPageProps) {
             {/* Brand Section */}
             <div className="text-center md:text-left">
               <div className="flex items-center justify-center md:justify-start space-x-3 mb-4">
-                <div className="relative">
-                  <Package className="w-8 h-8 text-white" />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                </div>
+                <img 
+                  src={logoPath} 
+                  alt="Vault Logo" 
+                  className="w-8 h-8 object-contain"
+                />
                 <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  Raydify Vault
+                  VAULT
                 </span>
               </div>
               <p className="text-gray-400 leading-relaxed">
@@ -435,7 +438,7 @@ export default function LandingPage({ onAccessDashboard }: LandingPageProps) {
           
           <div className="border-t border-gray-800 pt-8 text-center">
             <p className="text-gray-400">
-              © 2025 Raydify Vault. All rights reserved. Built with ❤️ for modern businesses.
+              © 2025 VAULT. All rights reserved. Built with ❤️ for modern businesses.
             </p>
           </div>
         </div>
