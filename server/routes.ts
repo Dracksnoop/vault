@@ -1321,8 +1321,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Rental Timeline routes
-  app.get("/api/customers/:customerId/timeline", async (req, res) => {
+  app.get("/api/customers/:customerId/timeline", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
       const customerId = parseInt(req.params.customerId);
       const timeline = await storage.getRentalTimeline(customerId);
       res.json(timeline);
@@ -1941,7 +1942,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/invoices/:id", async (req, res) => {
+  app.put("/api/invoices/:id", requireAuth, async (req: any, res) => {
     try {
       console.log(`PUT /api/invoices/${req.params.id} - Body:`, req.body);
       
@@ -1994,7 +1995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // PDF Download endpoint
-  app.post("/api/invoices/download", async (req, res) => {
+  app.post("/api/invoices/download", requireAuth, async (req: any, res) => {
     try {
       console.log('PDF download request received:', req.body);
       
@@ -2172,7 +2173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate PDF from invoice data (for recurring invoices)
-  app.post("/api/invoices/generate-pdf", async (req, res) => {
+  app.post("/api/invoices/generate-pdf", requireAuth, async (req: any, res) => {
     try {
       console.log('PDF generation request received:', req.body);
       
@@ -2431,28 +2432,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invoice Items routes
-  app.get("/api/invoice-items", async (req, res) => {
+  app.get("/api/invoice-items", requireAuth, async (req: any, res) => {
     try {
-      const items = await storage.getInvoiceItems();
+      const userId = req.user?.id;
+      const items = await storage.getInvoiceItems(userId);
       res.json(items);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch invoice items" });
     }
   });
 
-  app.get("/api/invoice-items/invoice/:invoiceId", async (req, res) => {
+  app.get("/api/invoice-items/invoice/:invoiceId", requireAuth, async (req: any, res) => {
     try {
-      const items = await storage.getInvoiceItemsByInvoice(req.params.invoiceId);
+      const userId = req.user?.id;
+      const items = await storage.getInvoiceItemsByInvoice(req.params.invoiceId, userId);
       res.json(items);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch invoice items" });
     }
   });
 
-  app.post("/api/invoice-items", async (req, res) => {
+  app.post("/api/invoice-items", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
       console.log("Creating invoice item with data:", req.body);
-      const validated = insertInvoiceItemSchema.parse(req.body);
+      const validated = insertInvoiceItemSchema.parse({
+        ...req.body,
+        userId
+      });
       console.log("Validated invoice item data:", validated);
       const item = await storage.createInvoiceItem(validated);
       res.status(201).json(item);
@@ -2484,7 +2491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/payments/customer/:customerId", async (req, res) => {
+  app.get("/api/payments/customer/:customerId", requireAuth, async (req: any, res) => {
     try {
       const customerId = parseInt(req.params.customerId);
       const payments = await storage.getPaymentsByCustomer(customerId);
