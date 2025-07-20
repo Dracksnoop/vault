@@ -9,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, Phone, User, CheckCircle, Clock, AlertCircle, Search, Plus, Eye, Package } from "lucide-react";
+import { CalendarIcon, Phone, User, CheckCircle, Clock, AlertCircle, Search, Plus, Eye, Package, Download } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
+import jsPDF from 'jspdf';
 import type { Customer, Employee, Rental, CallService, CallServiceItem } from "@shared/schema";
 
 interface CallServiceFormData {
@@ -82,6 +83,8 @@ const Stepper = ({ currentStep, totalSteps }: StepperProps) => {
 export default function CallServices() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [selectedCallService, setSelectedCallService] = useState<CallService | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedItemForUnits, setSelectedItemForUnits] = useState<string | null>(null);
@@ -313,6 +316,120 @@ export default function CallServices() {
 
   const handleMarkResolved = (callServiceId: string) => {
     markResolvedMutation.mutate(callServiceId);
+  };
+
+  const handleViewCallService = (callService: CallService) => {
+    setSelectedCallService(callService);
+    setShowViewDialog(true);
+  };
+
+  const generateCallServicePDF = async (callService: CallService) => {
+    try {
+      // Get company profile for header
+      const companyProfile = await apiRequest("GET", "/api/company-profiles/default");
+      
+      // Get call service items
+      const callServiceItems = await apiRequest("GET", `/api/call-service-items/call/${callService.id}`);
+      
+      // Get customer details
+      const customer = customers.find((c: Customer) => c.id === callService.customerId);
+      
+      const doc = new jsPDF();
+      
+      // Header - Company Info
+      doc.setFontSize(20);
+      doc.text(companyProfile.companyName || "Raydify Vault", 20, 20);
+      doc.setFontSize(10);
+      doc.text(companyProfile.address || "", 20, 30);
+      doc.text(`${companyProfile.city || ""}, ${companyProfile.state || ""} ${companyProfile.zipCode || ""}`, 20, 35);
+      doc.text(`Phone: ${companyProfile.phone || ""} | Email: ${companyProfile.email || ""}`, 20, 40);
+      
+      // Title
+      doc.setFontSize(16);
+      doc.text("CALL SERVICE REPORT", 20, 55);
+      
+      // Call Service Details
+      doc.setFontSize(12);
+      doc.text(`Call Number: ${callService.callNumber}`, 20, 70);
+      doc.text(`Status: ${callService.status.toUpperCase()}`, 120, 70);
+      doc.text(`Priority: ${callService.priority.toUpperCase()}`, 20, 80);
+      doc.text(`Created: ${new Date(callService.createdAt).toLocaleDateString()}`, 120, 80);
+      doc.text(`Resolution Due: ${new Date(callService.issueResolutionDate).toLocaleDateString()}`, 20, 90);
+      
+      if (callService.resolvedAt) {
+        doc.text(`Resolved: ${new Date(callService.resolvedAt).toLocaleDateString()}`, 120, 90);
+        doc.text(`Resolution Status: ${callService.resolvedOnTime ? "ON TIME" : "LATE"}`, 20, 100);
+      }
+      
+      // Customer Information
+      doc.setFontSize(14);
+      doc.text("CUSTOMER INFORMATION", 20, 115);
+      doc.setFontSize(10);
+      if (customer) {
+        doc.text(`Name: ${customer.name}`, 20, 125);
+        doc.text(`Email: ${customer.email || "N/A"}`, 20, 130);
+        doc.text(`Phone: ${customer.phone || "N/A"}`, 20, 135);
+        doc.text(`Address: ${customer.address || "N/A"}`, 20, 140);
+        doc.text(`City: ${customer.city || "N/A"}, State: ${customer.state || "N/A"}`, 20, 145);
+      }
+      
+      // Employee Assignment
+      doc.setFontSize(14);
+      doc.text("ASSIGNED EMPLOYEE", 20, 160);
+      doc.setFontSize(10);
+      doc.text(`Employee: ${callService.employeeName}`, 20, 170);
+      
+      // Issue Description
+      doc.setFontSize(14);
+      doc.text("ISSUE DESCRIPTION", 20, 185);
+      doc.setFontSize(10);
+      const splitDescription = doc.splitTextToSize(callService.issueDescription, 170);
+      doc.text(splitDescription, 20, 195);
+      
+      // Affected Items/Units
+      if (callServiceItems && callServiceItems.length > 0) {
+        let yPos = 215 + (splitDescription.length * 5);
+        doc.setFontSize(14);
+        doc.text("AFFECTED ITEMS/UNITS", 20, yPos);
+        doc.setFontSize(10);
+        
+        callServiceItems.forEach((item: any, index: number) => {
+          yPos += 10;
+          doc.text(`${index + 1}. Item: ${item.itemName}`, 25, yPos);
+          if (item.serialNumbers) {
+            yPos += 5;
+            doc.text(`   Serial Numbers: ${item.serialNumbers}`, 25, yPos);
+          }
+          if (item.issueDetails) {
+            yPos += 5;
+            const splitIssue = doc.splitTextToSize(`   Issue Details: ${item.issueDetails}`, 150);
+            doc.text(splitIssue, 25, yPos);
+            yPos += (splitIssue.length - 1) * 5;
+          }
+        });
+      }
+      
+      // Footer
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(8);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 20, pageHeight - 20);
+      doc.text(`Call Service ID: ${callService.id}`, 20, pageHeight - 15);
+      
+      // Download the PDF
+      doc.save(`CallService_${callService.callNumber}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+      
+      toast({
+        title: "Success",
+        description: "Call service report downloaded successfully",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF report",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -906,7 +1023,11 @@ export default function CallServices() {
                         {markResolvedMutation.isPending ? "Resolving..." : "Mark Resolved"}
                       </Button>
                     )}
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewCallService(call)}
+                    >
                       <Eye className="w-4 h-4 mr-1" />
                       View
                     </Button>
@@ -978,6 +1099,205 @@ export default function CallServices() {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Call Service Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-4xl w-[90vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Call Service Details - {selectedCallService?.callNumber}</span>
+              <Button
+                onClick={() => selectedCallService && generateCallServicePDF(selectedCallService)}
+                className="ml-4"
+                size="sm"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download PDF
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedCallService && (
+            <div className="space-y-6">
+              {/* Call Service Overview */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Phone className="w-5 h-5" />
+                    <span>Call Service Overview</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Call Number</Label>
+                      <p className="text-sm font-medium">{selectedCallService.callNumber}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Status</Label>
+                      <div className="flex items-center space-x-2">
+                        {getStatusBadge(selectedCallService.status)}
+                        {selectedCallService.status === 'resolved' && (
+                          <Badge 
+                            variant={selectedCallService.resolvedOnTime ? "outline" : "destructive"}
+                            className={
+                              selectedCallService.resolvedOnTime 
+                                ? "bg-green-50 text-green-700 border-green-200" 
+                                : "bg-red-50 text-red-700 border-red-200"
+                            }
+                          >
+                            {selectedCallService.resolvedOnTime ? "✓ On Time" : "⚠ Late"}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Priority</Label>
+                      <div>{getPriorityBadge(selectedCallService.priority)}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Created Date</Label>
+                      <p className="text-sm">{new Date(selectedCallService.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Resolution Due</Label>
+                      <p className="text-sm">{new Date(selectedCallService.issueResolutionDate).toLocaleDateString()}</p>
+                    </div>
+                    {selectedCallService.resolvedAt && (
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600">Resolved Date</Label>
+                        <p className="text-sm">
+                          {new Date(selectedCallService.resolvedAt).toLocaleDateString()} at{' '}
+                          {new Date(selectedCallService.resolvedAt).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Customer Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <User className="w-5 h-5" />
+                    <span>Customer Information</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const customer = customers.find((c: Customer) => c.id === selectedCallService.customerId);
+                    return customer ? (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-sm font-medium text-gray-600">Customer Name</Label>
+                          <p className="text-sm font-medium">{customer.name}</p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-gray-600">Email</Label>
+                          <p className="text-sm">{customer.email || "N/A"}</p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-gray-600">Phone</Label>
+                          <p className="text-sm">{customer.phone || "N/A"}</p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium text-gray-600">Company</Label>
+                          <p className="text-sm">{customer.company || "N/A"}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-sm font-medium text-gray-600">Address</Label>
+                          <p className="text-sm">
+                            {customer.address && customer.city && customer.state
+                              ? `${customer.address}, ${customer.city}, ${customer.state} ${customer.zipCode || ""}`
+                              : "N/A"
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600">Customer information not available</p>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+
+              {/* Employee Assignment */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <User className="w-5 h-5" />
+                    <span>Assigned Employee</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Employee Name</Label>
+                    <p className="text-sm font-medium">{selectedCallService.employeeName}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Issue Description */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <span>Issue Description</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm leading-relaxed">{selectedCallService.issueDescription}</p>
+                </CardContent>
+              </Card>
+
+              {/* Affected Items/Units */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Package className="w-5 h-5" />
+                    <span>Affected Items/Units</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const { data: callServiceItems = [] } = useQuery({
+                      queryKey: [`/api/call-service-items/call/${selectedCallService.id}`],
+                    });
+                    
+                    return callServiceItems.length > 0 ? (
+                      <div className="space-y-4">
+                        {callServiceItems.map((item: any, index: number) => (
+                          <div key={index} className="p-4 border rounded-lg">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label className="text-sm font-medium text-gray-600">Item Name</Label>
+                                <p className="text-sm font-medium">{item.itemName}</p>
+                              </div>
+                              <div>
+                                <Label className="text-sm font-medium text-gray-600">Serial Numbers</Label>
+                                <p className="text-sm">{item.serialNumbers || "N/A"}</p>
+                              </div>
+                              {item.issueDetails && (
+                                <div className="col-span-2">
+                                  <Label className="text-sm font-medium text-gray-600">Issue Details</Label>
+                                  <p className="text-sm">{item.issueDetails}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600">No specific items/units associated with this call service</p>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
