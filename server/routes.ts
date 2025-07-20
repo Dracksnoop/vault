@@ -22,7 +22,8 @@ import {
   insertPaymentSchema,
   insertRecurringInvoiceScheduleSchema,
   insertCompanyProfileSchema,
-  insertReplacementRequestSchema
+  insertReplacementRequestSchema,
+  insertEmployeeSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2825,6 +2826,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to process recurring invoices", 
         message: error.message 
       });
+    }
+  });
+
+  // Employee Management routes
+  app.get("/api/employees", requireAuth, async (req, res) => {
+    try {
+      const employees = await storage.getEmployees(req.user.id);
+      res.json(employees);
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      res.status(500).json({ error: "Failed to fetch employees" });
+    }
+  });
+
+  app.get("/api/employees/:id", requireAuth, async (req, res) => {
+    try {
+      const employee = await storage.getEmployee(req.params.id, req.user.id);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+      res.json(employee);
+    } catch (error) {
+      console.error('Error fetching employee:', error);
+      res.status(500).json({ error: "Failed to fetch employee" });
+    }
+  });
+
+  app.post("/api/employees", requireAuth, async (req, res) => {
+    try {
+      const result = insertEmployeeSchema.safeParse({
+        ...req.body,
+        userId: req.user.id,
+        createdAt: new Date().toISOString()
+      });
+      
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid employee data", details: result.error.issues });
+      }
+
+      // Generate unique employee ID and primary ID
+      const employeeId = `EMP${Date.now()}`;
+      const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      
+      const employee = await storage.createEmployee({
+        ...result.data,
+        id,
+        employeeId
+      });
+      
+      res.json(employee);
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      res.status(500).json({ error: "Failed to create employee" });
+    }
+  });
+
+  app.put("/api/employees/:id", requireAuth, async (req, res) => {
+    try {
+      const result = insertEmployeeSchema.partial().safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid employee data", details: result.error.issues });
+      }
+
+      const employee = await storage.updateEmployee(req.params.id, result.data);
+      if (!employee) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+      
+      res.json(employee);
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      res.status(500).json({ error: "Failed to update employee" });
+    }
+  });
+
+  app.delete("/api/employees/:id", requireAuth, async (req, res) => {
+    try {
+      const success = await storage.deleteEmployee(req.params.id);
+      if (!success) {
+        return res.status(404).json({ error: "Employee not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      res.status(500).json({ error: "Failed to delete employee" });
     }
   });
 

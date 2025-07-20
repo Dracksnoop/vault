@@ -523,6 +523,66 @@ export type Rental = typeof rentals.$inferSelect;
 export type InsertRentalTimeline = z.infer<typeof insertRentalTimelineSchema>;
 export type RentalTimeline = typeof rentalTimeline.$inferSelect;
 
+// Employee Management Schema
+export const employees = pgTable("employees", {
+  id: text("id").primaryKey(),
+  employeeId: text("employee_id").notNull().unique(), // Company employee ID
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  role: text("role").notNull(), // Manager, Developer, Designer, HR, Finance, etc.
+  department: text("department").notNull(),
+  joiningDate: text("joining_date").notNull(),
+  salary: text("salary"),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  pincode: text("pincode").notNull(),
+  emergencyContactName: text("emergency_contact_name"),
+  emergencyContactPhone: text("emergency_contact_phone"),
+  idProofType: text("id_proof_type").notNull(), // Aadhar, PAN, Passport, Driving License
+  idProofNumber: text("id_proof_number").notNull(),
+  bankAccountNumber: text("bank_account_number"),
+  bankIfscCode: text("bank_ifsc_code"),
+  bankName: text("bank_name"),
+  status: text("status").notNull().default("active"), // active, inactive, terminated
+  notes: text("notes"),
+  userId: integer("user_id").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const insertEmployeeSchema = createInsertSchema(employees).pick({
+  id: true,
+  employeeId: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  phone: true,
+  role: true,
+  department: true,
+  joiningDate: true,
+  salary: true,
+  address: true,
+  city: true,
+  state: true,
+  pincode: true,
+  emergencyContactName: true,
+  emergencyContactPhone: true,
+  idProofType: true,
+  idProofNumber: true,
+  bankAccountNumber: true,
+  bankIfscCode: true,
+  bankName: true,
+  status: true,
+  notes: true,
+  userId: true,
+  createdAt: true,
+});
+
+export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
+export type Employee = typeof employees.$inferSelect;
+
 export const insertVendorSchema = createInsertSchema(vendors).omit({
   id: true,
   createdAt: true,

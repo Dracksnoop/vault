@@ -19,6 +19,7 @@ import CallService from "./pages/CallService";
 import Trade from "./pages/Trade";
 import Replacements from "./pages/Replacements";
 import Billing from "./pages/Billing";
+import Employees from "./pages/Employees";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
 import Support from "./pages/Support";
@@ -58,6 +59,7 @@ function Router() {
         queryClient.prefetchQuery({ queryKey: ["/api/services"] }),
         queryClient.prefetchQuery({ queryKey: ["/api/service-items"] }),
         queryClient.prefetchQuery({ queryKey: ["/api/rentals"] }),
+        queryClient.prefetchQuery({ queryKey: ["/api/employees"] }),
       ]);
     } catch (error) {
       console.error("Error preloading data:", error);
@@ -155,6 +157,7 @@ function Router() {
                 <Route path="/trade" component={Trade} />
                 <Route path="/replacements" component={Replacements} />
                 <Route path="/billing" component={Billing} />
+                <Route path="/employees" component={Employees} />
                 <Route path="/users" component={Users} />
                 <Route path="/profile" component={Profile} />
                 <Route path="/support" component={Support} />

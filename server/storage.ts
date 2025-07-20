@@ -41,7 +41,9 @@ import {
   type CompanyProfile,
   type InsertCompanyProfile,
   type ReplacementRequest,
-  type InsertReplacementRequest
+  type InsertReplacementRequest,
+  type Employee,
+  type InsertEmployee
 } from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -210,6 +212,14 @@ export interface IStorage {
   createReplacementRequest(request: InsertReplacementRequest): Promise<ReplacementRequest>;
   updateReplacementRequest(id: string, request: Partial<InsertReplacementRequest>): Promise<ReplacementRequest | undefined>;
   deleteReplacementRequest(id: string): Promise<boolean>;
+
+  // Employee Management methods
+  getEmployees(userId?: number): Promise<Employee[]>;
+  getEmployee(id: string, userId?: number): Promise<Employee | undefined>;
+  getEmployeeByEmployeeId(employeeId: string, userId?: number): Promise<Employee | undefined>;
+  createEmployee(employee: InsertEmployee): Promise<Employee>;
+  updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
+  deleteEmployee(id: string): Promise<boolean>;
   
   initialize(): Promise<void>;
 }
@@ -239,6 +249,7 @@ export class MongoStorage implements IStorage {
   private recurringInvoiceSchedules: Collection<RecurringInvoiceSchedule>;
   private companyProfiles: Collection<CompanyProfile>;
   private replacementRequests: Collection<ReplacementRequest>;
+  private employees: Collection<Employee>;
   private isInitialized = false;
 
   constructor() {
@@ -277,6 +288,7 @@ export class MongoStorage implements IStorage {
       this.recurringInvoiceSchedules = this.db.collection<RecurringInvoiceSchedule>('recurringInvoiceSchedules');
       this.companyProfiles = this.db.collection<CompanyProfile>('companyProfiles');
       this.replacementRequests = this.db.collection<ReplacementRequest>('replacementRequests');
+      this.employees = this.db.collection<Employee>('employees');
       
       // Initialize default categories if they don't exist
       const categoryCount = await this.categories.countDocuments();
@@ -1331,6 +1343,50 @@ export class MongoStorage implements IStorage {
     const result = await this.replacementRequests.deleteOne({ id });
     return result.deletedCount === 1;
   }
+
+  // Employee Management methods
+  async getEmployees(userId?: number): Promise<Employee[]> {
+    await this.initialize();
+    const filter = userId ? { userId } : {};
+    return await this.employees.find(filter).toArray();
+  }
+
+  async getEmployee(id: string, userId?: number): Promise<Employee | undefined> {
+    await this.initialize();
+    const filter = userId ? { id, userId } : { id };
+    const employee = await this.employees.findOne(filter);
+    return employee || undefined;
+  }
+
+  async getEmployeeByEmployeeId(employeeId: string, userId?: number): Promise<Employee | undefined> {
+    await this.initialize();
+    const filter = userId ? { employeeId, userId } : { employeeId };
+    const employee = await this.employees.findOne(filter);
+    return employee || undefined;
+  }
+
+  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
+    await this.initialize();
+    const employee: Employee = { ...insertEmployee };
+    await this.employees.insertOne(employee);
+    return employee;
+  }
+
+  async updateEmployee(id: string, updateData: Partial<InsertEmployee>): Promise<Employee | undefined> {
+    await this.initialize();
+    const result = await this.employees.findOneAndUpdate(
+      { id },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteEmployee(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.employees.deleteOne({ id });
+    return result.deletedCount === 1;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -1349,6 +1405,7 @@ export class MemStorage implements IStorage {
   private purchaseOrderItems: Map<string, PurchaseOrderItem>;
   private sellOrders: Map<string, SellOrder>;
   private sellOrderItems: Map<string, SellOrderItem>;
+  private employees: Map<string, Employee>;
   private currentUserId: number;
   private currentInventoryId: number;
   private currentCustomerId: number;
@@ -1369,6 +1426,7 @@ export class MemStorage implements IStorage {
     this.purchaseOrderItems = new Map();
     this.sellOrders = new Map();
     this.sellOrderItems = new Map();
+    this.employees = new Map();
     this.currentUserId = 1;
     this.currentInventoryId = 1;
     this.currentCustomerId = 1;
@@ -1906,6 +1964,64 @@ export class MemStorage implements IStorage {
 
   async setDefaultCompanyProfile(id: string): Promise<boolean> {
     return false;
+  }
+
+  // Replacement Request methods - stubbed for MemStorage
+  async getReplacementRequests(userId?: number): Promise<ReplacementRequest[]> {
+    return [];
+  }
+
+  async getReplacementRequest(id: string, userId?: number): Promise<ReplacementRequest | undefined> {
+    return undefined;
+  }
+
+  async createReplacementRequest(insertRequest: InsertReplacementRequest): Promise<ReplacementRequest> {
+    throw new Error('Replacement requests not supported in memory storage');
+  }
+
+  async updateReplacementRequest(id: string, updateData: Partial<InsertReplacementRequest>): Promise<ReplacementRequest | undefined> {
+    return undefined;
+  }
+
+  async deleteReplacementRequest(id: string): Promise<boolean> {
+    return false;
+  }
+
+  // Employee Management methods
+  async getEmployees(userId?: number): Promise<Employee[]> {
+    const employees = Array.from(this.employees.values());
+    return userId ? employees.filter(emp => emp.userId === userId) : employees;
+  }
+
+  async getEmployee(id: string, userId?: number): Promise<Employee | undefined> {
+    const employee = this.employees.get(id);
+    if (!employee) return undefined;
+    return userId && employee.userId !== userId ? undefined : employee;
+  }
+
+  async getEmployeeByEmployeeId(employeeId: string, userId?: number): Promise<Employee | undefined> {
+    const employee = Array.from(this.employees.values()).find(emp => emp.employeeId === employeeId);
+    if (!employee) return undefined;
+    return userId && employee.userId !== userId ? undefined : employee;
+  }
+
+  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
+    const employee: Employee = { ...insertEmployee };
+    this.employees.set(employee.id, employee);
+    return employee;
+  }
+
+  async updateEmployee(id: string, updateData: Partial<InsertEmployee>): Promise<Employee | undefined> {
+    const existing = this.employees.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Employee = { ...existing, ...updateData };
+    this.employees.set(id, updated);
+    return updated;
+  }
+
+  async deleteEmployee(id: string): Promise<boolean> {
+    return this.employees.delete(id);
   }
 }
 
