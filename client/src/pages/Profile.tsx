@@ -17,7 +17,7 @@ import { insertCompanyProfileSchema, type CompanyProfile } from '@shared/schema'
 
 const profileFormSchema = insertCompanyProfileSchema.extend({
   logoFile: z.instanceof(File).optional(),
-});
+}).omit({ userId: true });
 
 type ProfileFormData = z.infer<typeof profileFormSchema>;
 
@@ -164,6 +164,8 @@ export default function Profile() {
   };
 
   const onSubmit = (data: ProfileFormData) => {
+    console.log('Form submitted with data:', data);
+    console.log('Form errors:', form.formState.errors);
     saveMutation.mutate(data);
   };
 
@@ -425,6 +427,11 @@ export default function Profile() {
             type="submit"
             disabled={saveMutation.isPending}
             className="px-8"
+            onClick={() => {
+              console.log('Save button clicked!');
+              console.log('Form valid:', form.formState.isValid);
+              console.log('Form errors:', form.formState.errors);
+            }}
           >
             {saveMutation.isPending ? 'Saving...' : 'Save Profile'}
           </Button>
