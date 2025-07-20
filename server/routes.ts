@@ -589,18 +589,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Service management routes
-  app.get("/api/services", async (req, res) => {
+  app.get("/api/services", requireAuth, async (req: any, res) => {
     try {
-      const services = await storage.getServices();
+      const userId = req.user?.id;
+      const services = await storage.getServices(userId);
       res.json(services);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch services" });
     }
   });
 
-  app.post("/api/services", async (req, res) => {
+  app.post("/api/services", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertServiceSchema.parse(req.body);
+      const userId = req.user?.id;
+      const validatedData = insertServiceSchema.parse({
+        ...req.body,
+        userId
+      });
       const service = await storage.createService(validatedData);
       res.json(service);
     } catch (error) {
@@ -656,18 +661,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Service Items management routes
-  app.get("/api/service-items", async (req, res) => {
+  app.get("/api/service-items", requireAuth, async (req: any, res) => {
     try {
-      const serviceItems = await storage.getServiceItems();
+      const userId = req.user?.id;
+      const serviceItems = await storage.getServiceItems(userId);
       res.json(serviceItems);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch service items" });
     }
   });
 
-  app.post("/api/service-items", async (req, res) => {
+  app.post("/api/service-items", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertServiceItemSchema.parse(req.body);
+      const userId = req.user?.id;
+      const validatedData = insertServiceItemSchema.parse({
+        ...req.body,
+        userId
+      });
       const serviceItem = await storage.createServiceItem(validatedData);
       res.json(serviceItem);
     } catch (error) {
@@ -710,18 +720,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Rental management routes
-  app.get("/api/rentals", async (req, res) => {
+  app.get("/api/rentals", requireAuth, async (req: any, res) => {
     try {
-      const rentals = await storage.getRentals();
+      const userId = req.user?.id;
+      const rentals = await storage.getRentals(userId);
       res.json(rentals);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch rentals" });
     }
   });
 
-  app.post("/api/rentals", async (req, res) => {
+  app.post("/api/rentals", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertRentalSchema.parse(req.body);
+      const userId = req.user?.id;
+      const validatedData = insertRentalSchema.parse({
+        ...req.body,
+        userId
+      });
       const rental = await storage.createRental(validatedData);
       res.json(rental);
     } catch (error) {
@@ -2417,9 +2432,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Recurring Invoice Schedule routes
-  app.get("/api/recurring-schedules", async (req, res) => {
+  app.get("/api/recurring-schedules", requireAuth, async (req: any, res) => {
     try {
-      const schedules = await storage.getRecurringInvoiceSchedules();
+      const userId = req.user?.id;
+      const schedules = await storage.getRecurringInvoiceSchedules(userId);
       res.json(schedules);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch recurring schedules" });
@@ -2436,9 +2452,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/recurring-schedules", async (req, res) => {
+  app.post("/api/recurring-schedules", requireAuth, async (req: any, res) => {
     try {
-      const validated = insertRecurringInvoiceScheduleSchema.parse(req.body);
+      const userId = req.user?.id;
+      const validated = insertRecurringInvoiceScheduleSchema.parse({
+        ...req.body,
+        userId
+      });
       const schedule = await storage.createRecurringInvoiceSchedule(validated);
       res.status(201).json(schedule);
     } catch (error) {
@@ -2472,11 +2492,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Billing dashboard stats
-  app.get("/api/billing/stats", async (req, res) => {
+  app.get("/api/billing/stats", requireAuth, async (req: any, res) => {
     try {
-      const invoices = await storage.getInvoices();
-      const payments = await storage.getPayments();
-      const recurringSchedules = await storage.getRecurringInvoiceSchedules();
+      const userId = req.user?.id;
+      const invoices = await storage.getInvoices(userId);
+      const payments = await storage.getPayments(userId);
+      const recurringSchedules = await storage.getRecurringInvoiceSchedules(userId);
       
       const totalInvoices = invoices.length;
       const pendingInvoices = invoices.filter(i => i.status === 'pending').length;
@@ -2525,18 +2546,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Company Profile routes
-  app.get("/api/company-profiles", async (req, res) => {
+  app.get("/api/company-profiles", requireAuth, async (req: any, res) => {
     try {
-      const profiles = await storage.getCompanyProfiles();
+      const userId = req.user?.id;
+      const profiles = await storage.getCompanyProfiles(userId);
       res.json(profiles);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch company profiles" });
     }
   });
 
-  app.get("/api/company-profiles/default", async (req, res) => {
+  app.get("/api/company-profiles/default", requireAuth, async (req: any, res) => {
     try {
-      const profile = await storage.getDefaultCompanyProfile();
+      const userId = req.user?.id;
+      const profile = await storage.getDefaultCompanyProfile(userId);
       res.json(profile);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch default company profile" });

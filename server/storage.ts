@@ -574,14 +574,18 @@ export class MongoStorage implements IStorage {
   }
 
   // Service methods
-  async getServices(): Promise<Service[]> {
+  async getServices(userId?: number): Promise<Service[]> {
     await this.initialize();
+    if (userId) {
+      return await this.services.find({ userId }).toArray();
+    }
     return await this.services.find().toArray();
   }
 
-  async getService(id: string): Promise<Service | undefined> {
+  async getService(id: string, userId?: number): Promise<Service | undefined> {
     await this.initialize();
-    const service = await this.services.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const service = await this.services.findOne(filter);
     return service || undefined;
   }
 
@@ -619,14 +623,18 @@ export class MongoStorage implements IStorage {
   }
 
   // Service Item methods
-  async getServiceItems(): Promise<ServiceItem[]> {
+  async getServiceItems(userId?: number): Promise<ServiceItem[]> {
     await this.initialize();
+    if (userId) {
+      return await this.serviceItems.find({ userId }).toArray();
+    }
     return await this.serviceItems.find().toArray();
   }
 
-  async getServiceItem(id: string): Promise<ServiceItem | undefined> {
+  async getServiceItem(id: string, userId?: number): Promise<ServiceItem | undefined> {
     await this.initialize();
-    const serviceItem = await this.serviceItems.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const serviceItem = await this.serviceItems.findOne(filter);
     return serviceItem || undefined;
   }
 
@@ -659,14 +667,18 @@ export class MongoStorage implements IStorage {
   }
 
   // Rental methods
-  async getRentals(): Promise<Rental[]> {
+  async getRentals(userId?: number): Promise<Rental[]> {
     await this.initialize();
+    if (userId) {
+      return await this.rentals.find({ userId }).toArray();
+    }
     return await this.rentals.find().toArray();
   }
 
-  async getRental(id: string): Promise<Rental | undefined> {
+  async getRental(id: string, userId?: number): Promise<Rental | undefined> {
     await this.initialize();
-    const rental = await this.rentals.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const rental = await this.rentals.findOne(filter);
     return rental || undefined;
   }
 
@@ -1177,20 +1189,25 @@ export class MongoStorage implements IStorage {
   }
 
   // Company Profile methods
-  async getCompanyProfiles(): Promise<CompanyProfile[]> {
+  async getCompanyProfiles(userId?: number): Promise<CompanyProfile[]> {
     await this.initialize();
+    if (userId) {
+      return await this.companyProfiles.find({ userId }).toArray();
+    }
     return await this.companyProfiles.find().toArray();
   }
 
-  async getCompanyProfile(id: string): Promise<CompanyProfile | undefined> {
+  async getCompanyProfile(id: string, userId?: number): Promise<CompanyProfile | undefined> {
     await this.initialize();
-    const profile = await this.companyProfiles.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const profile = await this.companyProfiles.findOne(filter);
     return profile || undefined;
   }
 
-  async getDefaultCompanyProfile(): Promise<CompanyProfile | undefined> {
+  async getDefaultCompanyProfile(userId?: number): Promise<CompanyProfile | undefined> {
     await this.initialize();
-    const profile = await this.companyProfiles.findOne({ isDefault: true });
+    const filter = userId ? { isDefault: true, userId } : { isDefault: true };
+    const profile = await this.companyProfiles.findOne(filter);
     return profile || undefined;
   }
 
