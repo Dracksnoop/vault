@@ -53,36 +53,23 @@ export default function Replacements() {
   // Approve replacement mutation
   const approveReplacementMutation = useMutation({
     mutationFn: async (replacementId: string) => {
-      const storedReplacements = localStorage.getItem('replacementRequests');
-      if (storedReplacements) {
-        const replacements = JSON.parse(storedReplacements);
-        const replacementToApprove = replacements.find((r: any) => r.id === replacementId);
-        
-        if (replacementToApprove) {
-          // Mark the unit as under replacement
-          await apiRequest('PUT', `/api/units/${replacementToApprove.unitId}`, {
-            isUnderReplacement: true,
-            replacementRequestId: replacementId
-          });
-        }
-        
-        const updatedReplacements = replacements.map((replacement: any) => {
-          if (replacement.id === replacementId) {
-            return {
-              ...replacement,
-              status: 'approved',
-              approvalDate: new Date().toISOString().split('T')[0]
-            };
-          }
-          return replacement;
+      const replacement = replacements.find(r => r.id === replacementId);
+      if (replacement) {
+        // Mark the unit as under replacement
+        await apiRequest('PUT', `/api/units/${replacement.unitId}`, {
+          isUnderReplacement: true,
+          replacementRequestId: replacementId
         });
-        localStorage.setItem('replacementRequests', JSON.stringify(updatedReplacements));
-        return updatedReplacements;
+        
+        // Update replacement status
+        await apiRequest('PUT', `/api/replacement-requests/${replacementId}`, {
+          status: 'approved',
+          approvalDate: new Date().toISOString().split('T')[0]
+        });
       }
-      return [];
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/replacements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/replacement-requests'] });
       queryClient.invalidateQueries({ queryKey: ['/api/units'] });
       queryClient.invalidateQueries({ queryKey: ['/api/items'] });
       toast({
@@ -102,41 +89,26 @@ export default function Replacements() {
   // Complete replacement mutation
   const completeReplacementMutation = useMutation({
     mutationFn: async (replacementId: string) => {
-      const storedReplacements = localStorage.getItem('replacementRequests');
-      if (storedReplacements) {
-        const replacements = JSON.parse(storedReplacements);
-        const replacementToComplete = replacements.find((r: any) => r.id === replacementId);
+      const replacement = replacements.find(r => r.id === replacementId);
+      if (replacement) {
+        // Mark the original unit as replaced and make it available again
+        await apiRequest('PUT', `/api/units/${replacement.unitId}`, {
+          isUnderReplacement: false,
+          replacementRequestId: null,
+          replacedDate: new Date().toISOString().split('T')[0],
+          replacedReason: replacement.reason,
+          status: 'Available'
+        });
         
-        if (replacementToComplete) {
-          // Mark the original unit as replaced and make it available again
-          await apiRequest('PUT', `/api/units/${replacementToComplete.unitId}`, {
-            isUnderReplacement: false,
-            replacementRequestId: null,
-            replacedDate: new Date().toISOString().split('T')[0],
-            replacedReason: replacementToComplete.reason,
-            status: 'Available'
-          });
-          
-          // Update the replacement record
-          const updatedReplacements = replacements.map((replacement: any) => {
-            if (replacement.id === replacementId) {
-              return {
-                ...replacement,
-                status: 'completed',
-                completionDate: new Date().toISOString().split('T')[0]
-              };
-            }
-            return replacement;
-          });
-          
-          localStorage.setItem('replacementRequests', JSON.stringify(updatedReplacements));
-          return updatedReplacements;
-        }
+        // Update the replacement record
+        await apiRequest('PUT', `/api/replacement-requests/${replacementId}`, {
+          status: 'completed',
+          completionDate: new Date().toISOString().split('T')[0]
+        });
       }
-      return [];
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/replacements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/replacement-requests'] });
       queryClient.invalidateQueries({ queryKey: ['/api/units'] });
       queryClient.invalidateQueries({ queryKey: ['/api/items'] });
       toast({
@@ -155,67 +127,7 @@ export default function Replacements() {
 
   // Fetch replacement data from localStorage (where replacement requests are stored)
   const { data: replacements = [], isLoading } = useQuery({
-    queryKey: ['/api/replacements'],
-    queryFn: async () => {
-      // Get replacement requests from localStorage
-      const storedReplacements = localStorage.getItem('replacementRequests');
-      let replacementData: ReplacementRecord[] = [];
-      
-      if (storedReplacements) {
-        try {
-          replacementData = JSON.parse(storedReplacements);
-        } catch (error) {
-          console.error('Error parsing replacement data:', error);
-        }
-      }
-      
-      // If no data, show some sample data for demonstration
-      if (replacementData.length === 0) {
-        replacementData = [
-          {
-            id: 'sample-1',
-            unitId: 'unit-001',
-            unitSerialNumber: 'LED-1752400001-1',
-            itemName: 'LED Display 55"',
-            itemModel: 'Samsung QN55Q70A',
-            reason: 'warranty',
-            status: 'completed',
-            requestDate: '2025-01-15',
-            completionDate: '2025-01-20',
-            replacementUnitId: 'unit-150',
-            replacementSerialNumber: 'LED-1752400150-1',
-            notes: 'Screen flickering issue reported by customer',
-            vendorName: 'Samsung India',
-            warrantyExpiryDate: '2025-12-31',
-            cost: 0,
-            customerId: '1',
-            customerName: 'Krishna Gurjar'
-          },
-          {
-            id: 'test-replacement-' + Date.now(),
-            unitId: '1752575932110_unit_2',
-            unitSerialNumber: 'I543089001',
-            itemId: '1752575932110',
-            itemName: 'CPU Intel Core i7',
-            itemModel: 'Intel Core i7-12700K',
-            reason: 'defective',
-            status: 'pending',
-            requestDate: new Date().toISOString().split('T')[0],
-            notes: 'Unit showing performance issues and overheating - test replacement',
-            vendorName: 'Intel Corporation',
-            warrantyExpiryDate: '2025-12-31',
-            cost: 45000,
-            customerId: null,
-            customerName: null
-          }
-        ];
-        
-        // Store the test replacement data
-        localStorage.setItem('replacementRequests', JSON.stringify(replacementData));
-      }
-      
-      return replacementData as ReplacementRecord[];
-    },
+    queryKey: ['/api/replacement-requests'],
     refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
 

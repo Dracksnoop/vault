@@ -632,3 +632,38 @@ export type SellOrderItem = typeof sellOrderItems.$inferSelect;
 
 export type InsertCompanyProfile = z.infer<typeof insertCompanyProfileSchema>;
 export type CompanyProfile = typeof companyProfiles.$inferSelect;
+
+// Replacement Request Schema
+export const replacementRequests = pgTable("replacement_requests", {
+  id: text("id").primaryKey(),
+  unitId: text("unit_id").notNull(),
+  unitSerialNumber: text("unit_serial_number").notNull(),
+  itemId: text("item_id"),
+  itemName: text("item_name").notNull(),
+  itemModel: text("item_model"),
+  reason: text("reason").notNull(), // warranty, damage, expired, defective, other
+  status: text("status").notNull().default("pending"), // pending, approved, completed, rejected
+  requestDate: text("request_date").notNull(),
+  approvalDate: text("approval_date"),
+  completionDate: text("completion_date"),
+  replacementUnitId: text("replacement_unit_id"),
+  replacementSerialNumber: text("replacement_serial_number"),
+  notes: text("notes"),
+  vendorName: text("vendor_name").notNull(),
+  warrantyExpiryDate: text("warranty_expiry_date"),
+  cost: decimal("cost", { precision: 10, scale: 2 }).default("0"),
+  customerId: text("customer_id"),
+  customerName: text("customer_name"),
+  userId: integer("user_id").notNull(), // User-specific data
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const insertReplacementRequestSchema = createInsertSchema(replacementRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertReplacementRequest = z.infer<typeof insertReplacementRequestSchema>;
+export type ReplacementRequest = typeof replacementRequests.$inferSelect;

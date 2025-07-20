@@ -39,7 +39,9 @@ import {
   type RecurringInvoiceSchedule,
   type InsertRecurringInvoiceSchedule,
   type CompanyProfile,
-  type InsertCompanyProfile
+  type InsertCompanyProfile,
+  type ReplacementRequest,
+  type InsertReplacementRequest
 } from "@shared/schema";
 import { MongoClient, Db, Collection } from 'mongodb';
 
@@ -202,6 +204,13 @@ export interface IStorage {
   deleteCompanyProfile(id: string): Promise<boolean>;
   setDefaultCompanyProfile(id: string): Promise<boolean>;
   
+  // Replacement Request methods
+  getReplacementRequests(userId?: number): Promise<ReplacementRequest[]>;
+  getReplacementRequest(id: string, userId?: number): Promise<ReplacementRequest | undefined>;
+  createReplacementRequest(request: InsertReplacementRequest): Promise<ReplacementRequest>;
+  updateReplacementRequest(id: string, request: Partial<InsertReplacementRequest>): Promise<ReplacementRequest | undefined>;
+  deleteReplacementRequest(id: string): Promise<boolean>;
+  
   initialize(): Promise<void>;
 }
 
@@ -229,6 +238,7 @@ export class MongoStorage implements IStorage {
   private payments: Collection<Payment>;
   private recurringInvoiceSchedules: Collection<RecurringInvoiceSchedule>;
   private companyProfiles: Collection<CompanyProfile>;
+  private replacementRequests: Collection<ReplacementRequest>;
   private isInitialized = false;
 
   constructor() {
@@ -266,6 +276,7 @@ export class MongoStorage implements IStorage {
       this.payments = this.db.collection<Payment>('payments');
       this.recurringInvoiceSchedules = this.db.collection<RecurringInvoiceSchedule>('recurringInvoiceSchedules');
       this.companyProfiles = this.db.collection<CompanyProfile>('companyProfiles');
+      this.replacementRequests = this.db.collection<ReplacementRequest>('replacementRequests');
       
       // Initialize default categories if they don't exist
       const categoryCount = await this.categories.countDocuments();
@@ -1254,6 +1265,52 @@ export class MongoStorage implements IStorage {
       { $set: { isDefault: true, updatedAt: new Date().toISOString() } }
     );
     return result.matchedCount === 1;
+  }
+
+  // Replacement Request methods
+  async getReplacementRequests(userId?: number): Promise<ReplacementRequest[]> {
+    await this.initialize();
+    if (userId) {
+      return await this.replacementRequests.find({ userId }).toArray();
+    }
+    return await this.replacementRequests.find({}).toArray();
+  }
+
+  async getReplacementRequest(id: string, userId?: number): Promise<ReplacementRequest | undefined> {
+    await this.initialize();
+    const filter = userId ? { id, userId } : { id };
+    const request = await this.replacementRequests.findOne(filter);
+    return request || undefined;
+  }
+
+  async createReplacementRequest(insertRequest: InsertReplacementRequest): Promise<ReplacementRequest> {
+    await this.initialize();
+    const now = new Date().toISOString();
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    const request: ReplacementRequest = { 
+      ...insertRequest,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    await this.replacementRequests.insertOne(request);
+    return request;
+  }
+
+  async updateReplacementRequest(id: string, updateData: Partial<InsertReplacementRequest>): Promise<ReplacementRequest | undefined> {
+    await this.initialize();
+    const result = await this.replacementRequests.findOneAndUpdate(
+      { id },
+      { $set: { ...updateData, updatedAt: new Date().toISOString() } },
+      { returnDocument: 'after' }
+    );
+    return result || undefined;
+  }
+
+  async deleteReplacementRequest(id: string): Promise<boolean> {
+    await this.initialize();
+    const result = await this.replacementRequests.deleteOne({ id });
+    return result.deletedCount === 1;
   }
 }
 

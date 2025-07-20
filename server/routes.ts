@@ -21,7 +21,8 @@ import {
   insertInvoiceItemSchema,
   insertPaymentSchema,
   insertRecurringInvoiceScheduleSchema,
-  insertCompanyProfileSchema
+  insertCompanyProfileSchema,
+  insertReplacementRequestSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -2634,6 +2635,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting default company profile:", error);
       res.status(500).json({ error: "Failed to set default company profile" });
+    }
+  });
+
+  // Replacement Request routes
+  app.get("/api/replacement-requests", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const requests = await storage.getReplacementRequests(userId);
+      res.json(requests);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch replacement requests" });
+    }
+  });
+
+  app.post("/api/replacement-requests", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const validated = insertReplacementRequestSchema.parse({
+        ...req.body,
+        userId
+      });
+      const request = await storage.createReplacementRequest(validated);
+      res.status(201).json(request);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid replacement request data" });
+    }
+  });
+
+  app.put("/api/replacement-requests/:id", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user?.id;
+      const existing = await storage.getReplacementRequest(req.params.id, userId);
+      if (!existing) {
+        return res.status(404).json({ error: "Replacement request not found" });
+      }
+      const validated = insertReplacementRequestSchema.partial().parse(req.body);
+      const updated = await storage.updateReplacementRequest(req.params.id, validated);
+      res.json(updated);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid replacement request update data" });
     }
   });
 
