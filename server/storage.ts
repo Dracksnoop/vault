@@ -56,23 +56,23 @@ export interface IStorage {
   deleteUser(id: number): Promise<boolean>;
   
   // Category methods
-  getCategories(): Promise<Category[]>;
-  getCategory(id: string): Promise<Category | undefined>;
+  getCategories(userId?: number): Promise<Category[]>;
+  getCategory(id: string, userId?: number): Promise<Category | undefined>;
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
   deleteCategory(id: string): Promise<boolean>;
   
   // Item methods
-  getItems(): Promise<Item[]>;
-  getItem(id: string): Promise<Item | undefined>;
-  getItemsByCategory(categoryId: string): Promise<Item[]>;
+  getItems(userId?: number): Promise<Item[]>;
+  getItem(id: string, userId?: number): Promise<Item | undefined>;
+  getItemsByCategory(categoryId: string, userId?: number): Promise<Item[]>;
   createItem(item: InsertItem): Promise<Item>;
   updateItem(id: string, item: Partial<InsertItem>): Promise<Item | undefined>;
   deleteItem(id: string): Promise<boolean>;
   
   // Unit methods
-  getUnits(): Promise<Unit[]>;
-  getUnit(id: string): Promise<Unit | undefined>;
+  getUnits(userId?: number): Promise<Unit[]>;
+  getUnit(id: string, userId?: number): Promise<Unit | undefined>;
   getUnitsByItem(itemId: string, userId?: number): Promise<Unit[]>;
   getUnitBySerialNumber(serialNumber: string, userId?: number): Promise<Unit | undefined>;
   createUnit(unit: InsertUnit): Promise<Unit>;
@@ -341,10 +341,21 @@ export class MongoStorage implements IStorage {
   // Category methods
   async getCategories(userId?: number): Promise<Category[]> {
     await this.initialize();
+    
+    // Debug logging
+    console.log(`getCategories called with userId: ${userId} (type: ${typeof userId})`);
+    
     if (userId) {
-      return await this.categories.find({ userId }).toArray();
+      const filter = { userId };
+      console.log(`Searching with filter:`, filter);
+      const results = await this.categories.find(filter).toArray();
+      console.log(`Found ${results.length} categories for userId ${userId}`);
+      return results;
     }
-    return await this.categories.find({}).toArray();
+    
+    const allResults = await this.categories.find({}).toArray();
+    console.log(`Found ${allResults.length} categories total (no userId filter)`);
+    return allResults;
   }
 
   async getCategory(id: string, userId?: number): Promise<Category | undefined> {
@@ -357,7 +368,13 @@ export class MongoStorage implements IStorage {
   async createCategory(insertCategory: InsertCategory): Promise<Category> {
     await this.initialize();
     const category: Category = { ...insertCategory };
+    
+    // Debug logging
+    console.log('Creating category:', JSON.stringify(category, null, 2));
+    
     await this.categories.insertOne(category);
+    console.log('Category inserted successfully');
+    
     return category;
   }
 
