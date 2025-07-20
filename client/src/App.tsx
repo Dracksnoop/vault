@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NavigationProvider } from "./contexts/NavigationContext";
 import Layout from "./components/Layout";
+import MobileLanding from "./components/MobileLanding";
+import useMobileDetection from "./hooks/useMobileDetection";
 import Home from "./pages/Home";
 import Inventory from "./pages/Inventory";
 import Customer from "./pages/Customer";
@@ -30,6 +32,12 @@ function Router() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPreloading, setIsPreloading] = useState(false);
+  const { isMobile } = useMobileDetection();
+
+  // Show mobile landing page for mobile users
+  if (isMobile) {
+    return <MobileLanding />;
+  }
 
   const preloadAllData = async () => {
     try {
