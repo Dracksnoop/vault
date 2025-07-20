@@ -40,6 +40,7 @@ export default function Employees() {
     status: "active"
   });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [newEmployeePhotoPreview, setNewEmployeePhotoPreview] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -60,6 +61,7 @@ export default function Employees() {
       queryClient.refetchQueries({ queryKey: ["/api/employees"] });
       setIsAddEmployeeOpen(false);
       setNewEmployee({ status: "active" });
+      setNewEmployeePhotoPreview(null);
       toast({
         title: "Employee Added",
         description: "Employee has been successfully added to the system."
@@ -137,7 +139,7 @@ export default function Employees() {
     createEmployeeMutation.mutate(newEmployee);
   };
 
-  // Handle photo upload
+  // Handle photo upload for editing employee
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -169,6 +171,40 @@ export default function Employees() {
       if (editingEmployee) {
         setEditingEmployee({ ...editingEmployee, photo: result });
       }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle photo upload for new employee
+  const handleNewEmployeePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 1MB)
+    if (file.size > 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 1MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a valid image file (JPG, PNG)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setNewEmployeePhotoPreview(result);
+      setNewEmployee({ ...newEmployee, photo: result });
     };
     reader.readAsDataURL(file);
   };
@@ -255,6 +291,57 @@ export default function Employees() {
                     onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })}
                     placeholder="+91 9876543210"
                   />
+                </div>
+
+                {/* Photo Upload Section */}
+                <div className="space-y-2">
+                  <Label htmlFor="newEmployeePhoto">Employee Photo</Label>
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="w-32 h-40 rounded-lg border-2 border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                      {newEmployeePhotoPreview ? (
+                        <img 
+                          src={newEmployeePhotoPreview} 
+                          alt="Employee Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="h-16 w-16 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Input
+                        id="newEmployeePhoto"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleNewEmployeePhotoUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById('newEmployeePhoto')?.click()}
+                      >
+                        Choose Photo
+                      </Button>
+                      {newEmployeePhotoPreview && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setNewEmployeePhotoPreview(null);
+                            setNewEmployee({ ...newEmployee, photo: undefined });
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Upload employee photo (max 1MB, JPG/PNG)
+                    </p>
+                  </div>
                 </div>
               </div>
 
