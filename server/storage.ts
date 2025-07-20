@@ -794,14 +794,18 @@ export class MongoStorage implements IStorage {
   }
 
   // Purchase Order methods
-  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+  async getPurchaseOrders(userId?: number): Promise<PurchaseOrder[]> {
     await this.initialize();
+    if (userId) {
+      return await this.purchaseOrders.find({ userId }).toArray();
+    }
     return await this.purchaseOrders.find({}).toArray();
   }
 
-  async getPurchaseOrder(id: string): Promise<PurchaseOrder | undefined> {
+  async getPurchaseOrder(id: string, userId?: number): Promise<PurchaseOrder | undefined> {
     await this.initialize();
-    const order = await this.purchaseOrders.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const order = await this.purchaseOrders.findOne(filter);
     return order || undefined;
   }
 
@@ -887,14 +891,18 @@ export class MongoStorage implements IStorage {
   }
 
   // Sell Order methods
-  async getSellOrders(): Promise<SellOrder[]> {
+  async getSellOrders(userId?: number): Promise<SellOrder[]> {
     await this.initialize();
+    if (userId) {
+      return await this.sellOrders.find({ userId }).toArray();
+    }
     return await this.sellOrders.find({}).toArray();
   }
 
-  async getSellOrder(id: string): Promise<SellOrder | undefined> {
+  async getSellOrder(id: string, userId?: number): Promise<SellOrder | undefined> {
     await this.initialize();
-    const order = await this.sellOrders.findOne({ id });
+    const filter = userId ? { id, userId } : { id };
+    const order = await this.sellOrders.findOne(filter);
     return order || undefined;
   }
 

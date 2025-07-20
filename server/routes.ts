@@ -1467,9 +1467,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Purchase Order routes
-  app.get("/api/purchase-orders", requireAuth, async (req, res) => {
+  app.get("/api/purchase-orders", requireAuth, async (req: any, res) => {
     try {
-      const orders = await storage.getPurchaseOrders();
+      const userId = req.user?.id;
+      const orders = await storage.getPurchaseOrders(userId);
       res.json(orders);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch purchase orders" });
@@ -1479,7 +1480,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/purchase-orders/:id", requireAuth, async (req, res) => {
     try {
       console.log("Fetching purchase order details for ID:", req.params.id);
-      const order = await storage.getPurchaseOrder(req.params.id);
+      const userId = req.user?.id;
+      const order = await storage.getPurchaseOrder(req.params.id, userId);
       if (!order) {
         console.log("Purchase order not found");
         return res.status(404).json({ error: "Purchase order not found" });
@@ -1544,9 +1546,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/purchase-orders", requireAuth, async (req, res) => {
+  app.post("/api/purchase-orders", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertPurchaseOrderSchema.parse(req.body);
+      const userId = req.user?.id;
+      const validatedData = insertPurchaseOrderSchema.parse({
+        ...req.body,
+        userId
+      });
       const order = await storage.createPurchaseOrder(validatedData);
       res.status(201).json(order);
     } catch (error) {
@@ -1554,21 +1560,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/purchase-orders/:id", requireAuth, async (req, res) => {
+  app.put("/api/purchase-orders/:id", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertPurchaseOrderSchema.parse(req.body);
-      const order = await storage.updatePurchaseOrder(req.params.id, validatedData);
-      if (!order) {
+      const userId = req.user?.id;
+      // Check if purchase order exists and belongs to user
+      const existing = await storage.getPurchaseOrder(req.params.id, userId);
+      if (!existing) {
         return res.status(404).json({ error: "Purchase order not found" });
       }
+      
+      const validatedData = insertPurchaseOrderSchema.partial().parse(req.body);
+      const order = await storage.updatePurchaseOrder(req.params.id, validatedData);
       res.json(order);
     } catch (error) {
       res.status(400).json({ error: "Invalid purchase order data" });
     }
   });
 
-  app.delete("/api/purchase-orders/:id", requireAuth, async (req, res) => {
+  app.delete("/api/purchase-orders/:id", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
+      // Check if purchase order exists and belongs to user
+      const existing = await storage.getPurchaseOrder(req.params.id, userId);
+      if (!existing) {
+        return res.status(404).json({ error: "Purchase order not found" });
+      }
+      
       const deleted = await storage.deletePurchaseOrder(req.params.id);
       if (!deleted) {
         return res.status(404).json({ error: "Purchase order not found" });
@@ -1634,18 +1651,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sell Order routes
-  app.get("/api/sell-orders", requireAuth, async (req, res) => {
+  app.get("/api/sell-orders", requireAuth, async (req: any, res) => {
     try {
-      const orders = await storage.getSellOrders();
+      const userId = req.user?.id;
+      const orders = await storage.getSellOrders(userId);
       res.json(orders);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch sell orders" });
     }
   });
 
-  app.get("/api/sell-orders/:id", requireAuth, async (req, res) => {
+  app.get("/api/sell-orders/:id", requireAuth, async (req: any, res) => {
     try {
-      const order = await storage.getSellOrder(req.params.id);
+      const userId = req.user?.id;
+      const order = await storage.getSellOrder(req.params.id, userId);
       if (!order) {
         return res.status(404).json({ error: "Sell order not found" });
       }
@@ -1658,12 +1677,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/sell-orders", requireAuth, async (req, res) => {
+  app.post("/api/sell-orders", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
       const { items, ...orderData } = req.body;
       
-      // Validate main order data
-      const validatedOrderData = insertSellOrderSchema.parse(orderData);
+      // Validate main order data and add userId
+      const validatedOrderData = insertSellOrderSchema.parse({
+        ...orderData,
+        userId
+      });
       
       // Create the sell order
       const sellOrder = await storage.createSellOrder(validatedOrderData);
@@ -1716,21 +1739,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/sell-orders/:id", requireAuth, async (req, res) => {
+  app.put("/api/sell-orders/:id", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertSellOrderSchema.parse(req.body);
-      const order = await storage.updateSellOrder(req.params.id, validatedData);
-      if (!order) {
+      const userId = req.user?.id;
+      // Check if sell order exists and belongs to user
+      const existing = await storage.getSellOrder(req.params.id, userId);
+      if (!existing) {
         return res.status(404).json({ error: "Sell order not found" });
       }
+      
+      const validatedData = insertSellOrderSchema.partial().parse(req.body);
+      const order = await storage.updateSellOrder(req.params.id, validatedData);
       res.json(order);
     } catch (error) {
       res.status(400).json({ error: "Invalid sell order data" });
     }
   });
 
-  app.delete("/api/sell-orders/:id", requireAuth, async (req, res) => {
+  app.delete("/api/sell-orders/:id", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
+      // Check if sell order exists and belongs to user
+      const existing = await storage.getSellOrder(req.params.id, userId);
+      if (!existing) {
+        return res.status(404).json({ error: "Sell order not found" });
+      }
+      
       const deleted = await storage.deleteSellOrder(req.params.id);
       if (!deleted) {
         return res.status(404).json({ error: "Sell order not found" });
