@@ -555,7 +555,6 @@ export const employees = pgTable("employees", {
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
   employeeId: true,
-  userId: true,
   createdAt: true,
 });
 
