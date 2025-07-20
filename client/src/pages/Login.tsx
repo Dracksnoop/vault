@@ -11,9 +11,10 @@ import VaultLoader from "@/components/VaultLoader";
 
 interface LoginProps {
   onLogin: (user: any) => void;
+  onBackToLanding?: () => void;
 }
 
-export default function Login({ onLogin }: LoginProps) {
+export default function Login({ onLogin, onBackToLanding }: LoginProps) {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [isPreloading, setIsPreloading] = useState(false);
   const { toast } = useToast();
@@ -94,6 +95,14 @@ export default function Login({ onLogin }: LoginProps) {
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-black">
         <CardHeader className="text-center border-b border-black">
+          {onBackToLanding && (
+            <button
+              onClick={onBackToLanding}
+              className="mb-4 text-sm text-gray-600 hover:text-gray-800 underline text-left"
+            >
+              ← Back to Homepage
+            </button>
+          )}
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 bg-white border border-black rounded-lg flex items-center justify-center">
               <img src={logoPath} alt="Vault Logo" className="w-8 h-8" />

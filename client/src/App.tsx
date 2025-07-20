@@ -27,6 +27,7 @@ import Support from "./pages/Support";
 import Admin from "./pages/Admin";
 import AdminDashboard from "./pages/AdminDashboard";
 import Login from "./pages/Login";
+import LandingPage from "./pages/LandingPage";
 import QRScanDashboard from "./pages/QRScanDashboard";
 import NotFound from "@/pages/not-found";
 import VaultLoader from "./components/VaultLoader";
@@ -37,6 +38,7 @@ function Router() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPreloading, setIsPreloading] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const { isMobile } = useMobileDetection();
   
   // Use try-catch to handle cases where Router might be outside InvoiceProvider
@@ -107,6 +109,7 @@ function Router() {
 
   const handleLogin = (userData: any) => {
     setUser(userData);
+    setShowLogin(false);
   };
 
   const handleLogout = async () => {
@@ -117,6 +120,7 @@ function Router() {
     }
     localStorage.removeItem("authToken");
     setUser(null);
+    setShowLogin(false);
   };
 
   // Show mobile landing page for mobile users (after all hooks are called)
@@ -142,7 +146,11 @@ function Router() {
             description="Loading all system data for optimal performance"
           />
         ) : !user ? (
-          <Login onLogin={handleLogin} />
+          showLogin ? (
+            <Login onLogin={handleLogin} onBackToLanding={() => setShowLogin(false)} />
+          ) : (
+            <LandingPage onAccessDashboard={() => setShowLogin(true)} />
+          )
         ) : user.username === 'admin' ? (
           <AdminDashboard user={user} onLogout={handleLogout} />
         ) : (
