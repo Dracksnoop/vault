@@ -628,7 +628,7 @@ export default function Inventory() {
               itemId: editingItem,
               serialNumber: generateSerialNumber(editItemData.name, existingUnits.length + i),
               barcode: generateBarcode().toString(),
-              status: "In Stock",
+              status: "Available",
               location: editItemData.location || "Warehouse",
               warrantyExpiry: "",
               notes: "Auto-generated unit from quantity update"
@@ -638,12 +638,12 @@ export default function Inventory() {
           
           await Promise.all(unitPromises);
         } else if (newQuantity < originalQuantity) {
-          // Quantity decreased - remove excess units (prioritize "In Stock" units)
+          // Quantity decreased - remove excess units (prioritize "Available" units)
           const unitsToRemove = originalQuantity - newQuantity;
           const sortedUnits = [...existingUnits].sort((a, b) => {
-            // Prioritize removing "In Stock" units first
-            if (a.status === "In Stock" && b.status !== "In Stock") return -1;
-            if (a.status !== "In Stock" && b.status === "In Stock") return 1;
+            // Prioritize removing "Available" units first
+            if (a.status === "Available" && b.status !== "Available") return -1;
+            if (a.status !== "Available" && b.status === "Available") return 1;
             return 0;
           });
           
@@ -1094,7 +1094,7 @@ export default function Inventory() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="border-black">
-                              <SelectItem value="In Stock">In Stock</SelectItem>
+                              <SelectItem value="Available">Available</SelectItem>
                               <SelectItem value="Rented">Rented</SelectItem>
                               <SelectItem value="Maintenance">Maintenance</SelectItem>
                               <SelectItem value="Retired">Retired</SelectItem>
@@ -1426,7 +1426,7 @@ export default function Inventory() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-black">
-                  <SelectItem value="In Stock">In Stock</SelectItem>
+                  <SelectItem value="Available">Available</SelectItem>
                   <SelectItem value="Rented">Rented</SelectItem>
                   <SelectItem value="Maintenance">Maintenance</SelectItem>
                   <SelectItem value="Retired">Retired</SelectItem>
