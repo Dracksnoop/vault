@@ -39,6 +39,7 @@ export default function Employees() {
   const [newEmployee, setNewEmployee] = useState<Partial<InsertEmployee>>({
     status: "active"
   });
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -80,6 +81,7 @@ export default function Employees() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       setEditingEmployee(null);
+      setPhotoPreview(null);
       toast({
         title: "Employee Updated",
         description: "Employee information has been updated successfully."
@@ -133,6 +135,42 @@ export default function Employees() {
     }
 
     createEmployeeMutation.mutate(newEmployee);
+  };
+
+  // Handle photo upload
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (max 1MB)
+    if (file.size > 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 1MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a valid image file (JPG, PNG)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setPhotoPreview(result);
+      if (editingEmployee) {
+        setEditingEmployee({ ...editingEmployee, photo: result });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleUpdateEmployee = () => {
@@ -519,15 +557,28 @@ export default function Employees() {
                     <Card key={employee.id} className="border border-gray-200 hover:shadow-lg transition-shadow">
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <div>
+                          <div className="flex-1">
                             <CardTitle className="text-lg">
                               {employee.firstName} {employee.lastName}
                             </CardTitle>
                             <p className="text-sm text-muted-foreground">{employee.employeeId}</p>
                           </div>
-                          <Badge variant={getStatusBadgeVariant(employee.status)}>
-                            {employee.status}
-                          </Badge>
+                          <div className="flex flex-col items-end space-y-2">
+                            <Badge variant={getStatusBadgeVariant(employee.status)}>
+                              {employee.status}
+                            </Badge>
+                            <div className="w-16 h-16 rounded-lg border-2 border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                              {employee.photo ? (
+                                <img 
+                                  src={employee.photo} 
+                                  alt={`${employee.firstName} ${employee.lastName}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <User className="h-8 w-8 text-gray-400" />
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-2">
@@ -559,7 +610,10 @@ export default function Employees() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setEditingEmployee(employee)}
+                            onClick={() => {
+                              setEditingEmployee(employee);
+                              setPhotoPreview(employee.photo || null);
+                            }}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -671,7 +725,10 @@ export default function Employees() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setEditingEmployee(employee)}
+                            onClick={() => {
+                              setEditingEmployee(employee);
+                              setPhotoPreview(employee.photo || null);
+                            }}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -806,6 +863,57 @@ export default function Employees() {
                     value={editingEmployee.salary || ""}
                     onChange={(e) => setEditingEmployee({ ...editingEmployee, salary: e.target.value })}
                   />
+                </div>
+                
+                {/* Photo Upload Section */}
+                <div className="space-y-2">
+                  <Label htmlFor="editPhoto">Employee Photo</Label>
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="w-24 h-24 rounded-lg border-2 border-gray-200 overflow-hidden bg-gray-50 flex items-center justify-center">
+                      {photoPreview || editingEmployee.photo ? (
+                        <img 
+                          src={photoPreview || editingEmployee.photo} 
+                          alt="Employee Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <User className="h-12 w-12 text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Input
+                        id="editPhoto"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => document.getElementById('editPhoto')?.click()}
+                      >
+                        Choose Photo
+                      </Button>
+                      {(photoPreview || editingEmployee.photo) && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setPhotoPreview(null);
+                            setEditingEmployee({ ...editingEmployee, photo: undefined });
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      Upload passport size photo (max 1MB, JPG/PNG)
+                    </p>
+                  </div>
                 </div>
               </div>
 

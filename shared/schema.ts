@@ -548,6 +548,7 @@ export const employees = pgTable("employees", {
   bankName: text("bank_name"),
   status: text("status").notNull().default("active"), // active, inactive, terminated
   notes: text("notes"),
+  photo: text("photo"), // Base64 encoded photo data
   userId: integer("user_id").notNull(),
   createdAt: text("created_at").notNull(),
 });
