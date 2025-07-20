@@ -135,9 +135,7 @@ export default function Customer() {
 
   const deleteMutation = useMutation({
     mutationFn: async (customerId: number) => {
-      const response = await apiRequest(`/api/customers/${customerId}`, {
-        method: 'DELETE',
-      });
+      const response = await apiRequest('DELETE', `/api/customers/${customerId}`);
       return response;
     },
     onSuccess: () => {

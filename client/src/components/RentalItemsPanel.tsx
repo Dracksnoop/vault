@@ -374,14 +374,11 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       for (const pendingItem of pendingItems) {
         // Update unit statuses to rented and assign to customer
         await Promise.all(pendingItem.units.map((unitId: string) => 
-          apiRequest(`/api/units/${unitId}`, {
-            method: 'PUT',
-            body: { 
-              status: 'Rented',
-              currentCustomerId: customerId,
-              rentedBy: customerId,
-              serviceId: serviceId
-            }
+          apiRequest('PUT', `/api/units/${unitId}`, { 
+            status: 'Rented',
+            currentCustomerId: customerId,
+            rentedBy: customerId,
+            serviceId: serviceId
           })
         ));
         
@@ -395,26 +392,20 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
           const newQuantity = existingServiceItem.quantity + pendingItem.units.length;
           const newTotalValue = (parseFloat(pendingItem.unitPrice) * newQuantity).toFixed(2);
           
-          await apiRequest(`/api/service-items/${existingServiceItem.id}`, {
-            method: 'PUT',
-            body: {
-              quantity: newQuantity,
-              unitPrice: pendingItem.unitPrice,
-              totalValue: newTotalValue
-            }
+          await apiRequest('PUT', `/api/service-items/${existingServiceItem.id}`, {
+            quantity: newQuantity,
+            unitPrice: pendingItem.unitPrice,
+            totalValue: newTotalValue
           });
         } else {
           // Create new service item record
-          await apiRequest('/api/service-items', {
-            method: 'POST',
-            body: {
-              id: `service-item-${Date.now()}-${Math.random()}`,
-              serviceId: serviceId,
-              itemId: pendingItem.itemId,
-              quantity: pendingItem.units.length,
-              unitPrice: pendingItem.unitPrice,
-              totalValue: pendingItem.totalValue.toString()
-            }
+          await apiRequest('POST', '/api/service-items', {
+            id: `service-item-${Date.now()}-${Math.random()}`,
+            serviceId: serviceId,
+            itemId: pendingItem.itemId,
+            quantity: pendingItem.units.length,
+            unitPrice: pendingItem.unitPrice,
+            totalValue: pendingItem.totalValue.toString()
           });
         }
       }
@@ -428,8 +419,8 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       // Create timeline entry showing complete rental snapshot after all changes
       try {
         // Get updated service items and units to ensure we have the latest state
-        const updatedServiceItems = await apiRequest('/api/service-items');
-        const updatedUnits = await apiRequest('/api/units');
+        const updatedServiceItems = await apiRequest('GET', '/api/service-items');
+        const updatedUnits = await apiRequest('GET', '/api/units');
         
         // Filter service items for this customer
         const customerServiceItems = updatedServiceItems.filter((item: any) => 
@@ -468,18 +459,15 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         const totalRentalValue = completeItemsSnapshot.reduce((sum: number, item: any) => 
           sum + (item.unitPrice * item.units.length), 0);
         
-        await apiRequest(`/api/customers/${customerId}/timeline`, {
-          method: 'POST',
-          body: {
-            id: `timeline-${Date.now()}`,
-            customerId: parseInt(customerId.toString()),
-            serviceId: serviceId,
-            changeType: 'added',
-            title: 'Items Added to Rental',
-            description: `Added ${pendingItems.length} new item type(s) to rental (Total: ${completeItemsSnapshot.length} item types)`,
-            itemsSnapshot: JSON.stringify(completeItemsSnapshot),
-            totalValue: totalRentalValue.toString()
-          }
+        await apiRequest('POST', `/api/customers/${customerId}/timeline`, {
+          id: `timeline-${Date.now()}`,
+          customerId: parseInt(customerId.toString()),
+          serviceId: serviceId,
+          changeType: 'added',
+          title: 'Items Added to Rental',
+          description: `Added ${pendingItems.length} new item type(s) to rental (Total: ${completeItemsSnapshot.length} item types)`,
+          itemsSnapshot: JSON.stringify(completeItemsSnapshot),
+          totalValue: totalRentalValue.toString()
         });
       } catch (timelineError) {
         console.warn('Failed to create timeline entry:', timelineError);

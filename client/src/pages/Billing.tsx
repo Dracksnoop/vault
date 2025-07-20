@@ -317,6 +317,7 @@ export default function Billing() {
     try {
       console.log('Downloading invoice:', invoice.id);
       
+      // Use fetch for PDF download since apiRequest doesn't handle blob responses
       const response = await fetch('/api/invoices/download', {
         method: 'POST',
         headers: {
@@ -485,11 +486,12 @@ export default function Billing() {
         notes: `This is recurring invoice for ${schedule.frequency} billing cycle. Next invoice will be generated on: ${new Date(new Date(schedule.nextInvoiceDate).setMonth(new Date(schedule.nextInvoiceDate).getMonth() + (schedule.frequency === 'monthly' ? 1 : schedule.frequency === 'quarterly' ? 3 : 12))).toLocaleDateString('en-IN')}`
       };
 
-      // Generate and download PDF
+      // Generate and download PDF using fetch for blob response
       const response = await fetch('/api/invoices/generate-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify(invoiceData),
       });
