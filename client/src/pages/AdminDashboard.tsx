@@ -55,8 +55,26 @@ export default function AdminDashboard({ onLogout, user }: AdminDashboardProps) 
 
   const createUserMutation = useMutation({
     mutationFn: async (userData: { username: string; password: string }) => {
-      const response = await apiRequest("POST", "/api/users", userData);
-      return await response.json();
+      try {
+        const response = await fetch("/api/users", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+          body: JSON.stringify(userData),
+        });
+
+        const responseData = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(responseData.error || responseData.message || `Error: ${response.status}`);
+        }
+
+        return responseData;
+      } catch (error: any) {
+        throw new Error(error.message || "Failed to create user");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -67,6 +85,7 @@ export default function AdminDashboard({ onLogout, user }: AdminDashboardProps) 
       });
     },
     onError: (error: any) => {
+      console.error("Create user error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create user",
@@ -77,8 +96,24 @@ export default function AdminDashboard({ onLogout, user }: AdminDashboardProps) 
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const response = await apiRequest("DELETE", `/api/users/${userId}`);
-      return await response.json();
+      try {
+        const response = await fetch(`/api/users/${userId}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        });
+
+        const responseData = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(responseData.error || responseData.message || `Error: ${response.status}`);
+        }
+
+        return responseData;
+      } catch (error: any) {
+        throw new Error(error.message || "Failed to delete user");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -88,6 +123,7 @@ export default function AdminDashboard({ onLogout, user }: AdminDashboardProps) 
       });
     },
     onError: (error: any) => {
+      console.error("Delete user error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to delete user",
