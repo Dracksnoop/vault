@@ -184,14 +184,7 @@ export default function Inventory() {
   const [totalUnitsToCreate, setTotalUnitsToCreate] = useState(0);
   const [currentUnitCreation, setCurrentUnitCreation] = useState("");
 
-  // Auto-select first category when categories are loaded
-  useEffect(() => {
-    if (categories && categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0].id);
-    }
-  }, [categories, selectedCategory]);
-
-  // API queries with proper refetch configuration
+  // API queries with proper refetch configuration - MUST come before useEffect
   const { data: categories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: () => apiRequest("GET", "/api/categories"),
@@ -199,6 +192,13 @@ export default function Inventory() {
     refetchOnMount: true,
     staleTime: 0,
   });
+
+  // Auto-select first category when categories are loaded
+  useEffect(() => {
+    if (categories && categories.length > 0 && !selectedCategory) {
+      setSelectedCategory(categories[0].id);
+    }
+  }, [categories, selectedCategory]);
 
   const { data: items = [], isLoading: itemsLoading } = useQuery({
     queryKey: ["/api/items"],
@@ -294,8 +294,11 @@ export default function Inventory() {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
-      if (categories && categories.length > 0) {
-        setSelectedCategory(categories[0].id);
+      // Get fresh categories data and set first category if available
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      const freshCategories = queryClient.getQueryData(["/api/categories"]) as any[] || [];
+      if (freshCategories && freshCategories.length > 0) {
+        setSelectedCategory(freshCategories[0].id);
       } else {
         setSelectedCategory("");
       }
