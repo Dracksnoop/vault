@@ -552,30 +552,9 @@ export const employees = pgTable("employees", {
   createdAt: text("created_at").notNull(),
 });
 
-export const insertEmployeeSchema = createInsertSchema(employees).pick({
+export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
   employeeId: true,
-  firstName: true,
-  lastName: true,
-  email: true,
-  phone: true,
-  role: true,
-  department: true,
-  joiningDate: true,
-  salary: true,
-  address: true,
-  city: true,
-  state: true,
-  pincode: true,
-  emergencyContactName: true,
-  emergencyContactPhone: true,
-  idProofType: true,
-  idProofNumber: true,
-  bankAccountNumber: true,
-  bankIfscCode: true,
-  bankName: true,
-  status: true,
-  notes: true,
   userId: true,
   createdAt: true,
 });
