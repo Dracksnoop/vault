@@ -98,8 +98,19 @@ export default function QRScanDashboard() {
 
   const fetchUnitDetails = async (serialNum: string) => {
     try {
-      // Fetch unit details by serial number using the new API endpoint
-      const response = await apiRequest(`/api/units/serial/${serialNum}`);
+      console.log('Fetching unit details for:', serialNum);
+      
+      // Get the auth token from localStorage
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        setLoginError("Authentication token missing. Please login again.");
+        return;
+      }
+      
+      // Fetch unit details by serial number using the authenticated API endpoint
+      const response = await apiRequest('GET', `/api/units/serial/${serialNum}`);
+      
+      console.log('Unit details response:', response);
       
       if (response.unitDetails) {
         setUnitDetails(response.unitDetails);
@@ -109,7 +120,7 @@ export default function QRScanDashboard() {
       }
     } catch (error) {
       console.error('Error fetching unit details:', error);
-      setLoginError("Unit not found in system");
+      setLoginError("Unit not found in system or access denied");
     }
   };
 

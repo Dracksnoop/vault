@@ -447,9 +447,13 @@ export class MongoStorage implements IStorage {
     return await this.units.find(filter).toArray();
   }
 
-  async getUnitBySerialNumber(serialNumber: string): Promise<Unit | undefined> {
+  async getUnitBySerialNumber(serialNumber: string, userId?: number): Promise<Unit | undefined> {
     await this.initialize();
-    const unit = await this.units.findOne({ serialNumber });
+    const query: any = { serialNumber };
+    if (userId) {
+      query.userId = userId;
+    }
+    const unit = await this.units.findOne(query);
     return unit || undefined;
   }
 
@@ -1473,8 +1477,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.units.values()).filter(unit => unit.itemId === itemId);
   }
 
-  async getUnitBySerialNumber(serialNumber: string): Promise<Unit | undefined> {
-    return Array.from(this.units.values()).find(unit => unit.serialNumber === serialNumber);
+  async getUnitBySerialNumber(serialNumber: string, userId?: number): Promise<Unit | undefined> {
+    return Array.from(this.units.values()).find(unit => 
+      unit.serialNumber === serialNumber && (!userId || unit.userId === userId)
+    );
   }
 
   async createUnit(insertUnit: InsertUnit): Promise<Unit> {
