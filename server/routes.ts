@@ -130,7 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management routes
-  app.get("/api/users", async (req, res) => {
+  app.get("/api/users", requireAuth, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       res.json(users);
@@ -156,7 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/users/:id", async (req, res) => {
+  app.delete("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const deleted = await storage.deleteUser(id);
@@ -169,19 +169,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Inventory routes
-  app.get("/api/inventory", async (req, res) => {
+  // Inventory routes (legacy - not used but kept for compatibility)
+  app.get("/api/inventory", requireAuth, async (req: any, res) => {
     try {
-      const inventory = await storage.getInventory();
+      const userId = req.user?.id;
+      const inventory = await storage.getInventory(userId);
       res.json(inventory);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch inventory" });
     }
   });
 
-  app.post("/api/inventory", async (req, res) => {
+  app.post("/api/inventory", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertInventorySchema.parse(req.body);
+      const userId = req.user?.id;
+      const validatedData = insertInventorySchema.parse({
+        ...req.body,
+        userId
+      });
       const item = await storage.createInventoryItem(validatedData);
       res.json(item);
     } catch (error) {
@@ -189,10 +194,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/inventory/:id", async (req, res) => {
+  app.get("/api/inventory/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const item = await storage.getInventoryItem(id);
+      const userId = req.user?.id;
+      const item = await storage.getInventoryItem(id, userId);
       if (!item) {
         return res.status(404).json({ error: "Item not found" });
       }
@@ -202,23 +208,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/inventory/:id", async (req, res) => {
+  app.put("/api/inventory/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
-      const validatedData = insertInventorySchema.partial().parse(req.body);
-      const item = await storage.updateInventoryItem(id, validatedData);
-      if (!item) {
+      const userId = req.user?.id;
+      // Check if item exists and belongs to user
+      const existing = await storage.getInventoryItem(id, userId);
+      if (!existing) {
         return res.status(404).json({ error: "Item not found" });
       }
+      
+      const validatedData = insertInventorySchema.partial().parse(req.body);
+      const item = await storage.updateInventoryItem(id, validatedData);
       res.json(item);
     } catch (error) {
       res.status(400).json({ error: "Invalid inventory data" });
     }
   });
 
-  app.delete("/api/inventory/:id", async (req, res) => {
+  app.delete("/api/inventory/:id", requireAuth, async (req: any, res) => {
     try {
       const id = parseInt(req.params.id);
+      const userId = req.user?.id;
+      // Check if item exists and belongs to user
+      const existing = await storage.getInventoryItem(id, userId);
+      if (!existing) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+      
       const deleted = await storage.deleteInventoryItem(id);
       if (!deleted) {
         return res.status(404).json({ error: "Item not found" });
@@ -614,9 +631,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/services/:id", async (req, res) => {
+  app.get("/api/services/:id", requireAuth, async (req: any, res) => {
     try {
-      const service = await storage.getService(req.params.id);
+      const userId = req.user?.id;
+      const service = await storage.getService(req.params.id, userId);
       if (!service) {
         return res.status(404).json({ error: "Service not found" });
       }
@@ -651,10 +669,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/customers/:customerId/services", async (req, res) => {
+  app.get("/api/customers/:customerId/services", requireAuth, async (req: any, res) => {
     try {
       const customerId = parseInt(req.params.customerId);
-      const services = await storage.getServicesByCustomer(customerId);
+      const userId = req.user?.id;
+      const services = await storage.getServicesByCustomer(customerId, userId);
       res.json(services);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch customer services" });
@@ -686,30 +705,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/services/:serviceId/items", async (req, res) => {
+  app.get("/api/services/:serviceId/items", requireAuth, async (req: any, res) => {
     try {
-      const serviceItems = await storage.getServiceItemsByService(req.params.serviceId);
+      const userId = req.user?.id;
+      const serviceItems = await storage.getServiceItemsByService(req.params.serviceId, userId);
       res.json(serviceItems);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch service items" });
     }
   });
 
-  app.put("/api/service-items/:id", async (req, res) => {
+  app.put("/api/service-items/:id", requireAuth, async (req: any, res) => {
     try {
-      const validatedData = insertServiceItemSchema.partial().parse(req.body);
-      const serviceItem = await storage.updateServiceItem(req.params.id, validatedData);
-      if (!serviceItem) {
+      const userId = req.user?.id;
+      // Check if item exists and belongs to user
+      const existing = await storage.getServiceItem(req.params.id, userId);
+      if (!existing) {
         return res.status(404).json({ error: "Service item not found" });
       }
+      
+      const validatedData = insertServiceItemSchema.partial().parse(req.body);
+      const serviceItem = await storage.updateServiceItem(req.params.id, validatedData);
       res.json(serviceItem);
     } catch (error) {
       res.status(400).json({ error: "Invalid service item data" });
     }
   });
 
-  app.delete("/api/service-items/:id", async (req, res) => {
+  app.delete("/api/service-items/:id", requireAuth, async (req: any, res) => {
     try {
+      const userId = req.user?.id;
+      // Check if item exists and belongs to user
+      const existing = await storage.getServiceItem(req.params.id, userId);
+      if (!existing) {
+        return res.status(404).json({ error: "Service item not found" });
+      }
+      
       const deleted = await storage.deleteServiceItem(req.params.id);
       if (!deleted) {
         return res.status(404).json({ error: "Service item not found" });
@@ -745,9 +776,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/rentals/:id", async (req, res) => {
+  app.get("/api/rentals/:id", requireAuth, async (req: any, res) => {
     try {
-      const rental = await storage.getRental(req.params.id);
+      const userId = req.user?.id;
+      const rental = await storage.getRental(req.params.id, userId);
       if (!rental) {
         return res.status(404).json({ error: "Rental not found" });
       }
@@ -782,19 +814,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/customers/:customerId/rentals", async (req, res) => {
+  app.get("/api/customers/:customerId/rentals", requireAuth, async (req: any, res) => {
     try {
       const customerId = parseInt(req.params.customerId);
-      const rentals = await storage.getRentalsByCustomer(customerId);
+      const userId = req.user?.id;
+      const rentals = await storage.getRentalsByCustomer(customerId, userId);
       res.json(rentals);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch customer rentals" });
     }
   });
 
-  app.get("/api/services/:serviceId/rentals", async (req, res) => {
+  app.get("/api/services/:serviceId/rentals", requireAuth, async (req: any, res) => {
     try {
-      const rentals = await storage.getRentalsByService(req.params.serviceId);
+      const userId = req.user?.id;
+      const rentals = await storage.getRentalsByService(req.params.serviceId, userId);
       res.json(rentals);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch service rentals" });
@@ -1166,10 +1200,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get available units for item selection
-  app.get("/api/items/:itemId/available-units", async (req, res) => {
+  app.get("/api/items/:itemId/available-units", requireAuth, async (req: any, res) => {
     try {
       const { itemId } = req.params;
-      const units = await storage.getUnitsByItem(itemId);
+      const userId = req.user?.id;
+      const units = await storage.getUnitsByItem(itemId, userId);
       const availableUnits = units.filter(unit => 
         unit.status === 'Available' && !unit.currentCustomerId
       );
@@ -1181,18 +1216,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get unit details by serial number (for QR scanning)
-  app.get("/api/units/serial/:serialNumber", async (req, res) => {
+  app.get("/api/units/serial/:serialNumber", requireAuth, async (req: any, res) => {
     try {
       const { serialNumber } = req.params;
+      const userId = req.user?.id;
       
-      // Find unit by serial number
-      const unit = await storage.getUnitBySerialNumber(serialNumber);
+      // Find unit by serial number (with user filtering)
+      const unit = await storage.getUnitBySerialNumber(serialNumber, userId);
       if (!unit) {
         return res.status(404).json({ error: "Unit not found" });
       }
       
       // Get associated item details
-      const item = await storage.getItem(unit.itemId);
+      const item = await storage.getItem(unit.itemId, userId);
       if (!item) {
         return res.status(404).json({ error: "Item not found for this unit" });
       }

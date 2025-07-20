@@ -114,6 +114,7 @@ export const inventory = pgTable("inventory", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   category: text("category").notNull(),
   description: text("description"),
+  userId: integer("user_id").notNull(), // User-specific data
 });
 
 export const customers = pgTable("customers", {

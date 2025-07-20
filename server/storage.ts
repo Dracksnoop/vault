@@ -73,8 +73,8 @@ export interface IStorage {
   // Unit methods
   getUnits(): Promise<Unit[]>;
   getUnit(id: string): Promise<Unit | undefined>;
-  getUnitsByItem(itemId: string): Promise<Unit[]>;
-  getUnitBySerialNumber(serialNumber: string): Promise<Unit | undefined>;
+  getUnitsByItem(itemId: string, userId?: number): Promise<Unit[]>;
+  getUnitBySerialNumber(serialNumber: string, userId?: number): Promise<Unit | undefined>;
   createUnit(unit: InsertUnit): Promise<Unit>;
   updateUnit(id: string, unit: Partial<InsertUnit>): Promise<Unit | undefined>;
   deleteUnit(id: string): Promise<boolean>;
@@ -95,31 +95,31 @@ export interface IStorage {
   
   // Service methods
   getServices(): Promise<Service[]>;
-  getService(id: string): Promise<Service | undefined>;
-  getServicesByCustomer(customerId: number): Promise<Service[]>;
+  getService(id: string, userId?: number): Promise<Service | undefined>;
+  getServicesByCustomer(customerId: number, userId?: number): Promise<Service[]>;
   createService(service: InsertService): Promise<Service>;
   updateService(id: string, service: Partial<InsertService>): Promise<Service | undefined>;
   deleteService(id: string): Promise<boolean>;
   
   // Service Item methods
   getServiceItems(): Promise<ServiceItem[]>;
-  getServiceItem(id: string): Promise<ServiceItem | undefined>;
-  getServiceItemsByService(serviceId: string): Promise<ServiceItem[]>;
+  getServiceItem(id: string, userId?: number): Promise<ServiceItem | undefined>;
+  getServiceItemsByService(serviceId: string, userId?: number): Promise<ServiceItem[]>;
   createServiceItem(serviceItem: InsertServiceItem): Promise<ServiceItem>;
   updateServiceItem(id: string, serviceItem: Partial<InsertServiceItem>): Promise<ServiceItem | undefined>;
   deleteServiceItem(id: string): Promise<boolean>;
   
   // Rental methods
   getRentals(): Promise<Rental[]>;
-  getRental(id: string): Promise<Rental | undefined>;
-  getRentalsByCustomer(customerId: number): Promise<Rental[]>;
-  getRentalsByService(serviceId: string): Promise<Rental[]>;
+  getRental(id: string, userId?: number): Promise<Rental | undefined>;
+  getRentalsByCustomer(customerId: number, userId?: number): Promise<Rental[]>;
+  getRentalsByService(serviceId: string, userId?: number): Promise<Rental[]>;
   createRental(rental: InsertRental): Promise<Rental>;
   updateRental(id: string, rental: Partial<InsertRental>): Promise<Rental | undefined>;
   deleteRental(id: string): Promise<boolean>;
   
   // Rental Timeline methods
-  getRentalTimeline(customerId: number): Promise<RentalTimeline[]>;
+  getRentalTimeline(customerId: number, userId?: number): Promise<RentalTimeline[]>;
   createRentalTimelineEntry(entry: InsertRentalTimeline): Promise<RentalTimeline>;
   
   // Vendor methods
