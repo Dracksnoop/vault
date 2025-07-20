@@ -598,12 +598,16 @@ export const insertCallServiceSchema = createInsertSchema(callServices).omit({
   callNumber: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  userId: z.number().optional(),
 });
 export type InsertCallService = z.infer<typeof insertCallServiceSchema>;
 export type CallService = typeof callServices.$inferSelect;
 
 export const insertCallServiceItemSchema = createInsertSchema(callServiceItems).omit({
   id: true,
+}).extend({
+  userId: z.number().optional(),
 });
 export type InsertCallServiceItem = z.infer<typeof insertCallServiceItemSchema>;
 export type CallServiceItem = typeof callServiceItems.$inferSelect;

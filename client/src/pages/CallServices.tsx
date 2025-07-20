@@ -44,30 +44,37 @@ const Stepper = ({ currentStep, totalSteps }: StepperProps) => {
   ];
 
   return (
-    <div className="flex items-center justify-between mb-8">
-      {steps.map((step, index) => (
-        <div key={index} className="flex items-center">
-          <div className="flex items-center">
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                ${index + 1 < currentStep
-                  ? "bg-green-500 text-white"
-                  : index + 1 === currentStep
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-200 text-gray-600"
-                }`}
-            >
-              {index + 1 < currentStep ? <CheckCircle className="w-4 h-4" /> : index + 1}
+    <div className="w-full mb-8">
+      <div className="flex items-center justify-between w-full overflow-x-auto pb-2">
+        {steps.map((step, index) => (
+          <div key={index} className="flex items-center flex-shrink-0">
+            <div className="flex items-center">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0
+                  ${index + 1 < currentStep
+                    ? "bg-green-500 text-white"
+                    : index + 1 === currentStep
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-200 text-gray-600"
+                  }`}
+              >
+                {index + 1 < currentStep ? <CheckCircle className="w-5 h-5" /> : index + 1}
+              </div>
+              <div className="ml-3 flex-shrink-0">
+                <div className={`text-sm font-medium ${index + 1 === currentStep ? "text-blue-600" : "text-gray-600"}`}>
+                  Step {index + 1}
+                </div>
+                <div className={`text-xs ${index + 1 === currentStep ? "text-blue-600 font-medium" : "text-gray-500"}`}>
+                  {step}
+                </div>
+              </div>
             </div>
-            <span className={`ml-2 text-sm ${index + 1 === currentStep ? "font-medium" : "text-gray-600"}`}>
-              {step}
-            </span>
+            {index < steps.length - 1 && (
+              <div className={`w-8 h-0.5 mx-6 flex-shrink-0 ${index + 1 < currentStep ? "bg-green-500" : "bg-gray-200"}`} />
+            )}
           </div>
-          {index < steps.length - 1 && (
-            <div className={`w-12 h-0.5 mx-4 ${index + 1 < currentStep ? "bg-green-500" : "bg-gray-200"}`} />
-          )}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };
@@ -320,7 +327,7 @@ export default function CallServices() {
                   className="pl-10"
                 />
               </div>
-              <div className="max-h-60 overflow-y-auto space-y-2">
+              <div className="max-h-80 overflow-y-auto space-y-2">
                 {customers
                   .filter((customer: Customer) =>
                     customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -473,7 +480,7 @@ export default function CallServices() {
                   className="pl-10"
                 />
               </div>
-              <div className="max-h-60 overflow-y-auto space-y-2">
+              <div className="max-h-80 overflow-y-auto space-y-2">
                 {employees
                   .filter((employee: Employee) =>
                     `${employee.firstName} ${employee.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -668,7 +675,7 @@ export default function CallServices() {
 
       {/* Create Call Service Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Call Service</DialogTitle>
           </DialogHeader>
@@ -676,26 +683,28 @@ export default function CallServices() {
           <div className="space-y-6">
             <Stepper currentStep={currentStep} totalSteps={6} />
             
-            <div className="min-h-[400px]">
+            <div className="min-h-[500px] px-2">
               {renderStepContent()}
             </div>
             
-            <div className="flex justify-between pt-4 border-t">
+            <div className="flex justify-between items-center pt-6 border-t mt-6 px-2">
               <Button
                 variant="outline"
                 onClick={handlePrevious}
                 disabled={currentStep === 1}
+                size="lg"
               >
                 Previous
               </Button>
               
-              <div className="space-x-2">
+              <div className="flex space-x-3">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setShowCreateDialog(false);
                     resetForm();
                   }}
+                  size="lg"
                 >
                   Cancel
                 </Button>
@@ -706,6 +715,8 @@ export default function CallServices() {
                       (currentStep === 2 && !formData.customerId) ||
                       (currentStep === 5 && !formData.assignedEmployeeId)
                     }
+                    size="lg"
+                    className="min-w-[100px]"
                   >
                     Next
                   </Button>
@@ -713,7 +724,8 @@ export default function CallServices() {
                   <Button
                     onClick={handleCreateCall}
                     disabled={createCallServiceMutation.isPending}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-green-600 hover:bg-green-700 min-w-[160px]"
+                    size="lg"
                   >
                     {createCallServiceMutation.isPending ? "Creating..." : "Create Call Service"}
                   </Button>
