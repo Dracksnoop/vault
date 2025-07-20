@@ -528,14 +528,11 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
     try {
       // Update unit statuses to rented and assign to customer
       await Promise.all(selectedUnitsToAdd.map(unitId => 
-        apiRequest(`/api/units/${unitId}`, {
-          method: 'PUT',
-          body: { 
-            status: 'Rented',
-            currentCustomerId: customerId,
-            rentedBy: customerId,
-            serviceId: selectedItem.serviceId
-          }
+        apiRequest('PUT', `/api/units/${unitId}`, { 
+          status: 'Rented',
+          currentCustomerId: customerId,
+          rentedBy: customerId,
+          serviceId: selectedItem.serviceId
         })
       ));
       
@@ -588,18 +585,15 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
         const totalRentalValue = completeItemsSnapshot.reduce((sum: number, item: any) => 
           sum + (item.unitPrice * item.units.length), 0);
         
-        await apiRequest(`/api/customers/${customerId}/timeline`, {
-          method: 'POST',
-          body: {
-            id: `timeline-${Date.now()}`,
-            customerId: parseInt(customerId),
-            serviceId: selectedItem.serviceId,
-            changeType: 'added',
-            title: 'Units Added to Rental',
-            description: `Added ${selectedUnitsToAdd.length} unit(s) to ${selectedItem.itemDetails?.name || 'rental'}`,
-            itemsSnapshot: JSON.stringify(completeItemsSnapshot),
-            totalValue: totalRentalValue.toString()
-          }
+        await apiRequest('POST', `/api/customers/${customerId}/timeline`, {
+          id: `timeline-${Date.now()}`,
+          customerId: parseInt(customerId),
+          serviceId: selectedItem.serviceId,
+          changeType: 'added',
+          title: 'Units Added to Rental',
+          description: `Added ${selectedUnitsToAdd.length} unit(s) to ${selectedItem.itemDetails?.name || 'rental'}`,
+          itemsSnapshot: JSON.stringify(completeItemsSnapshot),
+          totalValue: totalRentalValue.toString()
         });
       } catch (timelineError) {
         console.warn('Failed to create timeline entry:', timelineError);
@@ -647,14 +641,11 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       
       // Update unit statuses to Available and clear customer assignment
       await Promise.all(selectedUnitsToRemove.map(unitId => 
-        apiRequest(`/api/units/${unitId}`, {
-          method: 'PUT',
-          body: { 
-            status: 'Available',
-            currentCustomerId: null,
-            rentedBy: null,
-            serviceId: null
-          }
+        apiRequest('PUT', `/api/units/${unitId}`, { 
+          status: 'Available',
+          currentCustomerId: null,
+          rentedBy: null,
+          serviceId: null
         })
       ));
       
@@ -665,20 +656,15 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       
       // If no units remain, delete the service item from the database
       if (remainingUnits.length === 0) {
-        await apiRequest(`/api/service-items/${selectedItem.id}`, {
-          method: 'DELETE'
-        });
+        await apiRequest('DELETE', `/api/service-items/${selectedItem.id}`);
       } else {
         // Update service item with new quantity and total value
         const newQuantity = remainingUnits.length;
         const newTotalValue = (newQuantity * parseFloat(selectedItem.unitPrice || '0')).toFixed(2);
         
-        await apiRequest(`/api/service-items/${selectedItem.id}`, {
-          method: 'PUT',
-          body: {
-            quantity: newQuantity,
-            totalValue: newTotalValue
-          }
+        await apiRequest('PUT', `/api/service-items/${selectedItem.id}`, {
+          quantity: newQuantity,
+          totalValue: newTotalValue
         });
       }
       
