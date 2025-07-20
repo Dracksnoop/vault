@@ -195,6 +195,18 @@ export default function CallServices() {
   };
 
   const handleNext = () => {
+    // Update rental details with selected units when moving from step 3
+    if (currentStep === 3 && selectedUnits.length > 0) {
+      const updatedDetails = formData.rentalDetails.map(detail => ({
+        ...detail,
+        serialNumbers: selectedUnits.join(', ')
+      }));
+      setFormData({
+        ...formData,
+        rentalDetails: updatedDetails
+      });
+    }
+    
     if (currentStep < 6) {
       setCurrentStep(currentStep + 1);
     }
@@ -230,6 +242,8 @@ export default function CallServices() {
     if (isSelected) {
       updatedRentals = formData.selectedRentals.filter(id => id !== rental.id);
       updatedDetails = updatedDetails.filter(detail => detail.rentalId !== rental.id);
+      // Clear selected units when deselecting rental
+      setSelectedUnits([]);
     } else {
       updatedRentals = [...formData.selectedRentals, rental.id];
       
@@ -243,7 +257,7 @@ export default function CallServices() {
       updatedDetails.push({
         rentalId: rental.id,
         itemName: itemNames || `Rental ${rental.id}`,
-        serialNumbers: "",
+        serialNumbers: selectedUnits.join(', '),
         issueDetails: ""
       });
     }
@@ -713,7 +727,26 @@ export default function CallServices() {
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-600">Selected Rental Items</Label>
-                    <p className="text-sm text-gray-600">{formData.selectedRentals.length} items selected</p>
+                    <div className="mt-2 space-y-2">
+                      {formData.rentalDetails.length === 0 ? (
+                        <p className="text-sm text-gray-600">No rental items selected</p>
+                      ) : (
+                        formData.rentalDetails.map((detail, index) => (
+                          <div key={index} className="p-3 bg-gray-50 rounded border">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">{detail.itemName}</span>
+                              <span className="text-xs text-gray-600">Rental #{detail.rentalId}</span>
+                            </div>
+                            {selectedUnits.length > 0 && (
+                              <div className="mt-1">
+                                <span className="text-xs text-gray-600">Selected Units: </span>
+                                <span className="text-xs text-blue-600">{selectedUnits.length} unit(s) selected</span>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
