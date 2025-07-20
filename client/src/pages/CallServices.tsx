@@ -331,24 +331,39 @@ export default function CallServices() {
 
   const generateCallServicePDF = async (callService: CallService) => {
     try {
-      // Get company profile for header
-      const companyProfile = await apiRequest("GET", "/api/company-profiles/default");
+      console.log("Starting PDF generation for:", callService.callNumber);
       
-      // Get call service items
-      const callServiceItems = await apiRequest("GET", `/api/call-service-items/call/${callService.id}`);
+      // Get company profile and call service items
+      const [companyProfile, callServiceItemsData] = await Promise.all([
+        apiRequest("GET", "/api/company-profiles/default").catch(() => ({})),
+        apiRequest("GET", `/api/call-service-items/call/${callService.id}`).catch(() => [])
+      ]);
+      
+      console.log("Company profile:", companyProfile);
+      console.log("Call service items:", callServiceItemsData);
       
       // Get customer details
       const customer = customers.find((c: Customer) => c.id === callService.customerId);
+      console.log("Customer found:", customer);
       
       const doc = new jsPDF();
       
       // Header - Company Info
       doc.setFontSize(20);
-      doc.text(companyProfile.companyName || "Raydify Vault", 20, 20);
+      doc.text(companyProfile?.companyName || "Raydify Vault", 20, 20);
       doc.setFontSize(10);
-      doc.text(companyProfile.address || "", 20, 30);
-      doc.text(`${companyProfile.city || ""}, ${companyProfile.state || ""} ${companyProfile.zipCode || ""}`, 20, 35);
-      doc.text(`Phone: ${companyProfile.phone || ""} | Email: ${companyProfile.email || ""}`, 20, 40);
+      
+      if (companyProfile?.address) {
+        doc.text(companyProfile.address, 20, 30);
+      }
+      
+      if (companyProfile?.city || companyProfile?.state || companyProfile?.zipCode) {
+        doc.text(`${companyProfile?.city || ""}, ${companyProfile?.state || ""} ${companyProfile?.zipCode || ""}`, 20, 35);
+      }
+      
+      if (companyProfile?.phone || companyProfile?.email) {
+        doc.text(`Phone: ${companyProfile?.phone || ""} | Email: ${companyProfile?.email || ""}`, 20, 40);
+      }
       
       // Title
       doc.setFontSize(16);
@@ -356,9 +371,9 @@ export default function CallServices() {
       
       // Call Service Details
       doc.setFontSize(12);
-      doc.text(`Call Number: ${callService.callNumber}`, 20, 70);
-      doc.text(`Status: ${callService.status.toUpperCase()}`, 120, 70);
-      doc.text(`Priority: ${callService.priority.toUpperCase()}`, 20, 80);
+      doc.text(`Call Number: ${callService.callNumber || "N/A"}`, 20, 70);
+      doc.text(`Status: ${(callService.status || "").toUpperCase()}`, 120, 70);
+      doc.text(`Priority: ${(callService.priority || "").toUpperCase()}`, 20, 80);
       doc.text(`Created: ${new Date(callService.createdAt).toLocaleDateString()}`, 120, 80);
       doc.text(`Resolution Due: ${new Date(callService.issueResolutionDate).toLocaleDateString()}`, 20, 90);
       
@@ -372,36 +387,39 @@ export default function CallServices() {
       doc.text("CUSTOMER INFORMATION", 20, 115);
       doc.setFontSize(10);
       if (customer) {
-        doc.text(`Name: ${customer.name}`, 20, 125);
+        doc.text(`Name: ${customer.name || "N/A"}`, 20, 125);
         doc.text(`Email: ${customer.email || "N/A"}`, 20, 130);
         doc.text(`Phone: ${customer.phone || "N/A"}`, 20, 135);
         doc.text(`Address: ${customer.address || "N/A"}`, 20, 140);
         doc.text(`City: ${customer.city || "N/A"}, State: ${customer.state || "N/A"}`, 20, 145);
+      } else {
+        doc.text("Customer information not available", 20, 125);
       }
       
       // Employee Assignment
       doc.setFontSize(14);
       doc.text("ASSIGNED EMPLOYEE", 20, 160);
       doc.setFontSize(10);
-      doc.text(`Employee: ${callService.employeeName}`, 20, 170);
+      doc.text(`Employee: ${callService.employeeName || "N/A"}`, 20, 170);
       
       // Issue Description
       doc.setFontSize(14);
       doc.text("ISSUE DESCRIPTION", 20, 185);
       doc.setFontSize(10);
-      const splitDescription = doc.splitTextToSize(callService.issueDescription, 170);
+      const issueText = callService.issueDescription || "No description provided";
+      const splitDescription = doc.splitTextToSize(issueText, 170);
       doc.text(splitDescription, 20, 195);
       
       // Affected Items/Units
-      if (callServiceItems && callServiceItems.length > 0) {
-        let yPos = 215 + (splitDescription.length * 5);
-        doc.setFontSize(14);
-        doc.text("AFFECTED ITEMS/UNITS", 20, yPos);
-        doc.setFontSize(10);
-        
-        callServiceItems.forEach((item: any, index: number) => {
+      let yPos = 215 + (splitDescription.length * 5);
+      doc.setFontSize(14);
+      doc.text("AFFECTED ITEMS/UNITS", 20, yPos);
+      doc.setFontSize(10);
+      
+      if (callServiceItemsData && callServiceItemsData.length > 0) {
+        callServiceItemsData.forEach((item: any, index: number) => {
           yPos += 10;
-          doc.text(`${index + 1}. Item: ${item.itemName}`, 25, yPos);
+          doc.text(`${index + 1}. Item: ${item.itemName || "Unknown Item"}`, 25, yPos);
           if (item.serialNumbers) {
             yPos += 5;
             doc.text(`   Serial Numbers: ${item.serialNumbers}`, 25, yPos);
@@ -413,6 +431,9 @@ export default function CallServices() {
             yPos += (splitIssue.length - 1) * 5;
           }
         });
+      } else {
+        yPos += 10;
+        doc.text("No specific items/units associated with this call service", 25, yPos);
       }
       
       // Footer
@@ -422,7 +443,9 @@ export default function CallServices() {
       doc.text(`Call Service ID: ${callService.id}`, 20, pageHeight - 15);
       
       // Download the PDF
-      doc.save(`CallService_${callService.callNumber}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+      const fileName = `CallService_${callService.callNumber}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`;
+      console.log("Saving PDF as:", fileName);
+      doc.save(fileName);
       
       toast({
         title: "Success",
@@ -432,7 +455,7 @@ export default function CallServices() {
       console.error("Error generating PDF:", error);
       toast({
         title: "Error",
-        description: "Failed to generate PDF report",
+        description: `Failed to generate PDF report: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
     }
