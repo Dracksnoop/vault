@@ -857,9 +857,17 @@ export default function Billing() {
                       </tr>
                     ) : (
                       invoices?.sort((a, b) => {
-                        // Priority order: pending -> overdue -> paid -> cancelled
+                        // Priority order: pending first, then overdue, then paid, then cancelled
                         const statusOrder = { 'pending': 0, 'overdue': 1, 'paid': 2, 'cancelled': 3 };
-                        return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+                        const aOrder = statusOrder[a.status] !== undefined ? statusOrder[a.status] : 99;
+                        const bOrder = statusOrder[b.status] !== undefined ? statusOrder[b.status] : 99;
+                        
+                        // If same status, sort by date (newest first)
+                        if (aOrder === bOrder) {
+                          return new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime();
+                        }
+                        
+                        return aOrder - bOrder;
                       })?.map((invoice) => (
                         <tr key={invoice.id} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="p-4">
