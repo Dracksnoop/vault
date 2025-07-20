@@ -170,10 +170,7 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
 
   const editServiceItemMutation = useMutation({
     mutationFn: async (updateData: any) => {
-      return apiRequest(`/api/service-items/${selectedItem.id}`, {
-        method: 'PUT',
-        body: updateData
-      });
+      return apiRequest('PUT', `/api/service-items/${selectedItem.id}`, updateData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/service-items'] });
@@ -208,23 +205,20 @@ export default function RentalItemsPanel({ customerId, customerName, onBack }: R
       // Create timeline entry for edit
       try {
         const timelineId = `timeline-${Date.now()}`;
-        await apiRequest(`/api/customers/${customerId}/timeline`, {
-          method: 'POST',
-          body: {
-            id: timelineId,
-            customerId: parseInt(customerId.toString()),
-            serviceId: selectedItem.serviceId,
-            changeType: 'modified',
-            title: 'Rental Item Edited',
-            description: `Updated ${selectedItem.itemDetails?.name || 'item'} - Price: ₹${updateData.unitPrice}`,
-            itemsSnapshot: JSON.stringify([{
-              itemName: selectedItem.itemDetails?.name || 'Unknown Item',
-              unitPrice: parseFloat(updateData.unitPrice),
-              quantity: selectedItem.quantity,
-              totalValue: parseFloat(updateData.unitPrice) * selectedItem.quantity
-            }]),
-            totalValue: (parseFloat(updateData.unitPrice) * selectedItem.quantity).toString()
-          }
+        await apiRequest('POST', `/api/customers/${customerId}/timeline`, {
+          id: timelineId,
+          customerId: parseInt(customerId.toString()),
+          serviceId: selectedItem.serviceId,
+          changeType: 'modified',
+          title: 'Rental Item Edited',
+          description: `Updated ${selectedItem.itemDetails?.name || 'item'} - Price: ₹${updateData.unitPrice}`,
+          itemsSnapshot: JSON.stringify([{
+            itemName: selectedItem.itemDetails?.name || 'Unknown Item',
+            unitPrice: parseFloat(updateData.unitPrice),
+            quantity: selectedItem.quantity,
+            totalValue: parseFloat(updateData.unitPrice) * selectedItem.quantity
+          }]),
+          totalValue: (parseFloat(updateData.unitPrice) * selectedItem.quantity).toString()
         });
       } catch (timelineError) {
         console.warn('Failed to create timeline entry:', timelineError);

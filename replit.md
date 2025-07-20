@@ -398,3 +398,16 @@ The application follows a clean architecture pattern with clear separation betwe
   - Multi-currency support (INR) functioning properly
   - Recurring invoice generation working with 6-day advance scheduling
   - Complete billing workflow tested and confirmed operational
+
+- **July 20, 2025**: CRITICAL FIX - Unit specifications saving functionality and API call standardization
+  - Fixed critical API call format errors preventing unit specs from saving (CPU, Monitor, and other hardware specifications)
+  - Standardized all apiRequest calls across entire codebase to use correct format: apiRequest(method, url, data)
+  - Fixed CPUSpecsEditor, MonitorSpecsEditor, UnitDetailsPanel, RentalItemsPanel, CustomerDetails, PurchaseDashboard
+  - Eliminated legacy fetch-style options object format {method: 'PUT', body: data} that caused HTTP method errors
+  - Updated getUnitBySerialNumber method to support multi-tenancy with userId filtering
+  - Fixed QR dashboard authentication to properly access user-specific units
+  - All unit specification editing (CPU, Monitor, hardware details) now works without errors
+  - Complete system-wide API standardization ensuring consistent authentication and error handling
+  - Enhanced QR dashboard login with better user type support and debugging
+  - Fixed "Failed to execute 'fetch' on 'window': '/api/units/ID' is not a valid HTTP method" errors
+  - All inventory, customer, billing, and unit management operations now use standardized API calls

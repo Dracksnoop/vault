@@ -86,10 +86,7 @@ export default function CustomerDetails() {
 
   const updateCustomerMutation = useMutation({
     mutationFn: (customerData: any) =>
-      apiRequest(`/api/customers/${customerId}`, {
-        method: 'PUT',
-        body: customerData,
-      }),
+      apiRequest('PUT', `/api/customers/${customerId}`, customerData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
       queryClient.invalidateQueries({ queryKey: ['/api/customers', customerId] });

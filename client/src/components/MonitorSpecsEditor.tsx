@@ -87,10 +87,7 @@ export default function MonitorSpecsEditor({ unit, isOpen, onClose }: MonitorSpe
 
   const updateUnitMutation = useMutation({
     mutationFn: async (updatedSpecs: MonitorUnit) => {
-      const response = await apiRequest(`/api/units/${unit.id}`, {
-        method: 'PUT',
-        body: updatedSpecs
-      });
+      const response = await apiRequest('PUT', `/api/units/${unit.id}`, updatedSpecs);
       return response;
     },
     onSuccess: () => {

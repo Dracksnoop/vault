@@ -156,13 +156,10 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
   const createCategoryMutation = useMutation({
     mutationFn: async (data: { name: string }) => {
       const categoryId = Date.now().toString();
-      return apiRequest('/api/categories', {
-        method: 'POST',
-        body: JSON.stringify({
-          id: categoryId,
-          name: data.name,
-          itemCount: 0,
-        }),
+      return apiRequest('POST', '/api/categories', {
+        id: categoryId,
+        name: data.name,
+        itemCount: 0,
       });
     },
     onSuccess: () => {
@@ -186,10 +183,7 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
   // Create vendor mutation
   const createVendorMutation = useMutation({
     mutationFn: async (data: VendorFormData) => {
-      return apiRequest('/api/vendors', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return apiRequest('POST', '/api/vendors', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/vendors'] });
@@ -216,12 +210,9 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
     }) => {
       // First create vendor
       const vendorId = Date.now().toString();
-      await apiRequest('/api/vendors', {
-        method: 'POST',
-        body: JSON.stringify({
-          id: vendorId,
-          ...data.vendorData,
-        }),
+      await apiRequest('POST', '/api/vendors', {
+        id: vendorId,
+        ...data.vendorData,
       });
 
       // Create items and units
@@ -229,17 +220,14 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
         const itemId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
         
         // Create item
-        await apiRequest('/api/items', {
-          method: 'POST',
-          body: JSON.stringify({
-            id: itemId,
-            name: item.name,
-            model: item.model,
-            categoryId: item.categoryId,
-            quantityInStock: item.quantity,
-            quantityRentedOut: 0,
-            location: item.location,
-          }),
+        await apiRequest('POST', '/api/items', {
+          id: itemId,
+          name: item.name,
+          model: item.model,
+          categoryId: item.categoryId,
+          quantityInStock: item.quantity,
+          quantityRentedOut: 0,
+          location: item.location,
         });
 
         // Create units for this item
@@ -247,17 +235,14 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
           const unitId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
           const serialNumber = `${item.name.substring(0, 3).toUpperCase()}-${Date.now()}-${i + 1}`;
           
-          await apiRequest('/api/units', {
-            method: 'POST',
-            body: JSON.stringify({
-              id: unitId,
-              itemId: itemId,
-              serialNumber: serialNumber,
-              barcode: `BC${serialNumber}`,
-              status: 'Available',
-              location: item.location,
-              ...item.specifications,
-            }),
+          await apiRequest('POST', '/api/units', {
+            id: unitId,
+            itemId: itemId,
+            serialNumber: serialNumber,
+            barcode: `BC${serialNumber}`,
+            status: 'Available',
+            location: item.location,
+            ...item.specifications,
           });
         }
       }
@@ -266,17 +251,14 @@ export function PurchaseDashboard({ onBack }: PurchaseDashboardProps) {
       const purchaseOrderId = Date.now().toString();
       const totalValue = data.items.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0);
       
-      return apiRequest('/api/purchase-orders', {
-        method: 'POST',
-        body: JSON.stringify({
-          id: purchaseOrderId,
-          vendorId: vendorId,
-          orderDate: new Date().toISOString().split('T')[0],
-          status: 'completed',
-          totalItems: data.items.reduce((sum, item) => sum + item.quantity, 0),
-          totalValue: totalValue.toString(),
-          notes: 'Purchase order created via dashboard',
-        }),
+      return apiRequest('POST', '/api/purchase-orders', {
+        id: purchaseOrderId,
+        vendorId: vendorId,
+        orderDate: new Date().toISOString().split('T')[0],
+        status: 'completed',
+        totalItems: data.items.reduce((sum, item) => sum + item.quantity, 0),
+        totalValue: totalValue.toString(),
+        notes: 'Purchase order created via dashboard',
       });
     },
     onSuccess: () => {

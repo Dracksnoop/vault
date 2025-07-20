@@ -140,10 +140,7 @@ export default function UnitDetailsPanel({ unit, item, category, isOpen, onClose
 
   const updateUnitMutation = useMutation({
     mutationFn: async (updatedUnit: Unit) => {
-      const response = await apiRequest(`/api/units/${unit.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(updatedUnit)
-      });
+      const response = await apiRequest('PUT', `/api/units/${unit.id}`, updatedUnit);
       return response;
     },
     onSuccess: () => {

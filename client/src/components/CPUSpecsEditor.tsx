@@ -104,11 +104,7 @@ export default function CPUSpecsEditor({ unit, isOpen, onClose }: CPUSpecsEditor
 
   const updateMutation = useMutation({
     mutationFn: async (updatedSpecs: CPUUnit) => {
-      return await apiRequest(`/api/units/${unit.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedSpecs),
-      });
+      return await apiRequest('PUT', `/api/units/${unit.id}`, updatedSpecs);
     },
     onSuccess: () => {
       toast({
