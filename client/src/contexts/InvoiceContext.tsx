@@ -12,8 +12,16 @@ const InvoiceContext = createContext<InvoiceContextType | undefined>(undefined);
 export function InvoiceProvider({ children }: { children: ReactNode }) {
   const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
 
-  const openCreateInvoiceModal = () => setShowCreateInvoiceModal(true);
-  const closeCreateInvoiceModal = () => setShowCreateInvoiceModal(false);
+  const openCreateInvoiceModal = () => {
+    console.log('Opening invoice modal - current state:', showCreateInvoiceModal);
+    setShowCreateInvoiceModal(true);
+    console.log('After setting - new state should be: true');
+  };
+  
+  const closeCreateInvoiceModal = () => {
+    console.log('Closing invoice modal');
+    setShowCreateInvoiceModal(false);
+  };
 
   return (
     <InvoiceContext.Provider value={{

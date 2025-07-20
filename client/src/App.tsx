@@ -28,12 +28,23 @@ import Login from "./pages/Login";
 import QRScanDashboard from "./pages/QRScanDashboard";
 import NotFound from "@/pages/not-found";
 import VaultLoader from "./components/VaultLoader";
+import CreateInvoiceModal from "./components/CreateInvoiceModal";
+import { useInvoice } from "./contexts/InvoiceContext";
 
 function Router() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPreloading, setIsPreloading] = useState(false);
   const { isMobile } = useMobileDetection();
+  
+  // Use try-catch to handle cases where Router might be outside InvoiceProvider
+  let invoiceContext;
+  try {
+    invoiceContext = useInvoice();
+  } catch (error) {
+    console.log('Router not inside InvoiceProvider context');
+    invoiceContext = null;
+  }
 
   const preloadAllData = async () => {
     try {
@@ -131,24 +142,34 @@ function Router() {
         ) : user.username === 'admin' ? (
           <AdminDashboard user={user} onLogout={handleLogout} />
         ) : (
-          <Layout user={user} onLogout={handleLogout}>
-            <Switch>
-              <Route path="/" component={Home} />
-              <Route path="/inventory" component={Inventory} />
-              <Route path="/customer" component={Customer} />
-              <Route path="/customer/:id" component={CustomerDetails} />
-              <Route path="/customer-management" component={CustomerManagement} />
-              <Route path="/demo" component={Demo} />
-              <Route path="/callservice" component={CallService} />
-              <Route path="/trade" component={Trade} />
-              <Route path="/replacements" component={Replacements} />
-              <Route path="/billing" component={Billing} />
-              <Route path="/users" component={Users} />
-              <Route path="/profile" component={Profile} />
-              <Route path="/support" component={Support} />
-              <Route component={NotFound} />
-            </Switch>
-          </Layout>
+          <>
+            <Layout user={user} onLogout={handleLogout}>
+              <Switch>
+                <Route path="/" component={Home} />
+                <Route path="/inventory" component={Inventory} />
+                <Route path="/customer" component={Customer} />
+                <Route path="/customer/:id" component={CustomerDetails} />
+                <Route path="/customer-management" component={CustomerManagement} />
+                <Route path="/demo" component={Demo} />
+                <Route path="/callservice" component={CallService} />
+                <Route path="/trade" component={Trade} />
+                <Route path="/replacements" component={Replacements} />
+                <Route path="/billing" component={Billing} />
+                <Route path="/users" component={Users} />
+                <Route path="/profile" component={Profile} />
+                <Route path="/support" component={Support} />
+                <Route component={NotFound} />
+              </Switch>
+            </Layout>
+            
+            {/* Global Create Invoice Modal */}
+            {invoiceContext && (
+              <CreateInvoiceModal 
+                isOpen={invoiceContext.showCreateInvoiceModal} 
+                onClose={invoiceContext.closeCreateInvoiceModal} 
+              />
+            )}
+          </>
         )}
       </Route>
     </Switch>

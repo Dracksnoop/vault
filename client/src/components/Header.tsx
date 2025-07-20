@@ -21,6 +21,11 @@ interface HeaderProps {
 export default function Header({ onMenuClick, user, onLogout }: HeaderProps) {
   const { openCreateInvoiceModal } = useInvoice();
   
+  const handleCreateInvoiceClick = () => {
+    console.log('Create Invoice button clicked!');
+    openCreateInvoiceModal();
+  };
+  
   return (
     <header className="bg-white fixed top-0 right-0 left-0 lg:left-60 z-50 h-16 border-b border-black">
       <div className="flex items-center justify-between h-full px-4">
@@ -52,7 +57,7 @@ export default function Header({ onMenuClick, user, onLogout }: HeaderProps) {
         
         {/* Create Invoice Button */}
         <Button 
-          onClick={openCreateInvoiceModal}
+          onClick={handleCreateInvoiceClick}
           className="hidden lg:flex bg-black text-white hover:bg-gray-800 border-black h-8 px-3 text-sm"
         >
           <Plus className="w-4 h-4 mr-1" />
@@ -61,7 +66,7 @@ export default function Header({ onMenuClick, user, onLogout }: HeaderProps) {
         
         {/* Mobile Create Invoice Button */}
         <Button 
-          onClick={openCreateInvoiceModal}
+          onClick={handleCreateInvoiceClick}
           className="lg:hidden bg-black text-white hover:bg-gray-800 border-black h-8 w-8 p-0"
         >
           <FileText className="w-4 h-4" />
