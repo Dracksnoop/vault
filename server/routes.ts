@@ -1959,16 +1959,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If invoice is being marked as paid, create a payment record automatically
       if (validated.status === 'paid' && currentInvoice.status !== 'paid') {
         console.log(`Creating payment for invoice: ${invoice.id}`);
+        const paymentNumber = `PAY-${Date.now()}`;
         const paymentData = {
+          paymentNumber: paymentNumber,
           invoiceId: invoice.id,
           customerId: invoice.customerId,
           customerName: invoice.customerName,
           amount: invoice.totalAmount,
           paymentMethod: 'Manual Payment',
           paymentDate: new Date().toISOString().split('T')[0],
-          status: 'completed' as const,
-          reference: `AUTO-${invoice.invoiceNumber}`,
-          notes: 'Payment automatically recorded when invoice marked as paid'
+          paymentStatus: 'completed' as const,
+          referenceNumber: `AUTO-${invoice.invoiceNumber}`,
+          notes: 'Payment automatically recorded when invoice marked as paid',
+          userId: req.user?.id
         };
         
         await storage.createPayment(paymentData);
@@ -2609,7 +2612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Calculate total revenue from completed payments
       const totalRevenue = payments
-        .filter(p => (p.status === 'completed' || p.paymentStatus === 'completed') && p.amount)
+        .filter(p => p.paymentStatus === 'completed' && p.amount)
         .reduce((sum, p) => {
           const amount = parseFloat(p.amount || '0');
           return sum + (isNaN(amount) ? 0 : amount);
@@ -2625,10 +2628,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Billing stats calculation:', {
         totalPayments: payments.length,
-        completedPayments: payments.filter(p => (p.status === 'completed' || p.paymentStatus === 'completed') && p.amount).length,
+        completedPayments: payments.filter(p => p.paymentStatus === 'completed' && p.amount).length,
         totalRevenue,
         pendingInvoices: invoices.filter(i => i.status === 'pending').length,
-        outstandingAmount
+        outstandingAmount,
+        paymentsDetails: payments.map(p => ({ id: p.id, amount: p.amount, status: p.paymentStatus }))
       });
       
       const activeSchedules = recurringSchedules.filter(s => s.isActive).length;
