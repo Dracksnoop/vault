@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import {
   AlertTriangle,
   RotateCcw
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Category {
   id: string;
@@ -129,7 +130,8 @@ const initialItems: Item[] = [
 
 export default function Inventory() {
   const queryClient = useQueryClient();
-  const [selectedCategory, setSelectedCategory] = useState<string>("1");
+  const { toast } = useToast();
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [unitSearchTerm, setUnitSearchTerm] = useState("");
@@ -182,12 +184,20 @@ export default function Inventory() {
   const [totalUnitsToCreate, setTotalUnitsToCreate] = useState(0);
   const [currentUnitCreation, setCurrentUnitCreation] = useState("");
 
-  // API queries
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+  // Auto-select first category when categories are loaded
+  useEffect(() => {
+    if (categories.length > 0 && !selectedCategory) {
+      setSelectedCategory(categories[0].id);
+    }
+  }, [categories, selectedCategory]);
+
+  // API queries with proper refetch configuration
+  const { data: categories = [], isLoading: categoriesLoading, refetch: refetchCategories } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: () => apiRequest("GET", "/api/categories"),
-    staleTime: 0, // Always refetch
-    cacheTime: 0, // Don't cache
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   const { data: items = [], isLoading: itemsLoading } = useQuery({
@@ -208,10 +218,24 @@ export default function Inventory() {
   const createCategoryMutation = useMutation({
     mutationFn: (category: { id: string; name: string; itemCount: number }) =>
       apiRequest("POST", "/api/categories", category),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Force immediate refetch and UI update
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.refetchQueries({ queryKey: ["/api/categories"] });
+      refetchCategories();
       setShowAddCategory(false);
       setNewCategory("");
+      toast({
+        title: "Category Created",
+        description: `Successfully created category "${data.name}"`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create category",
+        variant: "destructive",
+      });
     },
   });
 
@@ -270,7 +294,11 @@ export default function Inventory() {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: ["/api/units"] });
-      setSelectedCategory("1"); // Reset to first category
+      if (categories.length > 0) {
+        setSelectedCategory(categories[0].id);
+      } else {
+        setSelectedCategory("");
+      }
     },
   });
 
@@ -735,23 +763,33 @@ export default function Inventory() {
           
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="p-2">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => {
-                    setSelectedCategory(category.id);
-                    setSelectedItem(null);
-                  }}
-                  className={`w-full text-left p-3 rounded-lg mb-2 transition-colors ${
-                    selectedCategory === category.id
-                      ? "bg-gray-100 border-l-4 border-black"
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  <div className="font-medium text-black">{category.name}</div>
-                  <div className="text-sm text-gray-600">{category.itemCount} items</div>
-                </button>
-              ))}
+              {categoriesLoading ? (
+                <div className="p-3 text-center text-gray-500">Loading categories...</div>
+              ) : categories.length === 0 ? (
+                <div className="p-3 text-center text-gray-500">
+                  <Package className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm">No categories yet</p>
+                  <p className="text-xs text-gray-400">Add your first category below</p>
+                </div>
+              ) : (
+                categories.map((category) => (
+                  <button
+                    key={category.id}
+                    onClick={() => {
+                      setSelectedCategory(category.id);
+                      setSelectedItem(null);
+                    }}
+                    className={`w-full text-left p-3 rounded-lg mb-2 transition-colors ${
+                      selectedCategory === category.id
+                        ? "bg-gray-100 border-l-4 border-black"
+                        : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="font-medium text-black">{category.name}</div>
+                    <div className="text-sm text-gray-600">{category.itemCount} items</div>
+                  </button>
+                ))
+              )}
             </div>
           </div>
           
@@ -784,9 +822,10 @@ export default function Inventory() {
                   <div className="flex gap-2">
                     <Button 
                       onClick={handleAddCategory}
-                      className="bg-black text-white hover:bg-gray-800"
+                      disabled={createCategoryMutation.isPending}
+                      className="bg-black text-white hover:bg-gray-800 disabled:opacity-50"
                     >
-                      Add Category
+                      {createCategoryMutation.isPending ? "Creating..." : "Add Category"}
                     </Button>
                     <Button 
                       variant="outline" 
