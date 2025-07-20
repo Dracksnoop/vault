@@ -125,10 +125,9 @@ export default function Replacements() {
     }
   });
 
-  // Fetch replacement data from localStorage (where replacement requests are stored)
+  // Fetch replacement data from API
   const { data: replacements = [], isLoading } = useQuery({
     queryKey: ['/api/replacement-requests'],
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
   });
 
   // Calculate statistics

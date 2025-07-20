@@ -163,53 +163,27 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
   // Create replacement mutation
   const createReplacementMutation = useMutation({
     mutationFn: async (data: ReplacementFormData & { unitId: string; itemId: string }) => {
-      const replacementId = Date.now().toString();
-      
-      // Create replacement record
+      // Create replacement record using API
       const replacementData = {
-        id: replacementId,
         unitId: data.unitId,
-        unitSerialNumber: selectedUnit?.serialNumber,
+        unitSerialNumber: selectedUnit?.serialNumber || '',
         itemId: data.itemId,
-        itemName: selectedItem?.name,
-        itemModel: selectedItem?.model,
+        itemName: selectedItem?.name || '',
+        itemModel: selectedItem?.model || '',
         reason: data.reason,
         status: 'pending',
         requestDate: new Date().toISOString().split('T')[0],
         notes: data.notes,
-        replacementType: data.replacementType,
-        newItemName: data.newItemName || '',
-        newItemModel: data.newItemModel || '',
         cost: data.cost || 0,
         vendorName: data.vendorName || '',
         warrantyExpiryDate: data.warrantyExpiryDate || '',
         customerId: selectedUnit?.currentCustomerId || '',
         customerName: selectedUnit?.currentCustomerId ? 
-          customers.find(c => c.id === selectedUnit?.currentCustomerId)?.name : '',
+          (customers.find(c => c.id === selectedUnit?.currentCustomerId)?.name || '') : '',
       };
 
-      // Store replacement request in localStorage for real-time updates
-      const existingReplacements = localStorage.getItem('replacementRequests');
-      let replacements = [];
-      
-      if (existingReplacements) {
-        try {
-          replacements = JSON.parse(existingReplacements);
-        } catch (error) {
-          console.error('Error parsing existing replacements:', error);
-        }
-      }
-      
-      replacements.push(replacementData);
-      localStorage.setItem('replacementRequests', JSON.stringify(replacements));
-      
-      // In a real implementation, this would:
-      // 1. Create the replacement record in the database
-      // 2. If replacement type is 'different', update the item details everywhere while keeping the same serial number
-      // 3. Update inventory counts and unit assignments
-      console.log('Creating replacement request:', replacementData);
-      
-      return replacementData;
+      // Create replacement request via API
+      return await apiRequest('POST', '/api/replacement-requests', replacementData);
     },
     onSuccess: () => {
       toast({
@@ -218,7 +192,7 @@ export function ReplacementRequestModal({ isOpen, onClose }: ReplacementRequestM
       });
       
       // Invalidate replacement cache to update dashboard
-      queryClient.invalidateQueries({ queryKey: ['/api/replacements'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/replacement-requests'] });
       
       // Reset form and close modal
       form.reset();
