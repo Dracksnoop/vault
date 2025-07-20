@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { NavigationProvider } from "./contexts/NavigationContext";
+import { InvoiceProvider } from "./contexts/InvoiceContext";
 import Layout from "./components/Layout";
 import MobileLanding from "./components/MobileLanding";
 import useMobileDetection from "./hooks/useMobileDetection";
@@ -158,10 +159,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <NavigationProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <InvoiceProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </InvoiceProvider>
       </NavigationProvider>
     </QueryClientProvider>
   );

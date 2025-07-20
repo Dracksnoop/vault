@@ -21,6 +21,7 @@ import {
 import CreateInvoiceModal from '@/components/CreateInvoiceModal';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useInvoice } from '../contexts/InvoiceContext';
 
 interface BillingStats {
   totalInvoices: number;
@@ -250,7 +251,7 @@ function RecurringInvoicePreview({ schedule, companyProfile, onClose }: {
 
 export default function Billing() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [showCreateInvoiceModal, setShowCreateInvoiceModal] = useState(false);
+  const { showCreateInvoiceModal, openCreateInvoiceModal, closeCreateInvoiceModal } = useInvoice();
   const [showCreateRecurringModal, setShowCreateRecurringModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedCustomerForRecurring, setSelectedCustomerForRecurring] = useState<Invoice | null>(null);
@@ -819,7 +820,7 @@ export default function Billing() {
             <div className="flex gap-2">
               <Button 
                 className="bg-black text-white hover:bg-gray-800 border-black"
-                onClick={() => setShowCreateInvoiceModal(true)}
+                onClick={openCreateInvoiceModal}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Invoice
@@ -1373,7 +1374,7 @@ export default function Billing() {
       {/* Create Invoice Modal */}
       <CreateInvoiceModal 
         isOpen={showCreateInvoiceModal} 
-        onClose={() => setShowCreateInvoiceModal(false)} 
+        onClose={closeCreateInvoiceModal} 
       />
 
       {/* Recurring Invoice Preview Modal */}

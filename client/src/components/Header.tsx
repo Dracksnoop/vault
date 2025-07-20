@@ -1,4 +1,4 @@
-import { User, Menu, LogOut } from "lucide-react";
+import { User, Menu, LogOut, Plus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import logoPath from "@assets/WhatsApp_Image_2025-07-13_at_1.27.05_AM-removebg-preview_1752387426033.png";
 import GlobalSearch from "./GlobalSearch";
+import { useInvoice } from "../contexts/InvoiceContext";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -18,6 +19,8 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick, user, onLogout }: HeaderProps) {
+  const { openCreateInvoiceModal } = useInvoice();
+  
   return (
     <header className="bg-white fixed top-0 right-0 left-0 lg:left-60 z-50 h-16 border-b border-black">
       <div className="flex items-center justify-between h-full px-4">
@@ -46,6 +49,23 @@ export default function Header({ onMenuClick, user, onLogout }: HeaderProps) {
         <div className="hidden lg:block flex-1 max-w-md mx-4">
           <GlobalSearch />
         </div>
+        
+        {/* Create Invoice Button */}
+        <Button 
+          onClick={openCreateInvoiceModal}
+          className="hidden lg:flex bg-black text-white hover:bg-gray-800 border-black h-8 px-3 text-sm"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Create Invoice
+        </Button>
+        
+        {/* Mobile Create Invoice Button */}
+        <Button 
+          onClick={openCreateInvoiceModal}
+          className="lg:hidden bg-black text-white hover:bg-gray-800 border-black h-8 w-8 p-0"
+        >
+          <FileText className="w-4 h-4" />
+        </Button>
         
         {/* User dropdown */}
         <DropdownMenu>
