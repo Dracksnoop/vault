@@ -1,0 +1,26 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Purple shield with clock emblem design -->
+  <g fill="#8B5CF6">
+    <!-- Outer shield shape -->
+    <path d="M16 2L6 6v8c0 6.627 4.5 12.8 10 14 5.5-1.2 10-7.373 10-14V6L16 2z" stroke="#8B5CF6" stroke-width="1" fill="#8B5CF6"/>
+    
+    <!-- Inner shield frame -->
+    <path d="M16 4L8 7v7c0 5.3 3.6 10.24 8 11.2 4.4-.96 8-5.9 8-11.2V7L16 4z" fill="none" stroke="#8B5CF6" stroke-width="1"/>
+    
+    <!-- Clock face circle -->
+    <circle cx="16" cy="16" r="6" fill="none" stroke="#8B5CF6" stroke-width="1.5"/>
+    
+    <!-- Clock hands -->
+    <line x1="16" y1="16" x2="16" y2="12" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"/>
+    <line x1="16" y1="16" x2="19" y2="16" stroke="#8B5CF6" stroke-width="1.5" stroke-linecap="round"/>
+    
+    <!-- Clock center dot -->
+    <circle cx="16" cy="16" r="1" fill="#8B5CF6"/>
+    
+    <!-- Clock markers -->
+    <circle cx="16" cy="11" r="0.5" fill="#8B5CF6"/>
+    <circle cx="21" cy="16" r="0.5" fill="#8B5CF6"/>
+    <circle cx="16" cy="21" r="0.5" fill="#8B5CF6"/>
+    <circle cx="11" cy="16" r="0.5" fill="#8B5CF6"/>
+  </g>
+</svg>
